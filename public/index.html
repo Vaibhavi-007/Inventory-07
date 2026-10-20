@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Blindness Experiment System</title>
+  <link rel="stylesheet" href="/public/style.css">
+</head>
+<body class="theme-dark">
+  <div id="app" class="app-container">
+    
+    <!-- ==================== SCREEN 1: LANDING PAGE ==================== -->
+    <section id="screen-landing" class="screen active">
+      <header class="header">
+        <div class="logo-area">
+          <div class="icon-pulse">👁️</div>
+          <div>
+            <h1>Change Blindness Experiment</h1>
+            <p class="subtitle">Visual Search & Flicker Paradigm Analysis System</p>
+          </div>
+        </div>
+        <div class="system-status">
+          <span class="status-dot online"></span>
+          <span id="dataset-status-text">170 Stimuli Pairs Ready</span>
+        </div>
+      </header>
+
+      <main class="landing-content">
+        <div class="glass-card config-panel">
+          <div class="card-title">
+            <span class="icon">⚙️</span>
+            <h2>Experiment Configuration</h2>
+          </div>
+
+          <form id="config-form" onsubmit="return false;">
+            <!-- Parameter: Number of images 'n' -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="input-n">Number of Images to Display (<span class="code">n</span>)</label>
+                <span class="param-value" id="val-n">10</span>
+              </div>
+              <div class="slider-row">
+                <input type="range" id="slider-n" min="1" max="170" value="10" class="range-slider">
+                <input type="number" id="input-n" min="1" max="170" value="10" class="number-input">
+              </div>
+              <div class="preset-chips" id="presets-n">
+                <button type="button" class="chip" data-val="5">5</button>
+                <button type="button" class="chip active" data-val="10">10</button>
+                <button type="button" class="chip" data-val="20">20</button>
+                <button type="button" class="chip" data-val="50">50</button>
+                <button type="button" class="chip" data-val="170">All (170)</button>
+              </div>
+              <p class="helper-text">Select how many image pairs to present in this session.</p>
+            </div>
+
+            <!-- Parameter: Time in ms before each interval 't' -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="input-t">Time Before Each Interval (<span class="code">t</span> ms)</label>
+                <span class="param-value" id="val-t">250 ms</span>
+              </div>
+              <div class="slider-row">
+                <input type="range" id="slider-t" min="50" max="2000" step="10" value="250" class="range-slider">
+                <input type="number" id="input-t" min="50" max="5000" step="10" value="250" class="number-input">
+              </div>
+              <div class="preset-chips" id="presets-t">
+                <button type="button" class="chip" data-val="80">80 ms</button>
+                <button type="button" class="chip" data-val="150">150 ms</button>
+                <button type="button" class="chip active" data-val="250">250 ms</button>
+                <button type="button" class="chip" data-val="500">500 ms</button>
+                <button type="button" class="chip" data-val="1000">1000 ms</button>
+              </div>
+              <p class="helper-text">Duration of the black screen interval between present and absent images.</p>
+            </div>
+
+            <!-- Advanced Settings Accordion -->
+            <details class="advanced-settings">
+              <summary>
+                <span>🛠️ Advanced Timing & Presentation Options</span>
+                <span class="chevron">▼</span>
+              </summary>
+              <div class="advanced-body">
+                <!-- Present Image Duration -->
+                <div class="form-group">
+                  <div class="label-row">
+                    <label for="input-img-dur">Present Image Display Time</label>
+                    <span class="param-value" id="val-img-dur">1000 ms</span>
+                  </div>
+                  <div class="slider-row">
+                    <input type="range" id="slider-img-dur" min="100" max="3000" step="50" value="1000" class="range-slider">
+                    <input type="number" id="input-img-dur" min="100" max="5000" step="50" value="1000" class="number-input">
+                  </div>
+                  <div class="preset-chips" id="presets-img-dur">
+                    <button type="button" class="chip" data-val="500">500 ms</button>
+                    <button type="button" class="chip active" data-val="1000">1000 ms</button>
+                    <button type="button" class="chip" data-val="1500">1500 ms</button>
+                    <button type="button" class="chip" data-val="sync">Same as t</button>
+                  </div>
+                </div>
+
+                <!-- Presentation Mode -->
+                <div class="form-group">
+                  <label>Presentation Paradigm</label>
+                  <div class="radio-group">
+                    <label class="radio-card active">
+                      <input type="radio" name="param-mode" value="single_transition" checked>
+                      <div>
+                        <strong>Single Transition (Standard)</strong>
+                        <p>Present image &rarr; Black screen for <span class="code">t</span> &rarr; Absent image (click to identify difference)</p>
+                      </div>
+                    </label>
+                    <label class="radio-card">
+                      <input type="radio" name="param-mode" value="continuous_flicker">
+                      <div>
+                        <strong>Continuous Flicker Loop</strong>
+                        <p>Cycles Present &harr; Black (<span class="code">t</span>) &harr; Absent &harr; Black (<span class="code">t</span>)... until click</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Hit Tolerance -->
+                <div class="form-group">
+                  <div class="label-row">
+                    <label for="input-tolerance">Click Tolerance Margin</label>
+                    <span class="param-value" id="val-tolerance">15 px</span>
+                  </div>
+                  <input type="range" id="slider-tolerance" min="0" max="35" step="5" value="15" class="range-slider">
+                  <p class="helper-text">Accept clicks within radius of the target mask object (15px recommended).</p>
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="checkbox-row">
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-shuffle" checked>
+                    <span class="checkmark"></span>
+                    <span>Randomize trial order</span>
+                  </label>
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-feedback" checked>
+                    <span class="checkmark"></span>
+                    <span>Show immediate click feedback & target reveal</span>
+                  </label>
+                  <label class="custom-checkbox">
+                    <input type="checkbox" id="chk-sound" checked>
+                    <span class="checkmark"></span>
+                    <span>Auditory feedback blips</span>
+                  </label>
+                </div>
+              </div>
+            </details>
+
+            <!-- Action Button -->
+            <div class="cta-row">
+              <button id="btn-start" class="btn-primary">
+                <span>Start Experiment</span>
+                <span class="kbd-hint">Enter ↵</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Protocol & Instructions Card -->
+        <div class="glass-card info-panel">
+          <div class="card-title">
+            <span class="icon">📋</span>
+            <h2>Experiment Protocol</h2>
+          </div>
+          <div class="steps-list">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-text">
+                <strong>View Initial Scene (<span class="code">_present</span>)</strong>
+                <p>The image is displayed with all original objects present.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-text">
+                <strong>Black Screen Interval (<span class="code">t</span> ms)</strong>
+                <p>A blank interval appears for your configured duration <span class="code">t</span> ms to induce change blindness.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-text">
+                <strong>Detect & Click Difference (<span class="code">_absent</span>)</strong>
+                <p>Click directly where you believe an object disappeared or changed.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">4</div>
+              <div class="step-text">
+                <strong>Press Spacebar to Advance</strong>
+                <p>Press the <kbd>Spacebar</kbd> on your keyboard to log trial data and immediately advance to the next image pair.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="shortcut-banner">
+            <div class="shortcut-item"><kbd>Left Click</kbd> Target Difference</div>
+            <div class="shortcut-item"><kbd>Spacebar</kbd> Next Image</div>
+            <div class="shortcut-item"><kbd>Esc</kbd> Exit to Menu</div>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ==================== SCREEN 2: EXPERIMENT ARENA ==================== -->
+    <section id="screen-experiment" class="screen">
+      <!-- HUD Top Bar -->
+      <nav class="experiment-hud">
+        <div class="hud-left">
+          <div class="trial-counter">
+            <span class="label">TRIAL</span>
+            <span class="current" id="hud-current-trial">1</span>
+            <span class="divider">/</span>
+            <span class="total" id="hud-total-trials">10</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="hud-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="state-badge" id="hud-state-badge">
+            <span class="dot"></span>
+            <span id="hud-state-text">Preparing...</span>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div class="hud-stats">
+            <div class="stat-pill" title="Live Accuracy">
+              <span class="stat-icon">🎯</span>
+              <span id="hud-acc-val">--%</span>
+            </div>
+            <div class="stat-pill" title="Average Response Time">
+              <span class="stat-icon">⚡</span>
+              <span id="hud-rt-val">-- ms</span>
+            </div>
+          </div>
+          <button id="btn-quit" class="btn-subtle" title="Quit Experiment (Esc)">✕ Exit</button>
+        </div>
+      </nav>
+
+      <!-- Stimulus Stage -->
+      <main class="stage-container" id="stage-container">
+        <div class="stage-wrapper" id="stage-wrapper">
+          <!-- Main Display Canvas -->
+          <canvas id="display-canvas" width="1024" height="768"></canvas>
+
+          <!-- Black Screen Overlay -->
+          <div id="black-screen-overlay" class="black-overlay"></div>
+
+          <!-- Click Ripple & Marker -->
+          <div id="click-marker" class="click-marker">
+            <div class="marker-pulse"></div>
+            <div class="marker-dot"></div>
+          </div>
+
+          <!-- Target Highlight Mask Overlay (for feedback) -->
+          <canvas id="feedback-overlay" width="1024" height="768" class="feedback-overlay"></canvas>
+        </div>
+      </main>
+
+      <!-- Bottom Interactive Feedback Toast / Controls -->
+      <footer class="experiment-footer" id="experiment-footer">
+        <div class="feedback-banner" id="feedback-banner">
+          <div class="feedback-msg" id="feedback-msg">
+            Click on the image to locate the difference
+          </div>
+        </div>
+        <div class="spacebar-prompt" id="spacebar-prompt">
+          <span class="pulse-kbd"><kbd>SPACEBAR</kbd></span>
+          <span>Press spacebar to advance to next image</span>
+        </div>
+      </footer>
+    </section>
+
+    <!-- ==================== SCREEN 3: RESULTS DASHBOARD ==================== -->
+    <section id="screen-results" class="screen">
+      <header class="header results-header">
+        <div class="logo-area">
+          <div class="trophy-icon">🏆</div>
+          <div>
+            <h1>Experiment Completed</h1>
+            <p class="subtitle" id="results-summary-subtitle">Session analysis and visual search metrics</p>
+          </div>
+        </div>
+        <div class="results-actions">
+          <button id="btn-download-csv" class="btn-secondary">
+            <span>📥 Download CSV</span>
+          </button>
+          <button id="btn-download-json" class="btn-secondary">
+            <span>📄 Download JSON</span>
+          </button>
+          <button id="btn-new-experiment" class="btn-primary">
+            <span>🔄 New Experiment</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="results-content">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">🎯</span>
+              <span class="kpi-label">Overall Accuracy</span>
+            </div>
+            <div class="kpi-val" id="res-accuracy">0%</div>
+            <div class="kpi-sub" id="res-correct-count">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">⚡</span>
+              <span class="kpi-label">Mean Response Time</span>
+            </div>
+            <div class="kpi-val" id="res-mean-rt">0 ms</div>
+            <div class="kpi-sub" id="res-mean-rt-sec">0.00 seconds</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">📊</span>
+              <span class="kpi-label">Median Response Time</span>
+            </div>
+            <div class="kpi-val" id="res-median-rt">0 ms</div>
+            <div class="kpi-sub">50th percentile</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">🚀</span>
+              <span class="kpi-label">Fastest Hit</span>
+            </div>
+            <div class="kpi-val" id="res-fastest-rt">-- ms</div>
+            <div class="kpi-sub" id="res-fastest-item">--</div>
+          </div>
+        </div>
+
+        <!-- Visual Field Comparison -->
+        <div class="glass-card field-comparison-card">
+          <div class="card-title">
+            <span class="icon">↔️</span>
+            <h3>Visual Field Breakdown (Left vs. Right)</h3>
+          </div>
+          <div class="field-stats-row">
+            <div class="field-stat-box">
+              <div class="field-title">Left Visual Field (L)</div>
+              <div class="field-metrics">
+                <div>Accuracy: <strong id="res-left-acc">--%</strong></div>
+                <div>Mean RT: <strong id="res-left-rt">-- ms</strong></div>
+                <div>Trials: <span id="res-left-count">0</span></div>
+              </div>
+            </div>
+            <div class="field-stat-box">
+              <div class="field-title">Right Visual Field (R)</div>
+              <div class="field-metrics">
+                <div>Accuracy: <strong id="res-right-acc">--%</strong></div>
+                <div>Mean RT: <strong id="res-right-rt">-- ms</strong></div>
+                <div>Trials: <span id="res-right-count">0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trial Detail Table -->
+        <div class="glass-card table-panel">
+          <div class="card-title">
+            <span class="icon">📋</span>
+            <h3>Trial-by-Trial Breakdown</h3>
+            <span class="badge" id="res-total-badge">10 Trials</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="results-table" id="trials-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Target Object</th>
+                  <th>Field</th>
+                  <th>Outcome</th>
+                  <th>Response Time</th>
+                  <th>Benchmark RT</th>
+                  <th>Click Coordinates</th>
+                  <th>Error Distance</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="trials-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- Inspection Modal (Preview Trial Images & Mask) -->
+    <div id="inspect-modal" class="modal-overlay">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h3 id="modal-title">Trial Inspection</h3>
+          <button id="btn-close-modal" class="btn-subtle">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="inspect-grid">
+            <div class="inspect-column">
+              <h4>Present Image (<span class="code">_present</span>)</h4>
+              <img id="modal-img-present" alt="Present Image">
+            </div>
+            <div class="inspect-column">
+              <h4>Absent Image (<span class="code">_absent</span>)</h4>
+              <div class="inspect-absent-wrapper">
+                <img id="modal-img-absent" alt="Absent Image">
+                <div id="modal-click-pin" class="modal-pin"></div>
+              </div>
+            </div>
+            <div class="inspect-column">
+              <h4>Ground Truth Mask</h4>
+              <img id="modal-img-mask" alt="Mask Image">
+            </div>
+          </div>
+          <div class="modal-stats" id="modal-stats">
+            <!-- Details -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>
