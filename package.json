@@ -1,0 +1,22 @@
+{
+  "name": "change-blindness-experiment",
+  "version": "1.0.0",
+  "description": "Visual Search and Change Blindness Experiment Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_server_unit.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "psychology",
+    "experiment",
+    "change-blindness",
+    "visual-search",
+    "psychophysics"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -331,10 +331,12 @@ const server = http.createServer((req, res) => {
   sendFile(res, publicFilePath, MIME_TYPES[ext] || 'text/plain');
 });
 
-server.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
   console.log(`=======================================================`);
   console.log(` Change Blindness Experiment System is running!`);
-  console.log(` Web URL: http://localhost:${PORT}`);
+  console.log(` Web URL: http://${HOST}:${PORT}`);
   console.log(` Total stimuli pairs ready: ${allPairs.length}`);
   console.log(`=======================================================`);
 });
