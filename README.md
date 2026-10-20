@@ -2,6 +2,8 @@
 
 A high-precision, web-based psychophysics visual experiment platform designed to study **Change Blindness** using the Rensink visual search / flicker paradigm.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Vaibhavi-007/Inventory-07)
+
 ---
 
 ## 🚀 Quick Start
