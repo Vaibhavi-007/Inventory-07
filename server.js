@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const { generateXlsx } = require('./xlsx_builder.js');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'pairs.json');
@@ -37,7 +38,8 @@ const MIME_TYPES = {
   '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.csv': 'text/csv; charset=utf-8'
+  '.csv': 'text/csv; charset=utf-8',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 };
 
 function sendJson(res, statusCode, data) {
@@ -244,11 +246,46 @@ const server = http.createServer((req, res) => {
 
         fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf-8');
 
+        // Generate genuine Excel (.xlsx) file synchronously
+        const xlsxFilename = `${sessionId}.xlsx`;
+        const xlsxPath = path.join(RESULTS_DIR, xlsxFilename);
+        try {
+          const xlsxRows = trials.map((t, idx) => [
+            t.trial_index || (idx + 1),
+            t.id || '',
+            t.trial_str || '',
+            t.category || '',
+            t.side || '',
+            t.object_name || '',
+            t.accurate ? 1 : 0,
+            t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+            t.response_time_ms != null ? Number((t.response_time_ms / 1000).toFixed(3)) : '',
+            t.click_x != null ? t.click_x : '',
+            t.click_y != null ? t.click_y : '',
+            t.target_x != null ? t.target_x : '',
+            t.target_y != null ? t.target_y : '',
+            t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '',
+            t.skipped ? 1 : 0,
+            t.present_image || '',
+            t.absent_image || '',
+            t.mask_image || '',
+            params.t_interval_ms || '',
+            params.image_duration_ms || '',
+            params.mode || '',
+            payload.timestamp || new Date().toISOString()
+          ]);
+          const xlsxBuf = generateXlsx(headers, xlsxRows, 'Trial Results');
+          fs.writeFileSync(xlsxPath, xlsxBuf);
+        } catch (xlsxErr) {
+          console.warn('XLSX generation warning:', xlsxErr.message);
+        }
+
         sendJson(res, 200, {
           success: true,
           session_id: sessionId,
           json_file: jsonFilename,
-          csv_file: csvFilename
+          csv_file: csvFilename,
+          xlsx_file: xlsxFilename
         });
       } catch (e) {
         console.error('Error saving session:', e);
