@@ -60,11 +60,14 @@ function sendFile(res, filePath, contentType) {
       return;
     }
 
+    const isCode = filePath.endsWith('.js') || filePath.endsWith('.html') || filePath.endsWith('.css');
+    const cacheControl = isCode ? 'no-cache, no-store, must-revalidate' : 'public, max-age=3600';
+
     const stream = fs.createReadStream(filePath);
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': stats.size,
-      'Cache-Control': 'public, max-age=3600'
+      'Cache-Control': cacheControl
     });
     stream.pipe(res);
   });
@@ -323,6 +326,35 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Direct download endpoint: /api/download/:sessionId/:format
+  if (pathname.startsWith('/api/download/')) {
+    const parts = pathname.replace('/api/download/', '').split('/');
+    const reqSessionId = parts[0];
+    const format = (parts[1] || 'xlsx').toLowerCase();
+    const filename = `${reqSessionId}.${format}`;
+    const filePath = path.join(RESULTS_DIR, filename);
+
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      const mime = format === 'xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv; charset=utf-8';
+
+      res.writeHead(200, {
+        'Content-Type': mime,
+        'Content-Length': stat.size,
+        'Content-Disposition': `attachment; filename="change_blindness_${filename}"`,
+        'Cache-Control': 'no-cache, no-store'
+      });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end(`File ${filename} not found`);
+      return;
+    }
+  }
+
   // --- Static File Serving ---
 
   // Images route: /images/<filename>
@@ -348,7 +380,19 @@ const server = http.createServer((req, res) => {
     const filename = path.basename(pathname);
     const filePath = path.join(RESULTS_DIR, filename);
     const ext = path.extname(filePath).toLowerCase();
-    sendFile(res, filePath, MIME_TYPES[ext] || 'text/plain');
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      res.writeHead(200, {
+        'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+        'Content-Length': stat.size,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache, no-store'
+      });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('File not found');
     return;
   }
 
