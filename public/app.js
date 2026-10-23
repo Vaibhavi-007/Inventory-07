@@ -93,6 +93,7 @@
     phaseTimer: null,
     trialTimeoutTimer: null,
     countdownInterval: null,
+    fixationTimer: null,
     remainingSeconds: 60,
     maskCanvas: null,
     maskCtx: null
@@ -155,6 +156,7 @@
 
     feedbackMsg: document.getElementById('feedback-msg'),
     spacebarPrompt: document.getElementById('spacebar-prompt'),
+    fixationOverlay: document.getElementById('fixation-overlay'),
 
     // Results screen
     resAccuracy: document.getElementById('res-accuracy'),
@@ -488,24 +490,94 @@
 
     state.trialTimeoutTimer = setTimeout(() => {
       if (state.trialState !== 'absent') return;
-
-      // 60s expired without user click! Jump directly to next image
-      const rt = window.performance.now() - state.stimulusStartTime;
-      state.currentClick = {
-        accurate: false,
-        response_time_ms: rt,
-        click_x: null,
-        click_y: null,
-        target_x: state.currentTrialData?.benchmark?.x ?? null,
-        target_y: state.currentTrialData?.benchmark?.y ?? null,
-        distance_px: null,
-        skipped: true,
-        timed_out: true
-      };
-
-      playSound('miss');
-      advanceToNextTrial();
+      handleTrialTimeout();
     }, limit * 1000);
+  }
+
+  function handleTrialTimeout() {
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
+    clearTimeout(state.phaseTimer);
+    clearInterval(state.flickerTimer);
+
+    // 1 minute (or configured timeout) of inactivity expired without user click!
+    const rt = window.performance.now() - state.stimulusStartTime;
+    state.currentClick = {
+      accurate: false,
+      response_time_ms: rt,
+      click_x: null,
+      click_y: null,
+      target_x: state.currentTrialData?.benchmark?.x ?? null,
+      target_y: state.currentTrialData?.benchmark?.y ?? null,
+      distance_px: null,
+      skipped: true,
+      timed_out: true
+    };
+
+    // Record trial data
+    const trial = state.currentTrialData;
+    state.trialResults.push({
+      trial_index: state.currentTrialIndex + 1,
+      id: trial.id,
+      trial_str: trial.trial_str,
+      prefix: trial.prefix,
+      side: trial.side,
+      category: trial.category,
+      object_name: trial.object_name,
+      present_image: trial.present_image,
+      absent_image: trial.absent_image,
+      mask_image: trial.mask_image,
+      benchmark: trial.benchmark,
+      ...state.currentClick
+    });
+
+    playSound('miss');
+
+    // Show blank grey screen with white plus sign in exact center for 1 exact second, then advance automatically
+    showFixationScreen(() => {
+      runTrial(state.currentTrialIndex + 1);
+    });
+  }
+
+  function showFixationScreen(onComplete) {
+    state.trialState = 'fixation';
+    setHUDState('fixation', 'Fixation (+)');
+
+    // Paint stage canvas neutral grey (#808080) with centered white plus sign
+    displayCtx.fillStyle = '#808080';
+    displayCtx.fillRect(0, 0, 1024, 768);
+    displayCtx.strokeStyle = '#ffffff';
+    displayCtx.lineWidth = 4;
+    displayCtx.lineCap = 'square';
+    displayCtx.beginPath();
+    displayCtx.moveTo(512, 384 - 16);
+    displayCtx.lineTo(512, 384 + 16);
+    displayCtx.moveTo(512 - 16, 384);
+    displayCtx.lineTo(512 + 16, 384);
+    displayCtx.stroke();
+
+    // Show full-screen neutral grey overlay with white fixation cross
+    if (dom.fixationOverlay) {
+      dom.fixationOverlay.classList.add('active');
+    }
+
+    // Hide other overlays and prompts
+    dom.blackOverlay.classList.remove('active');
+    dom.feedbackOverlay.classList.remove('visible');
+    dom.clickMarker.className = 'click-marker';
+    dom.spacebarPrompt.classList.remove('active');
+    dom.feedbackMsg.textContent = 'Fixation point';
+
+    // Hold for exactly 1.0 second (1000 ms), then automatically proceed to next trial
+    clearTimeout(state.fixationTimer);
+    state.fixationTimer = setTimeout(() => {
+      if (dom.fixationOverlay) {
+        dom.fixationOverlay.classList.remove('active');
+      }
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }, 1000);
   }
 
   // Run a single trial
@@ -514,6 +586,10 @@
     clearInterval(state.flickerTimer);
     clearTimeout(state.trialTimeoutTimer);
     clearInterval(state.countdownInterval);
+    clearTimeout(state.fixationTimer);
+    if (dom.fixationOverlay) {
+      dom.fixationOverlay.classList.remove('active');
+    }
 
     state.remainingSeconds = state.config.timeoutSec || 60;
     updateTimeoutHUD();
@@ -623,6 +699,8 @@
         clearInterval(state.flickerTimer);
         clearTimeout(state.trialTimeoutTimer);
         clearInterval(state.countdownInterval);
+        clearTimeout(state.fixationTimer);
+        if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         showScreen('landing');
       }
     });
@@ -805,6 +883,8 @@
         clearInterval(state.flickerTimer);
         clearTimeout(state.trialTimeoutTimer);
         clearInterval(state.countdownInterval);
+        clearTimeout(state.fixationTimer);
+        if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         showScreen('landing');
       }
     }
@@ -813,6 +893,8 @@
   function advanceToNextTrial() {
     clearTimeout(state.trialTimeoutTimer);
     clearInterval(state.countdownInterval);
+    clearTimeout(state.fixationTimer);
+    if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
     playSound('advance');
 
     // Record trial data

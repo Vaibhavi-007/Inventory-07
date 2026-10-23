@@ -575,6 +575,8 @@ kbd {
   display: none;
   flex-direction: column;
   justify-content: space-between;
+  position: relative;
+  overflow: hidden;
 }
 
 #screen-experiment.active {
@@ -690,6 +692,16 @@ kbd {
   box-shadow: 0 0 8px #60a5fa;
 }
 
+.state-badge.fixation {
+  background: rgba(148, 163, 184, 0.25);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #f1f5f9;
+}
+.state-badge.fixation .dot {
+  background: #ffffff;
+  box-shadow: 0 0 8px #ffffff;
+}
+
 .hud-right {
   display: flex;
   align-items: center;
@@ -761,6 +773,33 @@ kbd {
 .black-overlay.active {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Full-Screen Fixation Point Overlay (Neutral Grey + Centered White Cross) */
+.fixation-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #808080; /* Neutral Psychophysics Medium Grey */
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  cursor: none;
+  user-select: none;
+}
+
+.fixation-overlay.active {
+  display: flex;
+}
+
+.fixation-cross-svg {
+  width: 44px;
+  height: 44px;
+  display: block;
 }
 
 /* Target highlight mask overlay */
