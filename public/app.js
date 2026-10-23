@@ -840,10 +840,10 @@
       const b = m[i + 2];
       // If dark in mask (the target difference)
       if (r < 128 && g < 128 && b < 128) {
-        o[i] = 6;       // Cyan R
-        o[i + 1] = 182; // Cyan G
-        o[i + 2] = 212; // Cyan B
-        o[i + 3] = 180; // Alpha
+        o[i] = 249;     // Golden Amber R (TSLAS #F9A01B)
+        o[i + 1] = 160; // Golden Amber G
+        o[i + 2] = 27;  // Golden Amber B
+        o[i + 3] = 190; // Alpha
       } else {
         o[i + 3] = 0;   // Transparent
       }

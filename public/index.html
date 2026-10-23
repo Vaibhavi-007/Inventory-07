@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Change Blindness Experiment System</title>
-  <link rel="stylesheet" href="/public/style.css?v=4">
+  <title>Change Blindness Experiment - TSLAS</title>
+  <link rel="icon" type="image/png" href="/public/tslas_logo.png">
+  <link rel="stylesheet" href="/public/style.css?v=7">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -13,10 +14,12 @@
     <section id="screen-landing" class="screen active">
       <header class="header">
         <div class="logo-area">
-          <div class="icon-pulse">👁️</div>
+          <div class="tslas-logo-container" title="Thapar School of Liberal Arts & Sciences">
+            <img src="/public/tslas_logo.png" alt="TSLAS Logo" class="tslas-logo-img">
+          </div>
           <div>
             <h1>Change Blindness Experiment</h1>
-            <p class="subtitle">Visual Search & Flicker Paradigm Analysis System</p>
+            <p class="subtitle">Thapar School of Liberal Arts & Sciences</p>
           </div>
         </div>
         <div class="system-status">
@@ -226,6 +229,9 @@
       <!-- HUD Top Bar -->
       <nav class="experiment-hud">
         <div class="hud-left">
+          <div class="tslas-hud-badge" title="Thapar School of Liberal Arts & Sciences">
+            <img src="/public/tslas_logo.png" alt="TSLAS" class="tslas-hud-img">
+          </div>
           <div class="trial-counter">
             <span class="label">TRIAL</span>
             <span class="current" id="hud-current-trial">1</span>
@@ -309,7 +315,9 @@
     <section id="screen-results" class="screen">
       <header class="header results-header">
         <div class="logo-area">
-          <div class="trophy-icon">🏆</div>
+          <div class="tslas-logo-container" title="Thapar School of Liberal Arts & Sciences">
+            <img src="/public/tslas_logo.png" alt="TSLAS Logo" class="tslas-logo-img">
+          </div>
           <div>
             <h1>Experiment Completed</h1>
             <p class="subtitle" id="results-summary-subtitle">Session analysis and visual search metrics</p>
@@ -463,6 +471,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=6"></script>
+  <script src="/public/app.js?v=7"></script>
 </body>
 </html>

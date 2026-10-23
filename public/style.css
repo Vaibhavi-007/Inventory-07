@@ -3,25 +3,41 @@
    ========================================================================== */
 
 :root {
-  --bg-dark: #0d1117;
-  --bg-card: rgba(22, 27, 34, 0.85);
+  --bg-dark: #0c0e14;
+  --bg-card: rgba(20, 24, 33, 0.88);
   --bg-card-border: rgba(255, 255, 255, 0.1);
-  --bg-card-hover: rgba(30, 38, 48, 0.95);
+  --bg-card-hover: rgba(28, 33, 46, 0.95);
   
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-glow: rgba(59, 130, 246, 0.35);
+  /* TSLAS Brand Color Palette */
+  --tslas-red: #e2231a;         /* Crimson Red from 't' */
+  --tslas-red-hover: #c91d15;
+  --tslas-red-glow: rgba(226, 35, 26, 0.35);
+  --tslas-red-subtle: rgba(226, 35, 26, 0.15);
+  --tslas-red-light: #fca5a5;
 
-  --accent-green: #10b981;
-  --accent-green-glow: rgba(16, 185, 129, 0.3);
-  --accent-red: #ef4444;
-  --accent-red-glow: rgba(239, 68, 68, 0.3);
-  --accent-amber: #f59e0b;
+  --tslas-amber: #f9a01b;       /* Golden Amber from 's' */
+  --tslas-orange: #f37021;      /* Vibrant Orange from 's' */
+  --tslas-green: #00a859;       /* Emerald Green from 'l' */
+  --tslas-navy: #1e2269;        /* Royal Indigo from Thapar wordmark */
+
+  /* Primary Accent: TSLAS Crimson instead of Blue */
+  --primary: #e2231a;
+  --primary-hover: #c91d15;
+  --primary-glow: rgba(226, 35, 26, 0.35);
+  --primary-subtle: rgba(226, 35, 26, 0.15);
+  --primary-light: #fca5a5;
+
+  --accent-green: #00a859;
+  --accent-green-glow: rgba(0, 168, 89, 0.3);
+  --accent-red: #e2231a;
+  --accent-red-glow: rgba(226, 35, 26, 0.3);
+  --accent-amber: #f9a01b;
+  --accent-orange: #f37021;
   --accent-cyan: #06b6d4;
 
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -83,16 +99,57 @@ html, body {
   gap: 1.25rem;
 }
 
+.tslas-logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tslas-logo-container:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(226, 35, 26, 0.35), 0 0 0 1px rgba(226, 35, 26, 0.4);
+}
+
+.tslas-logo-img {
+  height: 48px;
+  width: auto;
+  max-width: 130px;
+  object-fit: contain;
+  display: block;
+}
+
+.tslas-hud-badge {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 2px 7px;
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.tslas-hud-img {
+  height: 24px;
+  width: auto;
+  max-width: 75px;
+  object-fit: contain;
+  display: block;
+}
+
 .icon-pulse, .trophy-icon {
   font-size: 2.25rem;
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(226, 35, 26, 0.15);
   width: 54px;
   height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(226, 35, 26, 0.3);
 }
 
 .header h1 {
@@ -201,11 +258,11 @@ html, body {
   font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
-  color: #60a5fa;
-  background: rgba(59, 130, 246, 0.15);
+  color: #fca5a5;
+  background: rgba(226, 35, 26, 0.15);
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(226, 35, 26, 0.3);
 }
 
 .slider-row {
@@ -230,9 +287,9 @@ html, body {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #e2231a;
   border: 2px solid #ffffff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 10px rgba(226, 35, 26, 0.6);
   cursor: pointer;
   transition: transform 0.1s;
 }
@@ -256,8 +313,8 @@ html, body {
 }
 
 .number-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  border-color: #e2231a;
+  box-shadow: 0 0 0 2px rgba(226, 35, 26, 0.3);
 }
 
 .preset-chips {
@@ -285,9 +342,9 @@ html, body {
 }
 
 .chip.active {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border-color: #3b82f6;
+  background: rgba(226, 35, 26, 0.2);
+  color: #fca5a5;
+  border-color: #e2231a;
 }
 
 .helper-text {
@@ -389,8 +446,8 @@ html, body {
 }
 
 .radio-card.active {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.08);
+  border-color: #e2231a;
+  background: rgba(226, 35, 26, 0.08);
 }
 
 .checkbox-row {
@@ -412,7 +469,7 @@ html, body {
 .custom-checkbox input {
   width: 17px;
   height: 17px;
-  accent-color: #3b82f6;
+  accent-color: #e2231a;
   cursor: pointer;
 }
 
@@ -428,7 +485,7 @@ html, body {
   justify-content: center;
   gap: 0.8rem;
   padding: 1rem 1.75rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #e2231a 0%, #f37021 100%);
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -441,7 +498,7 @@ html, body {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 25px rgba(226, 35, 26, 0.45);
 }
 
 .btn-primary:active {
@@ -517,9 +574,9 @@ html, body {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(226, 35, 26, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(226, 35, 26, 0.3);
   font-weight: 700;
   font-size: 0.95rem;
   display: flex;
@@ -612,7 +669,7 @@ kbd {
 }
 
 .trial-counter .current {
-  color: #60a5fa;
+  color: #f87171;
   font-size: 1.15rem;
 }
 
@@ -631,7 +688,7 @@ kbd {
 .progress-bar-fill {
   height: 100%;
   width: 10%;
-  background: #3b82f6;
+  background: linear-gradient(90deg, #e2231a, #f37021);
   transition: width 0.3s ease;
 }
 
@@ -682,14 +739,14 @@ kbd {
 }
 
 .state-badge.absent {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
-  color: #60a5fa;
+  background: rgba(226, 35, 26, 0.2);
+  border-color: rgba(226, 35, 26, 0.5);
+  color: #fca5a5;
   animation: pulse-border 1.5s infinite;
 }
 .state-badge.absent .dot {
-  background: #60a5fa;
-  box-shadow: 0 0 8px #60a5fa;
+  background: #e2231a;
+  box-shadow: 0 0 8px #e2231a;
 }
 
 .state-badge.fixation {
@@ -884,10 +941,10 @@ kbd {
 
 @keyframes pulse-border {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 0 rgba(226, 35, 26, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    box-shadow: 0 0 0 6px rgba(226, 35, 26, 0);
   }
 }
 
@@ -926,7 +983,7 @@ kbd {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.88rem;
-  color: #93c5fd;
+  color: #fca5a5;
   opacity: 0.35;
   transition: opacity 0.2s;
 }
@@ -936,9 +993,9 @@ kbd {
 }
 
 .pulse-kbd kbd {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.6);
+  background: #e2231a;
+  border-color: #c91d15;
+  box-shadow: 0 0 10px rgba(226, 35, 26, 0.6);
   animation: kbd-glow 1.5s infinite;
 }
 
@@ -1043,7 +1100,7 @@ kbd {
 .field-title {
   font-weight: 700;
   font-size: 0.95rem;
-  color: #93c5fd;
+  color: #fca5a5;
   margin-bottom: 0.8rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: 0.4rem;
@@ -1074,9 +1131,9 @@ kbd {
 
 .badge {
   font-size: 0.75rem;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(226, 35, 26, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(226, 35, 26, 0.3);
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
   font-weight: 600;
@@ -1138,9 +1195,9 @@ kbd {
 }
 
 .btn-inspect {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(226, 35, 26, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(226, 35, 26, 0.3);
   padding: 0.3rem 0.7rem;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -1150,7 +1207,7 @@ kbd {
 }
 
 .btn-inspect:hover {
-  background: #3b82f6;
+  background: #e2231a;
   color: #fff;
 }
 
