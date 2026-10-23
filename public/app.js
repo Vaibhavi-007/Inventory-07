@@ -69,13 +69,14 @@
     datasetInfo: null,
     config: {
       n: 10,
-      t: 250,
-      imgDuration: 1000,
-      mode: 'single_transition', // 'single_transition' or 'continuous_flicker'
+      t: 80,
+      imgDuration: 240,
+      mode: 'continuous_flicker', // 'continuous_flicker' (default) or 'single_transition'
       tolerance: 15,
       shuffle: true,
       feedback: true,
-      sound: true
+      sound: true,
+      timeoutSec: 60
     },
     trials: [],
     currentTrialIndex: 0,
@@ -90,6 +91,9 @@
     currentClick: null,
     flickerTimer: null,
     phaseTimer: null,
+    trialTimeoutTimer: null,
+    countdownInterval: null,
+    remainingSeconds: 60,
     maskCanvas: null,
     maskCtx: null
   };
@@ -117,6 +121,10 @@
     valImgDur: document.getElementById('val-img-dur'),
     presetsImgDur: document.getElementById('presets-img-dur'),
 
+    sliderTimeout: document.getElementById('slider-timeout'),
+    inputTimeout: document.getElementById('input-timeout'),
+    valTimeout: document.getElementById('val-timeout'),
+
     sliderTolerance: document.getElementById('slider-tolerance'),
     valTolerance: document.getElementById('val-tolerance'),
 
@@ -133,6 +141,7 @@
     hudProgressFill: document.getElementById('hud-progress-fill'),
     hudStateBadge: document.getElementById('hud-state-badge'),
     hudStateText: document.getElementById('hud-state-text'),
+    hudTimerVal: document.getElementById('hud-timer-val'),
     hudAccVal: document.getElementById('hud-acc-val'),
     hudRtVal: document.getElementById('hud-rt-val'),
     btnQuit: document.getElementById('btn-quit'),
@@ -234,17 +243,33 @@
       if (data.total_pairs) {
         dom.sliderN.max = data.total_pairs;
         dom.inputN.max = data.total_pairs;
-        dom.datasetStatusText.textContent = `${data.total_pairs} Stimuli Pairs Ready (${data.categories.filler} fillers, ${data.categories.practice} practice)`;
+        dom.datasetStatusText.textContent = `${data.total_pairs} Stimuli Pairs Ready (${data.categories.filler} fillers, ${data.categories.practice} practice, ${data.categories.window} window, ${data.categories.mirror} mirror)`;
+      }
+      if (data.defaults) {
+        if (data.defaults.n) setN(data.defaults.n);
+        if (data.defaults.t_interval_ms) setT(data.defaults.t_interval_ms);
+        if (data.defaults.image_duration_ms) setImgDur(data.defaults.image_duration_ms);
+        if (data.defaults.timeout_sec) setTimeoutSec(data.defaults.timeout_sec);
+        if (data.defaults.mode) {
+          state.config.mode = data.defaults.mode;
+          document.querySelectorAll('input[name="param-mode"]').forEach(radio => {
+            radio.checked = (radio.value === data.defaults.mode);
+            radio.closest('.radio-card')?.classList.toggle('active', radio.value === data.defaults.mode);
+          });
+        }
       }
     } catch (e) {
       console.warn('Could not fetch dataset info:', e);
     }
   }
 
+  let setN, setT, setImgDur, setTimeoutSec;
+
   function bindLandingControls() {
     // Sync Number of images (n)
-    function setN(val) {
-      val = Math.max(1, Math.min(170, parseInt(val, 10) || 1));
+    setN = function(val) {
+      const maxPairs = state.datasetInfo?.total_pairs || 26;
+      val = Math.max(1, Math.min(maxPairs, parseInt(val, 10) || 1));
       dom.sliderN.value = val;
       dom.inputN.value = val;
       dom.valN.textContent = val;
@@ -254,7 +279,7 @@
       dom.presetsN.querySelectorAll('.chip').forEach(c => {
         c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
       });
-    }
+    };
 
     dom.sliderN.addEventListener('input', e => setN(e.target.value));
     dom.inputN.addEventListener('change', e => setN(e.target.value));
@@ -264,8 +289,8 @@
     });
 
     // Sync Interval time (t)
-    function setT(val) {
-      val = Math.max(50, Math.min(5000, parseInt(val, 10) || 250));
+    setT = function(val) {
+      val = Math.max(50, Math.min(5000, parseInt(val, 10) || 80));
       dom.sliderT.value = val;
       dom.inputT.value = val;
       dom.valT.textContent = `${val} ms`;
@@ -274,7 +299,7 @@
       dom.presetsT.querySelectorAll('.chip').forEach(c => {
         c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
       });
-    }
+    };
 
     dom.sliderT.addEventListener('input', e => setT(e.target.value));
     dom.inputT.addEventListener('change', e => setT(e.target.value));
@@ -284,11 +309,11 @@
     });
 
     // Present image duration
-    function setImgDur(val) {
+    setImgDur = function(val) {
       if (val === 'sync') {
         val = state.config.t;
       } else {
-        val = Math.max(100, Math.min(5000, parseInt(val, 10) || 1000));
+        val = Math.max(50, Math.min(5000, parseInt(val, 10) || 240));
       }
       dom.sliderImgDur.value = val;
       dom.inputImgDur.value = val;
@@ -298,7 +323,7 @@
       dom.presetsImgDur.querySelectorAll('.chip').forEach(c => {
         c.classList.toggle('active', c.dataset.val === String(val) || (c.dataset.val === 'sync' && val === state.config.t));
       });
-    }
+    };
 
     dom.sliderImgDur.addEventListener('input', e => setImgDur(e.target.value));
     dom.inputImgDur.addEventListener('change', e => setImgDur(e.target.value));
@@ -306,6 +331,18 @@
       const chip = e.target.closest('.chip');
       if (chip && chip.dataset.val) setImgDur(chip.dataset.val);
     });
+
+    // Timeout (seconds)
+    setTimeoutSec = function(val) {
+      val = Math.max(5, Math.min(300, parseInt(val, 10) || 60));
+      if (dom.sliderTimeout) dom.sliderTimeout.value = val;
+      if (dom.inputTimeout) dom.inputTimeout.value = val;
+      if (dom.valTimeout) dom.valTimeout.textContent = `${val} s`;
+      state.config.timeoutSec = val;
+    };
+
+    if (dom.sliderTimeout) dom.sliderTimeout.addEventListener('input', e => setTimeoutSec(e.target.value));
+    if (dom.inputTimeout) dom.inputTimeout.addEventListener('change', e => setTimeoutSec(e.target.value));
 
     // Tolerance
     dom.sliderTolerance.addEventListener('input', e => {
@@ -417,10 +454,69 @@
     dom.hudStateText.textContent = text;
   }
 
+  function updateTimeoutHUD() {
+    if (!dom.hudTimerVal) return;
+    dom.hudTimerVal.textContent = `${state.remainingSeconds}s`;
+    if (state.remainingSeconds <= 10) {
+      dom.hudTimerVal.style.color = '#ef4444';
+      dom.hudTimerVal.style.fontWeight = '700';
+    } else {
+      dom.hudTimerVal.style.color = '';
+      dom.hudTimerVal.style.fontWeight = '';
+    }
+  }
+
+  function startTrialTimeout() {
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
+
+    const limit = state.config.timeoutSec || 60;
+    state.remainingSeconds = limit;
+    updateTimeoutHUD();
+
+    state.countdownInterval = setInterval(() => {
+      if (state.trialState !== 'absent') {
+        clearInterval(state.countdownInterval);
+        return;
+      }
+      state.remainingSeconds--;
+      updateTimeoutHUD();
+      if (state.remainingSeconds <= 0) {
+        clearInterval(state.countdownInterval);
+      }
+    }, 1000);
+
+    state.trialTimeoutTimer = setTimeout(() => {
+      if (state.trialState !== 'absent') return;
+
+      // 60s expired without user click! Jump directly to next image
+      const rt = window.performance.now() - state.stimulusStartTime;
+      state.currentClick = {
+        accurate: false,
+        response_time_ms: rt,
+        click_x: null,
+        click_y: null,
+        target_x: state.currentTrialData?.benchmark?.x ?? null,
+        target_y: state.currentTrialData?.benchmark?.y ?? null,
+        distance_px: null,
+        skipped: true,
+        timed_out: true
+      };
+
+      playSound('miss');
+      advanceToNextTrial();
+    }, limit * 1000);
+  }
+
   // Run a single trial
   async function runTrial(index) {
     clearTimeout(state.phaseTimer);
     clearInterval(state.flickerTimer);
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
+
+    state.remainingSeconds = state.config.timeoutSec || 60;
+    updateTimeoutHUD();
 
     if (index >= state.trials.length) {
       finishExperiment();
@@ -479,6 +575,9 @@
         displayCtx.drawImage(absentImg, 0, 0);
         state.stimulusStartTime = window.performance.now();
 
+        // Start 60-second trial timeout
+        startTrialTimeout();
+
         // Handle Continuous Flicker Mode if chosen
         if (state.config.mode === 'continuous_flicker') {
           startFlickerCycle(presentImg, absentImg);
@@ -522,6 +621,8 @@
       if (confirm('Are you sure you want to exit the current experiment session?')) {
         clearTimeout(state.phaseTimer);
         clearInterval(state.flickerTimer);
+        clearTimeout(state.trialTimeoutTimer);
+        clearInterval(state.countdownInterval);
         showScreen('landing');
       }
     });
@@ -570,6 +671,8 @@
     state.trialState = 'feedback';
     clearTimeout(state.phaseTimer);
     clearInterval(state.flickerTimer);
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
 
     // Ensure absent image is displayed
     const absentImg = imageCache.get(`/images/${state.currentTrialData.absent_image}`);
@@ -700,12 +803,16 @@
       if (confirm('Return to landing page? Current progress will be lost.')) {
         clearTimeout(state.phaseTimer);
         clearInterval(state.flickerTimer);
+        clearTimeout(state.trialTimeoutTimer);
+        clearInterval(state.countdownInterval);
         showScreen('landing');
       }
     }
   }
 
   function advanceToNextTrial() {
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
     playSound('advance');
 
     // Record trial data

@@ -57,16 +57,16 @@
             <div class="form-group">
               <div class="label-row">
                 <label for="input-t">Time Before Each Interval (<span class="code">t</span> ms)</label>
-                <span class="param-value" id="val-t">250 ms</span>
+                <span class="param-value" id="val-t">80 ms</span>
               </div>
               <div class="slider-row">
-                <input type="range" id="slider-t" min="50" max="2000" step="10" value="250" class="range-slider">
-                <input type="number" id="input-t" min="50" max="5000" step="10" value="250" class="number-input">
+                <input type="range" id="slider-t" min="50" max="2000" step="10" value="80" class="range-slider">
+                <input type="number" id="input-t" min="50" max="5000" step="10" value="80" class="number-input">
               </div>
               <div class="preset-chips" id="presets-t">
-                <button type="button" class="chip" data-val="80">80 ms</button>
+                <button type="button" class="chip active" data-val="80">80 ms</button>
                 <button type="button" class="chip" data-val="150">150 ms</button>
-                <button type="button" class="chip active" data-val="250">250 ms</button>
+                <button type="button" class="chip" data-val="250">250 ms</button>
                 <button type="button" class="chip" data-val="500">500 ms</button>
                 <button type="button" class="chip" data-val="1000">1000 ms</button>
               </div>
@@ -84,16 +84,18 @@
                 <div class="form-group">
                   <div class="label-row">
                     <label for="input-img-dur">Present Image Display Time</label>
-                    <span class="param-value" id="val-img-dur">1000 ms</span>
+                    <span class="param-value" id="val-img-dur">240 ms</span>
                   </div>
                   <div class="slider-row">
-                    <input type="range" id="slider-img-dur" min="100" max="3000" step="50" value="1000" class="range-slider">
-                    <input type="number" id="input-img-dur" min="100" max="5000" step="50" value="1000" class="number-input">
+                    <input type="range" id="slider-img-dur" min="50" max="3000" step="10" value="240" class="range-slider">
+                    <input type="number" id="input-img-dur" min="50" max="5000" step="10" value="240" class="number-input">
                   </div>
                   <div class="preset-chips" id="presets-img-dur">
+                    <button type="button" class="chip" data-val="80">80 ms</button>
+                    <button type="button" class="chip" data-val="160">160 ms</button>
+                    <button type="button" class="chip active" data-val="240">240 ms</button>
                     <button type="button" class="chip" data-val="500">500 ms</button>
-                    <button type="button" class="chip active" data-val="1000">1000 ms</button>
-                    <button type="button" class="chip" data-val="1500">1500 ms</button>
+                    <button type="button" class="chip" data-val="1000">1000 ms</button>
                     <button type="button" class="chip" data-val="sync">Same as t</button>
                   </div>
                 </div>
@@ -103,20 +105,33 @@
                   <label>Presentation Paradigm</label>
                   <div class="radio-group">
                     <label class="radio-card active">
-                      <input type="radio" name="param-mode" value="single_transition" checked>
+                      <input type="radio" name="param-mode" value="continuous_flicker" checked>
                       <div>
-                        <strong>Single Transition (Standard)</strong>
-                        <p>Present image &rarr; Black screen for <span class="code">t</span> &rarr; Absent image (click to identify difference)</p>
+                        <strong>Continuous Flicker Loop (Default)</strong>
+                        <p>Cycles Present &harr; Black (<span class="code">t</span>) &harr; Absent &harr; Black (<span class="code">t</span>)... until click or timeout</p>
                       </div>
                     </label>
                     <label class="radio-card">
-                      <input type="radio" name="param-mode" value="continuous_flicker">
+                      <input type="radio" name="param-mode" value="single_transition">
                       <div>
-                        <strong>Continuous Flicker Loop</strong>
-                        <p>Cycles Present &harr; Black (<span class="code">t</span>) &harr; Absent &harr; Black (<span class="code">t</span>)... until click</p>
+                        <strong>Single Transition</strong>
+                        <p>Present image &rarr; Black screen for <span class="code">t</span> &rarr; Absent image (click to identify difference)</p>
                       </div>
                     </label>
                   </div>
+                </div>
+
+                <!-- Trial Timeout -->
+                <div class="form-group">
+                  <div class="label-row">
+                    <label for="input-timeout">Trial Timeout</label>
+                    <span class="param-value" id="val-timeout">60 s</span>
+                  </div>
+                  <div class="slider-row">
+                    <input type="range" id="slider-timeout" min="10" max="180" step="5" value="60" class="range-slider">
+                    <input type="number" id="input-timeout" min="5" max="300" step="5" value="60" class="number-input">
+                  </div>
+                  <p class="helper-text">If user does not click within 60s (1 minute), automatically advance to next image.</p>
                 </div>
 
                 <!-- Hit Tolerance -->
@@ -231,6 +246,10 @@
 
         <div class="hud-right">
           <div class="hud-stats">
+            <div class="stat-pill" title="Time Remaining on Trial (60s limit)">
+              <span class="stat-icon">⏱️</span>
+              <span id="hud-timer-val">60s</span>
+            </div>
             <div class="stat-pill" title="Live Accuracy">
               <span class="stat-icon">🎯</span>
               <span id="hud-acc-val">--%</span>
@@ -436,6 +455,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=4"></script>
+  <script src="/public/app.js?v=5"></script>
 </body>
 </html>

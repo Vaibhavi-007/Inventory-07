@@ -130,10 +130,11 @@ const server = http.createServer((req, res) => {
       defaults: {
         n: Math.min(10, allPairs.length),
         max_n: allPairs.length,
-        t_interval_ms: 250,
-        image_duration_ms: 1000,
+        t_interval_ms: 80,
+        image_duration_ms: 240,
         tolerance_px: 15,
-        mode: 'single_transition'
+        mode: 'continuous_flicker',
+        timeout_sec: 60
       }
     });
     return;
