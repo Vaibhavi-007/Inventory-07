@@ -109,6 +109,8 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/dataset-info') {
     const fillers = allPairs.filter(p => p.category === 'filler');
     const practice = allPairs.filter(p => p.category === 'practice');
+    const windows = allPairs.filter(p => p.category === 'window');
+    const mirrors = allPairs.filter(p => p.category === 'mirror');
     const lefts = allPairs.filter(p => p.side === 'L');
     const rights = allPairs.filter(p => p.side === 'R');
 
@@ -116,7 +118,9 @@ const server = http.createServer((req, res) => {
       total_pairs: allPairs.length,
       categories: {
         filler: fillers.length,
-        practice: practice.length
+        practice: practice.length,
+        window: windows.length,
+        mirror: mirrors.length
       },
       sides: {
         left: lefts.length,
@@ -124,7 +128,8 @@ const server = http.createServer((req, res) => {
         practice: practice.length
       },
       defaults: {
-        n: 10,
+        n: Math.min(10, allPairs.length),
+        max_n: allPairs.length,
         t_interval_ms: 250,
         image_duration_ms: 1000,
         tolerance_px: 15,
