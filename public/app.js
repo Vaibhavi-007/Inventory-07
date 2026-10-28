@@ -789,7 +789,6 @@
       preloadImage(`/masks/${nextT.mask_image}`);
     }
 
-    const trial = state.currentTrialData;
     const presentImg = await preloadImage(`/images/${trial.present_image}`);
     const absentImg = await preloadImage(`/images/${trial.absent_image}`);
     const maskImg = await preloadImage(`/masks/${trial.mask_image}`);
