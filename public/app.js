@@ -157,6 +157,7 @@
     feedbackMsg: document.getElementById('feedback-msg'),
     spacebarPrompt: document.getElementById('spacebar-prompt'),
     fixationOverlay: document.getElementById('fixation-overlay'),
+    carDashboardOverlay: document.getElementById('car-dashboard-overlay'),
 
     // Results screen
     resAccuracy: document.getElementById('res-accuracy'),
@@ -186,6 +187,8 @@
     modalTitle: document.getElementById('modal-title'),
     modalImgPresent: document.getElementById('modal-img-present'),
     modalImgAbsent: document.getElementById('modal-img-absent'),
+    modalDashboardPresent: document.getElementById('modal-dashboard-present'),
+    modalDashboardAbsent: document.getElementById('modal-dashboard-absent'),
     modalImgMask: document.getElementById('modal-img-mask'),
     modalClickPin: document.getElementById('modal-click-pin'),
     modalStats: document.getElementById('modal-stats'),
@@ -528,6 +531,7 @@
       absent_image: trial.absent_image,
       mask_image: trial.mask_image,
       benchmark: trial.benchmark,
+      dashboardData: trial.dashboardData,
       ...state.currentClick
     });
 
@@ -567,6 +571,9 @@
     dom.clickMarker.className = 'click-marker';
     dom.spacebarPrompt.classList.remove('active');
     dom.feedbackMsg.textContent = 'Fixation point';
+    if (dom.carDashboardOverlay) {
+      dom.carDashboardOverlay.style.display = 'none';
+    }
 
     // Hold for exactly 1.0 second (1000 ms), then automatically proceed to next trial
     clearTimeout(state.fixationTimer);
@@ -578,6 +585,155 @@
         onComplete();
       }
     }, 1000);
+  }
+
+  // --- Automotive Cluster Dashboard Generator ---
+  function generateRandomDashboardData(trialIndex) {
+    // Randomized Speed (42 - 134 km/h)
+    const speed = Math.floor(Math.random() * 92) + 42;
+
+    // RPM roughly correlated with speed and gear (1.4 - 4.6 x1000 RPM)
+    const baseRpm = (speed / 134) * 2.6 + 1.4;
+    const jitter = (Math.random() - 0.5) * 0.4;
+    const rpm = Math.max(1.2, Math.min(5.2, Number((baseRpm + jitter).toFixed(1))));
+
+    // Fuel level: 3 to 8 out of 8 segments
+    const totalSegments = 8;
+    const filledSegments = Math.floor(Math.random() * 6) + 3;
+
+    // Range: roughly 42 to 55 km per segment
+    const rangeKm = Math.round(filledSegments * 46 + (Math.random() * 26 - 13));
+
+    // Vehicle warning/status notifications
+    const statuses = [
+      { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' },
+      { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' },
+      { icon: 'seatbelt_ok', title: 'Seat Belt', subtitle: 'Fastened', color: '#10b981' },
+      { icon: 'door', title: 'Door Ajar', subtitle: 'Check Doors', color: '#e2231a' },
+      { icon: 'eco', title: 'ECO Mode', subtitle: 'System Active', color: '#10b981' },
+      { icon: 'cruise', title: 'Cruise Control', subtitle: `${speed} km/h Set`, color: '#38bdf8' }
+    ];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+    return {
+      speed,
+      rpm,
+      filledSegments,
+      totalSegments,
+      rangeKm,
+      status
+    };
+  }
+
+  function createDashboardSVG(data) {
+    const speed = data?.speed ?? 72;
+    const rpm = data?.rpm ?? 2.8;
+    const filled = data?.filledSegments ?? 7;
+    const total = data?.totalSegments ?? 8;
+    const range = data?.rangeKm ?? 320;
+    const status = data?.status ?? { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' };
+
+    // Arc length for 90deg radius arc is approx 206px
+    const arcLength = 206;
+    const speedRatio = Math.max(0.08, Math.min(1.0, speed / 160));
+    const speedOffset = arcLength * (1 - speedRatio);
+
+    const rpmRatio = Math.max(0.08, Math.min(1.0, rpm / 6.0));
+    const rpmOffset = arcLength * (1 - rpmRatio);
+
+    // Fuel segments
+    let fuelSegmentsSVG = '';
+    const segW = 16;
+    const segGap = 3;
+    const startX = 792;
+    for (let i = 0; i < total; i++) {
+      const x = startX + i * (segW + segGap);
+      const isFilled = i < filled;
+      const fillCol = isFilled ? '#ffffff' : 'rgba(255, 255, 255, 0.12)';
+      fuelSegmentsSVG += `<rect x="${x}" y="38" width="${segW}" height="14" rx="1.5" fill="${fillCol}" />`;
+    }
+
+    // Status icon SVG
+    let iconSVG = '';
+    if (status.icon === 'seatbelt' || status.icon === 'seatbelt_ok') {
+      iconSVG = `
+        <g transform="translate(626, 14)" fill="${status.color}">
+          <circle cx="14" cy="5.5" r="4.5" />
+          <path d="M 8 13.5 C 6 15.5 5 18 5 22 L 8 23 C 8.5 19 10 16 13 14 Z" />
+          <path d="M 15 14 C 18 16 20 19 20 23 L 23 22 C 23 18 22 15 20 13 Z" />
+          <path d="M 6 24 L 6 36 L 22 36 L 22 33 L 9 33 L 9 24 Z" />
+          <path d="M 8 13.5 L 21 34 L 23 32 L 10 11.5 Z" />
+          <rect x="6" y="27" width="16" height="2.5" rx="1" />
+        </g>`;
+    } else if (status.icon === 'eco') {
+      iconSVG = `
+        <g transform="translate(626, 15)" fill="none" stroke="${status.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 22 4 C 12 4 4 12 4 22 C 4 26 6 34 6 34 C 6 34 14 36 18 36 C 28 36 36 28 36 18 C 36 8 22 4 22 4 Z" fill="rgba(16, 185, 129, 0.2)" />
+          <path d="M 6 34 C 16 26 24 18 28 10" />
+        </g>`;
+    } else if (status.icon === 'door') {
+      iconSVG = `
+        <g transform="translate(626, 16)" fill="none" stroke="${status.color}" stroke-width="2" stroke-linecap="round">
+          <rect x="6" y="4" width="16" height="30" rx="3" />
+          <circle cx="18" cy="20" r="1.5" fill="${status.color}" />
+          <path d="M 10 4 L 2 10 L 2 32 L 10 34" />
+        </g>`;
+    } else {
+      iconSVG = `
+        <g transform="translate(626, 16)" fill="none" stroke="${status.color}" stroke-width="2.5" stroke-linecap="round">
+          <path d="M 6 26 A 14 14 0 1 1 24 26" />
+          <line x1="15" y1="18" x2="22" y2="12" />
+          <circle cx="15" cy="18" r="2" fill="${status.color}" />
+        </g>`;
+    }
+
+    return `
+      <svg viewBox="0 0 1024 154" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cluster 1: Speedometer -->
+        <g class="dash-cluster-speed">
+          <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
+          <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
+                stroke-dasharray="${arcLength}" stroke-dashoffset="${speedOffset.toFixed(1)}" />
+          <text x="155" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
+          <text x="155" y="112" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
+        </g>
+
+        <!-- Cluster 2: Tachometer (RPM) -->
+        <g class="dash-cluster-rpm">
+          <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
+          <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
+                stroke-dasharray="${arcLength}" stroke-dashoffset="${rpmOffset.toFixed(1)}" />
+          <text x="365" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${rpm.toFixed(1)}</text>
+          <text x="365" y="112" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
+        </g>
+
+        <!-- Cluster 3: Center Status / Warning -->
+        <g class="dash-cluster-status">
+          ${iconSVG}
+          <text x="640" y="86" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.title}</text>
+          <text x="640" y="108" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.subtitle}</text>
+        </g>
+
+        <!-- Cluster 4: Fuel Gauge & Range -->
+        <g class="dash-cluster-fuel">
+          <!-- Fuel Pump Icon -->
+          <g transform="translate(758, 36)" fill="#ffffff">
+            <path d="M 2 4 C 2 2.9 2.9 2 4 2 L 11 2 C 12.1 2 13 2.9 13 4 L 13 19 L 2 19 Z" />
+            <rect x="4" y="5" width="7" height="4" fill="#09090b" rx="0.5" />
+            <rect x="1" y="19" width="13" height="2" rx="0.5" />
+            <path d="M 13 6 C 16 6 17.5 8 17.5 11 L 17.5 17 C 17.5 18.5 16.5 19 15.5 19 L 15.5 16" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M 15.5 13 L 13.5 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+          </g>
+          <!-- Segmented Bar Outline -->
+          <rect x="788" y="34" width="156" height="22" rx="3" fill="none" stroke="#52525b" stroke-width="1.5" />
+          ${fuelSegmentsSVG}
+          <text x="792" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa">E</text>
+          <text x="940" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa" text-anchor="end">F</text>
+          <!-- Range -->
+          <text x="866" y="96" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">${range} km</text>
+          <text x="866" y="114" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#a1a1aa" text-anchor="middle">Range</text>
+        </g>
+      </svg>`;
   }
 
   // Run a single trial
@@ -603,6 +759,16 @@
     state.currentTrialData = state.trials[index];
     state.currentClick = null;
     state.trialState = 'present';
+
+    // Randomize cockpit dashboard data for this image trial (exact 20% overlay)
+    const trial = state.currentTrialData;
+    if (!trial.dashboardData) {
+      trial.dashboardData = generateRandomDashboardData(index);
+    }
+    if (dom.carDashboardOverlay) {
+      dom.carDashboardOverlay.innerHTML = createDashboardSVG(trial.dashboardData);
+      dom.carDashboardOverlay.style.display = 'flex';
+    }
 
     updateHUD();
 
@@ -701,6 +867,7 @@
         clearInterval(state.countdownInterval);
         clearTimeout(state.fixationTimer);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
+        if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         showScreen('landing');
       }
     });
@@ -885,6 +1052,7 @@
         clearInterval(state.countdownInterval);
         clearTimeout(state.fixationTimer);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
+        if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         showScreen('landing');
       }
     }
@@ -922,6 +1090,7 @@
       absent_image: trial.absent_image,
       mask_image: trial.mask_image,
       benchmark: trial.benchmark,
+      dashboardData: trial.dashboardData,
       ...clickData
     });
 
@@ -930,6 +1099,9 @@
 
   // --- Results Dashboard ---
   async function finishExperiment() {
+    if (dom.carDashboardOverlay) {
+      dom.carDashboardOverlay.style.display = 'none';
+    }
     showScreen('results');
 
     const results = state.trialResults;
@@ -1088,6 +1260,17 @@
     dom.modalImgPresent.src = `/images/${trial.present_image}`;
     dom.modalImgAbsent.src = `/images/${trial.absent_image}`;
     dom.modalImgMask.src = `/masks/${trial.mask_image}`;
+
+    // Render trial's cockpit dashboard overlay in modal previews
+    const dashData = trial.dashboardData || generateRandomDashboardData(idx);
+    if (dom.modalDashboardPresent) {
+      dom.modalDashboardPresent.innerHTML = createDashboardSVG(dashData);
+      dom.modalDashboardPresent.style.display = 'flex';
+    }
+    if (dom.modalDashboardAbsent) {
+      dom.modalDashboardAbsent.innerHTML = createDashboardSVG(dashData);
+      dom.modalDashboardAbsent.style.display = 'flex';
+    }
 
     if (trial.click_x != null && trial.click_y != null) {
       dom.modalClickPin.style.display = 'block';

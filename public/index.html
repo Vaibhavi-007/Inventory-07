@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
-  <link rel="stylesheet" href="/public/style.css?v=7">
+  <link rel="stylesheet" href="/public/style.css?v=8">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -275,6 +275,9 @@
           <!-- Main Display Canvas -->
           <canvas id="display-canvas" width="1024" height="768"></canvas>
 
+          <!-- Automotive Cluster Dashboard Overlay (Bottom 20%, 85% opacity) -->
+          <div id="car-dashboard-overlay" class="car-dashboard-overlay" aria-hidden="true"></div>
+
           <!-- Black Screen Overlay -->
           <div id="black-screen-overlay" class="black-overlay"></div>
 
@@ -448,12 +451,16 @@
           <div class="inspect-grid">
             <div class="inspect-column">
               <h4>Present Image (<span class="code">_present</span>)</h4>
-              <img id="modal-img-present" alt="Present Image">
+              <div class="inspect-img-wrapper">
+                <img id="modal-img-present" alt="Present Image">
+                <div id="modal-dashboard-present" class="car-dashboard-overlay modal-dashboard"></div>
+              </div>
             </div>
             <div class="inspect-column">
               <h4>Absent Image (<span class="code">_absent</span>)</h4>
               <div class="inspect-absent-wrapper">
                 <img id="modal-img-absent" alt="Absent Image">
+                <div id="modal-dashboard-absent" class="car-dashboard-overlay modal-dashboard"></div>
                 <div id="modal-click-pin" class="modal-pin"></div>
               </div>
             </div>
@@ -471,6 +478,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=7"></script>
+  <script src="/public/app.js?v=8"></script>
 </body>
 </html>
