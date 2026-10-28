@@ -96,7 +96,12 @@
     fixationTimer: null,
     remainingSeconds: 60,
     maskCanvas: null,
-    maskCtx: null
+    maskCtx: null,
+
+    // Speed recall probe state
+    speedRecallTrials: new Set(),    // indices of trials AFTER which we ask speed recall
+    speedRecallPending: false,       // true when speed recall prompt is showing
+    speedRecallResults: []           // { trial_index, actual_speed, user_response, accurate }
   };
 
   // --- DOM Elements ---
@@ -162,6 +167,8 @@
     // Results screen
     resAccuracy: document.getElementById('res-accuracy'),
     resCorrectCount: document.getElementById('res-correct-count'),
+    resSpeedAccuracy: document.getElementById('res-speed-accuracy'),
+    resSpeedCorrectCount: document.getElementById('res-speed-correct-count'),
     resMeanRt: document.getElementById('res-mean-rt'),
     resMeanRtSec: document.getElementById('res-mean-rt-sec'),
     resMedianRt: document.getElementById('res-median-rt'),
@@ -192,7 +199,12 @@
     modalImgMask: document.getElementById('modal-img-mask'),
     modalClickPin: document.getElementById('modal-click-pin'),
     modalStats: document.getElementById('modal-stats'),
-    btnCloseModal: document.getElementById('btn-close-modal')
+    btnCloseModal: document.getElementById('btn-close-modal'),
+
+    // Speed recall
+    speedRecallOverlay: document.getElementById('speed-recall-overlay'),
+    speedRecallInput: document.getElementById('speed-recall-input'),
+    speedRecallSubmit: document.getElementById('speed-recall-submit')
   };
 
   const displayCtx = dom.displayCanvas.getContext('2d');
@@ -405,6 +417,20 @@
       state.trialResults = [];
       state.sessionStartTime = Date.now();
       state.sessionId = `session_${Date.now()}`;
+      state.speedRecallResults = [];
+
+      // Randomly select ~35% of trials for speed recall probes
+      // (Probes can occur after any trial 0..N-1, corresponding to nextIndex 1..N)
+      state.speedRecallTrials = new Set();
+      for (let i = 1; i <= state.trials.length; i++) {
+        if (Math.random() < 0.35) {
+          state.speedRecallTrials.add(i);
+        }
+      }
+      // Ensure at least 1 speed recall probe if there are 2+ trials
+      if (state.speedRecallTrials.size === 0 && state.trials.length >= 2) {
+        state.speedRecallTrials.add(1 + Math.floor(Math.random() * state.trials.length));
+      }
 
       // Preload dashboard icon and first 3 trials
       const preloadPromises = [preloadImage('/public/seatbelt_icon_red.png')];
@@ -532,14 +558,25 @@
       mask_image: trial.mask_image,
       benchmark: trial.benchmark,
       dashboardData: trial.dashboardData,
+      speed_recall_asked: false,
+      speed_recall_actual: trial.dashboardData?.speed ?? null,
+      speed_recall_response: null,
+      speed_recall_accurate: null,
+      speed_error_kmh: null,
       ...state.currentClick
     });
 
     playSound('miss');
 
     // Show blank grey screen with white plus sign in exact center for 1 exact second, then advance automatically
+    const nextIndex = state.currentTrialIndex + 1;
     showFixationScreen(() => {
-      runTrial(state.currentTrialIndex + 1);
+      // Check if the next trial is flagged for speed recall about THIS trial
+      if (state.speedRecallTrials.has(nextIndex) && trial.dashboardData) {
+        showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed, nextIndex);
+      } else {
+        runTrial(nextIndex);
+      }
     });
   }
 
@@ -809,6 +846,84 @@
     state.phaseTimer = setTimeout(step, state.config.imgDuration);
   }
 
+  // ===== Speed Recall Probe System =====
+  function showSpeedRecallPrompt(previousTrialIndex, actualSpeed, nextTrialIndex) {
+    state.speedRecallPending = true;
+    state.trialState = 'speed_recall';
+
+    // Ensure the stimulus image from the previous trial is drawn on the canvas
+    const prevTrial = state.trials[previousTrialIndex];
+    if (prevTrial) {
+      const img = imageCache.get(`/images/${prevTrial.absent_image}`) || imageCache.get(`/images/${prevTrial.present_image}`);
+      if (img) {
+        displayCtx.drawImage(img, 0, 0);
+      }
+    }
+
+    // Blur the stage image and remove/hide the bottom speedometer bar from display
+    dom.stageWrapper.classList.add('speed-recall-blur');
+    if (dom.carDashboardOverlay) {
+      dom.carDashboardOverlay.style.display = 'none';
+    }
+
+    // Show the speed recall overlay
+    dom.speedRecallOverlay.classList.add('active');
+    dom.speedRecallOverlay.setAttribute('aria-hidden', 'false');
+
+    // Reset & focus input
+    dom.speedRecallInput.value = '';
+    setTimeout(() => dom.speedRecallInput.focus(), 150);
+
+    setHUDState('speed_recall', 'Speed Recall Probe');
+
+    // Store context for submission
+    state._speedRecallContext = {
+      previousTrialIndex,
+      actualSpeed,
+      nextTrialIndex
+    };
+  }
+
+  function submitSpeedRecall() {
+    if (!state.speedRecallPending || !state._speedRecallContext) return;
+
+    const ctx = state._speedRecallContext;
+    const userInput = dom.speedRecallInput.value.trim();
+    const userSpeed = userInput !== '' ? parseInt(userInput, 10) : null;
+    const isAccurate = userSpeed !== null && !isNaN(userSpeed) && userSpeed === ctx.actualSpeed;
+    const errorKmh = (userSpeed !== null && !isNaN(userSpeed)) ? Math.abs(userSpeed - ctx.actualSpeed) : null;
+
+    // Record speed recall result in session log
+    const recallEntry = {
+      trial_index: ctx.previousTrialIndex + 1,
+      actual_speed: ctx.actualSpeed,
+      user_response: userSpeed,
+      speed_recall_accurate: isAccurate,
+      speed_error_kmh: errorKmh
+    };
+    state.speedRecallResults.push(recallEntry);
+
+    // Attach to the trial result record for that trial
+    const trialResult = state.trialResults.find(r => r.trial_index === ctx.previousTrialIndex + 1);
+    if (trialResult) {
+      trialResult.speed_recall_asked = true;
+      trialResult.speed_recall_actual = ctx.actualSpeed;
+      trialResult.speed_recall_response = userSpeed;
+      trialResult.speed_recall_accurate = isAccurate;
+      trialResult.speed_error_kmh = errorKmh;
+    }
+
+    // Clean up overlay and unblur
+    state.speedRecallPending = false;
+    state._speedRecallContext = null;
+    dom.speedRecallOverlay.classList.remove('active');
+    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+    dom.stageWrapper.classList.remove('speed-recall-blur');
+
+    // Proceed to next trial (no feedback shown to participant)
+    runTrial(ctx.nextTrialIndex);
+  }
+
   function bindExperimentControls() {
     // Click on canvas
     dom.stageWrapper.addEventListener('click', handleStageClick);
@@ -826,9 +941,25 @@
         clearTimeout(state.fixationTimer);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+        dom.speedRecallOverlay.classList.remove('active');
+        dom.stageWrapper.classList.remove('speed-recall-blur');
+        state.speedRecallPending = false;
         showScreen('landing');
       }
     });
+
+    // Speed recall submit button and Enter key
+    if (dom.speedRecallSubmit) {
+      dom.speedRecallSubmit.addEventListener('click', submitSpeedRecall);
+    }
+    if (dom.speedRecallInput) {
+      dom.speedRecallInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitSpeedRecall();
+        }
+      });
+    }
   }
 
   function handleStageClick(e) {
@@ -981,6 +1112,12 @@
   function handleGlobalKeydown(e) {
     if (state.screen !== 'experiment') return;
 
+    // Block spacebar and other shortcuts during speed recall (let input handle its own keys)
+    if (state.trialState === 'speed_recall') {
+      if (e.code === 'Space') e.preventDefault();
+      return;
+    }
+
     if (e.code === 'Space') {
       e.preventDefault(); // prevent scroll
 
@@ -1049,10 +1186,22 @@
       mask_image: trial.mask_image,
       benchmark: trial.benchmark,
       dashboardData: trial.dashboardData,
+      speed_recall_asked: false,
+      speed_recall_actual: trial.dashboardData?.speed ?? null,
+      speed_recall_response: null,
+      speed_recall_accurate: null,
+      speed_error_kmh: null,
       ...clickData
     });
 
-    runTrial(state.currentTrialIndex + 1);
+    const nextIndex = state.currentTrialIndex + 1;
+
+    // Check if the NEXT trial is flagged for a speed recall probe about THIS trial
+    if (state.speedRecallTrials.has(nextIndex) && trial.dashboardData) {
+      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed, nextIndex);
+    } else {
+      runTrial(nextIndex);
+    }
   }
 
   // --- Results Dashboard ---
@@ -1086,9 +1235,35 @@
       if (fastestTrial) fastestItem = fastestTrial.object_name;
     }
 
+    // Calculate Speed Recall metrics
+    const probedTrials = results.filter(r => r.speed_recall_asked);
+    const speedProbedCount = probedTrials.length;
+    const speedHits = probedTrials.filter(r => r.speed_recall_accurate);
+    const speedHitsCount = speedHits.length;
+    const speedAccuracyPct = speedProbedCount > 0 ? Math.round((speedHitsCount / speedProbedCount) * 100) : 0;
+
+    const speedErrors = probedTrials
+      .filter(r => r.speed_error_kmh != null)
+      .map(r => r.speed_error_kmh);
+    const meanSpeedError = speedErrors.length > 0
+      ? (speedErrors.reduce((a, b) => a + b, 0) / speedErrors.length).toFixed(1)
+      : null;
+
     // KPI values
     dom.resAccuracy.textContent = `${accuracyPct}%`;
     dom.resCorrectCount.textContent = `${hits.length} / ${total} correct`;
+
+    if (dom.resSpeedAccuracy) {
+      dom.resSpeedAccuracy.textContent = speedProbedCount > 0 ? `${speedAccuracyPct}%` : '--%';
+    }
+    if (dom.resSpeedCorrectCount) {
+      if (speedProbedCount > 0) {
+        dom.resSpeedCorrectCount.textContent = `${speedHitsCount} / ${speedProbedCount} correct${meanSpeedError !== null ? ` (avg error ±${meanSpeedError} km/h)` : ''}`;
+      } else {
+        dom.resSpeedCorrectCount.textContent = '0 trials probed';
+      }
+    }
+
     dom.resMeanRt.textContent = `${meanRt} ms`;
     dom.resMeanRtSec.textContent = `${(meanRt / 1000).toFixed(2)} seconds`;
     dom.resMedianRt.textContent = `${medianRt} ms`;
@@ -1135,12 +1310,31 @@
       const coords = r.click_x != null ? `(${r.click_x}, ${r.click_y})` : '--';
       const dist = r.distance_px != null ? `${Math.round(r.distance_px)} px` : '--';
 
+      const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? r.dashboardData.speed : null);
+      const speedShownText = speedShownVal != null ? `${speedShownVal} km/h` : '--';
+      const speedRecalledText = r.speed_recall_asked
+        ? (r.speed_recall_response != null ? `<strong>${r.speed_recall_response} km/h</strong>` : '<span style="color: var(--text-dim);">No input</span>')
+        : '<span style="color: var(--text-dim);">—</span>';
+
+      let speedAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
+      if (r.speed_recall_asked) {
+        if (r.speed_recall_accurate) {
+          speedAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+        } else {
+          const errDiff = r.speed_error_kmh != null ? ` (±${r.speed_error_kmh})` : '';
+          speedAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+        }
+      }
+
       tr.innerHTML = `
         <td><strong>#${idx + 1}</strong></td>
         <td><code>${r.object_name}</code></td>
         <td><span class="badge">${r.side || 'P'}</span></td>
         <td>${outcomeBadge}</td>
         <td><strong>${rtText}</strong></td>
+        <td>${speedShownText}</td>
+        <td>${speedRecalledText}</td>
+        <td>${speedAccuracyBadge}</td>
         <td style="color: var(--text-dim);">${benchRt}</td>
         <td style="font-family: var(--font-mono); font-size: 0.85em;">${coords}</td>
         <td style="font-family: var(--font-mono);">${dist}</td>
@@ -1166,6 +1360,10 @@
         total_trials: total,
         correct_count: hits.length,
         accuracy_percent: accuracyPct,
+        speed_recall_probed_count: speedProbedCount,
+        speed_recall_correct_count: speedHitsCount,
+        speed_recall_accuracy_percent: speedAccuracyPct,
+        speed_recall_mean_error_kmh: meanSpeedError != null ? Number(meanSpeedError) : null,
         mean_rt_ms: meanRt,
         median_rt_ms: medianRt,
         fastest_rt_ms: fastestRt,
@@ -1242,9 +1440,19 @@
     const rt = trial.response_time_ms ? `${Math.round(trial.response_time_ms)} ms` : 'Skipped';
     const outcome = trial.accurate ? '✓ Correct Hit' : '✗ Missed';
 
+    const speedShownVal = trial.speed_recall_actual != null ? trial.speed_recall_actual : (trial.dashboardData?.speed != null ? trial.dashboardData.speed : '--');
+    let speedRecallDetail = 'Not probed on this trial';
+    if (trial.speed_recall_asked) {
+      const recalled = trial.speed_recall_response != null ? `${trial.speed_recall_response} km/h` : 'No response';
+      const status = trial.speed_recall_accurate ? '✓ Correct' : `✗ Error (off by ${trial.speed_error_kmh != null ? trial.speed_error_kmh : '?'} km/h)`;
+      speedRecallDetail = `Entered: <strong>${recalled}</strong> (${status})`;
+    }
+
     dom.modalStats.innerHTML = `
-      <div>Outcome: <strong>${outcome}</strong></div>
+      <div>Detection Outcome: <strong>${outcome}</strong></div>
       <div>Response Time: <strong>${rt}</strong></div>
+      <div>Dashboard Speed Shown: <strong>${speedShownVal} km/h</strong></div>
+      <div>Speed Recall: <span>${speedRecallDetail}</span></div>
       <div>Click Coordinates: <strong>${trial.click_x != null ? `(${trial.click_x}, ${trial.click_y})` : 'None'}</strong></div>
       <div>Benchmark Center: <strong>${trial.target_x != null ? `(${trial.target_x}, ${trial.target_y})` : '--'}</strong></div>
       <div>Error Distance: <strong>${trial.distance_px != null ? Math.round(trial.distance_px) + ' px' : '--'}</strong></div>
@@ -1283,6 +1491,11 @@
       'category',
       'accurate',
       'response_time_ms',
+      'speed_shown_kmh',
+      'speed_recall_probed',
+      'speed_recalled_kmh',
+      'speed_recall_accurate',
+      'speed_error_kmh',
       'click_x',
       'click_y',
       'target_x',
@@ -1298,6 +1511,12 @@
 
     const rows = [headers.join(',')];
     trials.forEach(t => {
+      const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+      const speedProbed = t.speed_recall_asked ? 1 : 0;
+      const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+      const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+      const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
       rows.push([
         t.trial_index,
         `"${t.id}"`,
@@ -1306,6 +1525,11 @@
         `"${t.category}"`,
         t.accurate ? 1 : 0,
         t.response_time_ms != null ? t.response_time_ms.toFixed(1) : '',
+        speedShown,
+        speedProbed,
+        speedRecalled,
+        speedAccurate,
+        speedError,
         t.click_x != null ? t.click_x : '',
         t.click_y != null ? t.click_y : '',
         t.target_x != null ? t.target_x : '',
@@ -1338,7 +1562,8 @@
     // Client-side Excel SpreadsheetML XML fallback
     const headers = [
       'trial_index', 'id', 'object_name', 'side', 'category', 'accurate',
-      'response_time_ms', 'click_x', 'click_y', 'target_x', 'target_y',
+      'response_time_ms', 'speed_shown_kmh', 'speed_recall_probed', 'speed_recalled_kmh',
+      'speed_recall_accurate', 'speed_error_kmh', 'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
       'interval_t_ms', 'image_duration_ms'
     ];
@@ -1360,6 +1585,12 @@
     xml += '   </Row>\n';
 
     trials.forEach(t => {
+      const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+      const speedProbed = t.speed_recall_asked ? 1 : 0;
+      const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+      const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+      const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
       xml += '   <Row>\n' +
         `    <Cell><Data ss:Type="Number">${t.trial_index}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="String">${t.id}</Data></Cell>\n` +
@@ -1368,6 +1599,11 @@
         `    <Cell><Data ss:Type="String">${t.category || ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="Number">${t.accurate ? 1 : 0}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.response_time_ms != null ? 'Number' : 'String'}">${t.response_time_ms != null ? t.response_time_ms.toFixed(1) : ''}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedShown !== '' ? 'Number' : 'String'}">${speedShown}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="Number">${speedProbed}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedRecalled !== '' ? 'Number' : 'String'}">${speedRecalled}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedAccurate !== '' ? 'Number' : 'String'}">${speedAccurate}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedError !== '' ? 'Number' : 'String'}">${speedError}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.click_x != null ? 'Number' : 'String'}">${t.click_x != null ? t.click_x : ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.click_y != null ? 'Number' : 'String'}">${t.click_y != null ? t.click_y : ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.target_x != null ? 'Number' : 'String'}">${t.target_x != null ? t.target_x : ''}</Data></Cell>\n` +

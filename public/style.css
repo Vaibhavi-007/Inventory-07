@@ -868,6 +868,153 @@ kbd {
   pointer-events: auto;
 }
 
+/* ===== Speed Recall Overlay ===== */
+.speed-recall-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  user-select: none;
+}
+
+.speed-recall-overlay.active {
+  display: flex;
+}
+
+/* When speed recall is active, blur the stage image and hide dashboard */
+.stage-wrapper.speed-recall-blur #display-canvas {
+  filter: blur(18px) brightness(0.5);
+  transition: filter 0.25s ease;
+}
+
+.stage-wrapper.speed-recall-blur .car-dashboard-overlay {
+  display: none !important;
+}
+
+.stage-wrapper.speed-recall-blur .black-overlay,
+.stage-wrapper.speed-recall-blur .feedback-overlay,
+.stage-wrapper.speed-recall-blur .click-marker {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.speed-recall-card {
+  background: rgba(9, 9, 11, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  animation: speedRecallFadeIn 0.3s ease;
+}
+
+@keyframes speedRecallFadeIn {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.speed-recall-icon {
+  font-size: 2.4rem;
+  margin-bottom: 8px;
+}
+
+.speed-recall-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: 0.02em;
+}
+
+.speed-recall-desc {
+  font-size: 0.92rem;
+  color: #a1a1aa;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.speed-recall-desc strong {
+  color: #f9a01b;
+}
+
+.speed-recall-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.speed-recall-input {
+  width: 120px;
+  padding: 10px 14px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+  -moz-appearance: textfield;
+}
+
+.speed-recall-input::-webkit-outer-spin-button,
+.speed-recall-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.speed-recall-input:focus {
+  border-color: #e2231a;
+  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.18);
+}
+
+.speed-recall-unit {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.speed-recall-btn {
+  display: inline-block;
+  padding: 10px 36px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #e2231a;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  margin-bottom: 10px;
+}
+
+.speed-recall-btn:hover {
+  background: #c91e17;
+  transform: translateY(-1px);
+}
+
+.speed-recall-btn:active {
+  transform: translateY(0);
+}
+
+.speed-recall-hint {
+  font-size: 0.78rem;
+  color: #71717a;
+  margin: 0;
+}
+
 /* Full-Screen Fixation Point Overlay (Neutral Grey + Centered White Cross) */
 .fixation-overlay {
   position: absolute;
@@ -1064,16 +1211,28 @@ kbd {
 /* KPI Cards */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1.25rem;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1280px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .results-content {
     padding: 1.5rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 

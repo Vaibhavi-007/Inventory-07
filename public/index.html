@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=13">
+  <link rel="stylesheet" href="/public/style.css?v=15">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -306,6 +306,21 @@
         </div>
       </footer>
 
+      <!-- Speed Recall Overlay (blurs image, hides dashboard, asks for speed) -->
+      <div id="speed-recall-overlay" class="speed-recall-overlay" aria-hidden="true">
+        <div class="speed-recall-card">
+          <div class="speed-recall-icon">🏎️</div>
+          <h3 class="speed-recall-title">Speed Recall</h3>
+          <p class="speed-recall-desc">What was the speed shown on the dashboard in the <strong>previous</strong> image?</p>
+          <div class="speed-recall-input-row">
+            <input type="number" id="speed-recall-input" class="speed-recall-input" min="0" max="300" placeholder="Enter speed" autocomplete="off" />
+            <span class="speed-recall-unit">km/h</span>
+          </div>
+          <button id="speed-recall-submit" class="speed-recall-btn">Submit</button>
+          <p class="speed-recall-hint">Type the speed value and press Enter or click Submit</p>
+        </div>
+      </div>
+
       <!-- Fixation Point Overlay (Full-screen blank grey with white plus sign) -->
       <div id="fixation-overlay" class="fixation-overlay" aria-hidden="true">
         <svg class="fixation-cross-svg" viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
@@ -349,10 +364,19 @@
           <div class="glass-card kpi-card">
             <div class="kpi-header">
               <span class="kpi-icon">🎯</span>
-              <span class="kpi-label">Overall Accuracy</span>
+              <span class="kpi-label">Detection Accuracy</span>
             </div>
             <div class="kpi-val" id="res-accuracy">0%</div>
             <div class="kpi-sub" id="res-correct-count">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">🏎️</span>
+              <span class="kpi-label">Speed Recall Accuracy</span>
+            </div>
+            <div class="kpi-val" id="res-speed-accuracy">--%</div>
+            <div class="kpi-sub" id="res-speed-correct-count">0 / 0 correct</div>
           </div>
 
           <div class="glass-card kpi-card">
@@ -424,10 +448,13 @@
                   <th>#</th>
                   <th>Target Object</th>
                   <th>Field</th>
-                  <th>Outcome</th>
-                  <th>Response Time</th>
+                  <th>Detection</th>
+                  <th>Detection RT</th>
+                  <th>Speed Shown</th>
+                  <th>Speed Recalled</th>
+                  <th>Speed Accuracy</th>
                   <th>Benchmark RT</th>
-                  <th>Click Coordinates</th>
+                  <th>Coordinates</th>
                   <th>Error Distance</th>
                   <th>Action</th>
                 </tr>
@@ -479,6 +506,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=13"></script>
+  <script src="/public/app.js?v=15"></script>
 </body>
 </html>

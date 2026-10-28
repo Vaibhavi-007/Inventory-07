@@ -81,7 +81,13 @@ const testPayload = {
     skipped: false,
     present_image: p.present_image,
     absent_image: p.absent_image,
-    mask_image: p.mask_image
+    mask_image: p.mask_image,
+    dashboardData: { speed: 85 + i * 5 },
+    speed_recall_asked: i % 2 === 0,
+    speed_recall_actual: 85 + i * 5,
+    speed_recall_response: i % 2 === 0 ? 85 + i * 5 : null,
+    speed_recall_accurate: i % 2 === 0,
+    speed_error_kmh: i % 2 === 0 ? 0 : null
   }))
 };
 
@@ -98,6 +104,11 @@ const headers = [
   'accurate',
   'response_time_ms',
   'response_time_sec',
+  'speed_shown_kmh',
+  'speed_recall_probed',
+  'speed_recalled_kmh',
+  'speed_recall_accurate',
+  'speed_error_kmh',
   'click_x',
   'click_y',
   'target_x',
@@ -114,6 +125,12 @@ const headers = [
 ];
 const csvRows = [headers.join(',')];
 testPayload.trials.forEach(t => {
+  const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+  const speedProbed = t.speed_recall_asked ? 1 : 0;
+  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+  const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+  const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
   csvRows.push([
     t.trial_index,
     `"${t.id}"`,
@@ -124,6 +141,11 @@ testPayload.trials.forEach(t => {
     t.accurate ? 1 : 0,
     t.response_time_ms.toFixed(1),
     (t.response_time_ms / 1000).toFixed(3),
+    speedShown,
+    speedProbed,
+    speedRecalled,
+    speedAccurate,
+    speedError,
     t.click_x,
     t.click_y,
     t.target_x,
@@ -141,6 +163,51 @@ testPayload.trials.forEach(t => {
 });
 
 fs.writeFileSync(testCsvPath, csvRows.join('\n'), 'utf-8');
+
+// Test XLSX generation
+const { generateXlsx } = require('./xlsx_builder.js');
+const xlsxRows = testPayload.trials.map((t, idx) => {
+  const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+  const speedProbed = t.speed_recall_asked ? 1 : 0;
+  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? Number(t.speed_recall_response) : '';
+  const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+  const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
+  return [
+    t.trial_index || (idx + 1),
+    t.id || '',
+    t.trial_str || '',
+    t.category || '',
+    t.side || '',
+    t.object_name || '',
+    t.accurate ? 1 : 0,
+    t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+    t.response_time_ms != null ? Number((t.response_time_ms / 1000).toFixed(3)) : '',
+    speedShown !== '' ? Number(speedShown) : '',
+    speedProbed,
+    speedRecalled,
+    speedAccurate !== '' ? Number(speedAccurate) : '',
+    speedError !== '' ? Number(speedError) : '',
+    t.click_x != null ? t.click_x : '',
+    t.click_y != null ? t.click_y : '',
+    t.target_x != null ? t.target_x : '',
+    t.target_y != null ? t.target_y : '',
+    t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '',
+    t.skipped ? 1 : 0,
+    t.present_image || '',
+    t.absent_image || '',
+    t.mask_image || '',
+    testPayload.parameters.t_interval_ms,
+    testPayload.parameters.image_duration_ms,
+    testPayload.parameters.mode,
+    testPayload.timestamp
+  ];
+});
+const testXlsxPath = path.join(RESULTS_DIR, `${testSessionId}.xlsx`);
+const xlsxBuf = generateXlsx(headers, xlsxRows, 'Trial Results');
+fs.writeFileSync(testXlsxPath, xlsxBuf);
+assert(fs.existsSync(testXlsxPath) && fs.statSync(testXlsxPath).size > 100, 'Saved XLSX must exist and be populated');
+fs.unlinkSync(testXlsxPath);
 
 assert(fs.existsSync(testJsonPath), 'Saved JSON must exist');
 assert(fs.existsSync(testCsvPath), 'Saved CSV must exist');

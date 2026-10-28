@@ -206,6 +206,11 @@ const server = http.createServer((req, res) => {
           'accurate',
           'response_time_ms',
           'response_time_sec',
+          'speed_shown_kmh',
+          'speed_recall_probed',
+          'speed_recalled_kmh',
+          'speed_recall_accurate',
+          'speed_error_kmh',
           'click_x',
           'click_y',
           'target_x',
@@ -226,6 +231,15 @@ const server = http.createServer((req, res) => {
         const params = payload.parameters || {};
 
         trials.forEach((t, idx) => {
+          const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+          const speedProbed = t.speed_recall_asked ? 1 : 0;
+          const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+          const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+          let speedError = '';
+          if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '') {
+            speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
+          }
+
           const row = [
             t.trial_index || (idx + 1),
             `"${t.id || ''}"`,
@@ -234,13 +248,18 @@ const server = http.createServer((req, res) => {
             `"${t.side || ''}"`,
             `"${t.object_name || ''}"`,
             t.accurate ? 1 : 0,
-            t.response_time_ms != null ? t.response_time_ms.toFixed(1) : '',
-            t.response_time_ms != null ? (t.response_time_ms / 1000).toFixed(3) : '',
+            t.response_time_ms != null ? Number(t.response_time_ms).toFixed(1) : '',
+            t.response_time_ms != null ? (Number(t.response_time_ms) / 1000).toFixed(3) : '',
+            speedShown,
+            speedProbed,
+            speedRecalled,
+            speedAccurate,
+            speedError,
             t.click_x != null ? t.click_x : '',
             t.click_y != null ? t.click_y : '',
             t.target_x != null ? t.target_x : '',
             t.target_y != null ? t.target_y : '',
-            t.distance_px != null ? t.distance_px.toFixed(1) : '',
+            t.distance_px != null ? Number(t.distance_px).toFixed(1) : '',
             t.skipped ? 1 : 0,
             `"${t.present_image || ''}"`,
             `"${t.absent_image || ''}"`,
@@ -259,30 +278,46 @@ const server = http.createServer((req, res) => {
         const xlsxFilename = `${sessionId}.xlsx`;
         const xlsxPath = path.join(RESULTS_DIR, xlsxFilename);
         try {
-          const xlsxRows = trials.map((t, idx) => [
-            t.trial_index || (idx + 1),
-            t.id || '',
-            t.trial_str || '',
-            t.category || '',
-            t.side || '',
-            t.object_name || '',
-            t.accurate ? 1 : 0,
-            t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
-            t.response_time_ms != null ? Number((t.response_time_ms / 1000).toFixed(3)) : '',
-            t.click_x != null ? t.click_x : '',
-            t.click_y != null ? t.click_y : '',
-            t.target_x != null ? t.target_x : '',
-            t.target_y != null ? t.target_y : '',
-            t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '',
-            t.skipped ? 1 : 0,
-            t.present_image || '',
-            t.absent_image || '',
-            t.mask_image || '',
-            params.t_interval_ms || '',
-            params.image_duration_ms || '',
-            params.mode || '',
-            payload.timestamp || new Date().toISOString()
-          ]);
+          const xlsxRows = trials.map((t, idx) => {
+            const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+            const speedProbed = t.speed_recall_asked ? 1 : 0;
+            const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? Number(t.speed_recall_response) : '';
+            const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
+            let speedError = '';
+            if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '') {
+              speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
+            }
+
+            return [
+              t.trial_index || (idx + 1),
+              t.id || '',
+              t.trial_str || '',
+              t.category || '',
+              t.side || '',
+              t.object_name || '',
+              t.accurate ? 1 : 0,
+              t.response_time_ms != null ? Number(Number(t.response_time_ms).toFixed(1)) : '',
+              t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
+              speedShown !== '' ? Number(speedShown) : '',
+              speedProbed,
+              speedRecalled,
+              speedAccurate !== '' ? Number(speedAccurate) : '',
+              speedError !== '' ? Number(speedError) : '',
+              t.click_x != null ? t.click_x : '',
+              t.click_y != null ? t.click_y : '',
+              t.target_x != null ? t.target_x : '',
+              t.target_y != null ? t.target_y : '',
+              t.distance_px != null ? Number(Number(t.distance_px).toFixed(1)) : '',
+              t.skipped ? 1 : 0,
+              t.present_image || '',
+              t.absent_image || '',
+              t.mask_image || '',
+              params.t_interval_ms || '',
+              params.image_duration_ms || '',
+              params.mode || '',
+              payload.timestamp || new Date().toISOString()
+            ];
+          });
           const xlsxBuf = generateXlsx(headers, xlsxRows, 'Trial Results');
           fs.writeFileSync(xlsxPath, xlsxBuf);
         } catch (xlsxErr) {
