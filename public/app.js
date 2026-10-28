@@ -406,8 +406,8 @@
       state.sessionStartTime = Date.now();
       state.sessionId = `session_${Date.now()}`;
 
-      // Preload first 3 trials
-      const preloadPromises = [];
+      // Preload dashboard icon and first 3 trials
+      const preloadPromises = [preloadImage('/public/seatbelt_icon_red.png')];
       for (let i = 0; i < Math.min(3, state.trials.length); i++) {
         const t = state.trials[i];
         preloadPromises.push(preloadImage(`/images/${t.present_image}`));
@@ -663,14 +663,9 @@
           <text x="380" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
-        <!-- Cluster 3: Seatbelt Symbol ONLY (No text underneath) -->
-        <g class="dash-cluster-seatbelt" transform="translate(615, 42)" fill="#e2231a">
-          <circle cx="20" cy="8" r="6" />
-          <path d="M 11 18 C 8 20.5 7 25 7 30 L 11 31 C 12 27 14 24 17 22 Z" />
-          <path d="M 23 22 C 26 24 28 27 29 31 L 33 30 C 33 25 32 20.5 29 18 Z" />
-          <path d="M 8 34 L 8 50 L 32 50 L 32 46 L 13 46 L 13 34 Z" />
-          <polygon points="11,18 31,49 34,47 14,16" />
-          <rect x="8" y="38" width="24" height="3.5" rx="1.5" />
+        <!-- Cluster 3: Seatbelt Warning Symbol ONLY (No text underneath) -->
+        <g class="dash-cluster-seatbelt">
+          <image href="/public/seatbelt_icon_red.png" xlink:href="/public/seatbelt_icon_red.png" x="602" y="37" width="46" height="76" preserveAspectRatio="xMidYMid meet" />
         </g>
 
         <!-- Cluster 4: Fuel Gauge & Range -->
