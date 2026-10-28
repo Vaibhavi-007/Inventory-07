@@ -694,8 +694,8 @@
           <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
           <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${arcLength}" stroke-dashoffset="${speedOffset.toFixed(1)}" />
-          <text x="155" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
-          <text x="155" y="112" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
+          <text x="155" y="78" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
+          <text x="155" y="104" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
         </g>
 
         <!-- Cluster 2: Tachometer (RPM) -->
@@ -703,21 +703,21 @@
           <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
           <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${arcLength}" stroke-dashoffset="${rpmOffset.toFixed(1)}" />
-          <text x="365" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${rpm.toFixed(1)}</text>
-          <text x="365" y="112" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
+          <text x="365" y="78" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${rpm.toFixed(1)}</text>
+          <text x="365" y="104" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
         <!-- Cluster 3: Center Status / Warning -->
         <g class="dash-cluster-status">
           ${iconSVG}
-          <text x="640" y="86" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.title}</text>
-          <text x="640" y="108" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.subtitle}</text>
+          <text x="640" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.title}</text>
+          <text x="640" y="100" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.subtitle}</text>
         </g>
 
         <!-- Cluster 4: Fuel Gauge & Range -->
         <g class="dash-cluster-fuel">
           <!-- Fuel Pump Icon -->
-          <g transform="translate(758, 36)" fill="#ffffff">
+          <g transform="translate(758, 32)" fill="#ffffff">
             <path d="M 2 4 C 2 2.9 2.9 2 4 2 L 11 2 C 12.1 2 13 2.9 13 4 L 13 19 L 2 19 Z" />
             <rect x="4" y="5" width="7" height="4" fill="#09090b" rx="0.5" />
             <rect x="1" y="19" width="13" height="2" rx="0.5" />
@@ -725,13 +725,13 @@
             <path d="M 15.5 13 L 13.5 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
           </g>
           <!-- Segmented Bar Outline -->
-          <rect x="788" y="34" width="156" height="22" rx="3" fill="none" stroke="#52525b" stroke-width="1.5" />
+          <rect x="788" y="30" width="156" height="22" rx="3" fill="none" stroke="#52525b" stroke-width="1.5" />
           ${fuelSegmentsSVG}
-          <text x="792" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa">E</text>
-          <text x="940" y="72" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa" text-anchor="end">F</text>
+          <text x="792" y="68" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa">E</text>
+          <text x="940" y="68" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa" text-anchor="end">F</text>
           <!-- Range -->
-          <text x="866" y="96" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">${range} km</text>
-          <text x="866" y="114" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#a1a1aa" text-anchor="middle">Range</text>
+          <text x="866" y="90" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">${range} km</text>
+          <text x="866" y="108" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#a1a1aa" text-anchor="middle">Range</text>
         </g>
       </svg>`;
   }
