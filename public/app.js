@@ -604,12 +604,16 @@
     // Range: roughly 42 to 55 km per segment
     const rangeKm = Math.round(filledSegments * 46 + (Math.random() * 26 - 13));
 
+    // Seatbelt warning: randomly shown (~50% of trials)
+    const showSeatbelt = Math.random() < 0.5;
+
     return {
       speed,
       rpm,
       filledSegments,
       totalSegments,
-      rangeKm
+      rangeKm,
+      showSeatbelt
     };
   }
 
@@ -619,6 +623,7 @@
     const filled = data?.filledSegments ?? 7;
     const total = data?.totalSegments ?? 8;
     const range = data?.rangeKm ?? 320;
+    const showSeatbelt = data?.showSeatbelt ?? false;
 
     // Arc length for R=110 circular arc (from x=65,y=80 to x=255,y=80) is approx 230px
     const arcLength = 230;
@@ -663,10 +668,10 @@
           <text x="380" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
-        <!-- Cluster 3: Seatbelt Warning Symbol ONLY (No text underneath) -->
-        <g class="dash-cluster-seatbelt">
-          <image href="/public/seatbelt_icon_red.png" xlink:href="/public/seatbelt_icon_red.png" x="602" y="37" width="46" height="76" preserveAspectRatio="xMidYMid meet" />
-        </g>
+        <!-- Cluster 3: Seatbelt Warning Symbol (randomly shown/hidden) -->
+        ${showSeatbelt ? `<g class="dash-cluster-seatbelt">
+          <image href="/public/seatbelt_icon_red.png" xlink:href="/public/seatbelt_icon_red.png" x="610" y="42" width="36" height="60" preserveAspectRatio="xMidYMid meet" />
+        </g>` : ''}
 
         <!-- Cluster 4: Fuel Gauge & Range -->
         <g class="dash-cluster-fuel">
