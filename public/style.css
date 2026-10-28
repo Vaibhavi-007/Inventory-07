@@ -833,24 +833,22 @@ kbd {
   transition: opacity 0.02s linear;
 }
 
-/* Automotive Instrument Cluster Dashboard Overlay (Bottom exact 20%, 85% opacity) */
+/* Automotive Instrument Cluster Dashboard Overlay (Bottom exact 20%, 100% opacity) */
 .car-dashboard-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 20%; /* Exactly 20% height of the overall image */
-  background: rgba(0, 0, 0, 0.85); /* 85% opacity (between 80%-90%) instead of complete black */
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: #000000; /* Completely 100% opaque black */
   z-index: 6;
   pointer-events: none; /* Allows user clicks to pass through to image underneath */
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
   user-select: none;
 }
 

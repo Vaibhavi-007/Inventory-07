@@ -604,24 +604,12 @@
     // Range: roughly 42 to 55 km per segment
     const rangeKm = Math.round(filledSegments * 46 + (Math.random() * 26 - 13));
 
-    // Vehicle warning/status notifications
-    const statuses = [
-      { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' },
-      { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' },
-      { icon: 'seatbelt_ok', title: 'Seat Belt', subtitle: 'Fastened', color: '#10b981' },
-      { icon: 'door', title: 'Door Ajar', subtitle: 'Check Doors', color: '#e2231a' },
-      { icon: 'eco', title: 'ECO Mode', subtitle: 'System Active', color: '#10b981' },
-      { icon: 'cruise', title: 'Cruise Control', subtitle: `${speed} km/h Set`, color: '#38bdf8' }
-    ];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-
     return {
       speed,
       rpm,
       filledSegments,
       totalSegments,
-      rangeKm,
-      status
+      rangeKm
     };
   }
 
@@ -631,107 +619,78 @@
     const filled = data?.filledSegments ?? 7;
     const total = data?.totalSegments ?? 8;
     const range = data?.rangeKm ?? 320;
-    const status = data?.status ?? { icon: 'seatbelt', title: 'Seat Belt', subtitle: 'Not Fastened', color: '#e2231a' };
 
-    // Arc length for 90deg radius arc is approx 206px
-    const arcLength = 206;
+    // Arc length for R=110 circular arc (from x=65,y=80 to x=255,y=80) is approx 230px
+    const arcLength = 230;
     const speedRatio = Math.max(0.08, Math.min(1.0, speed / 160));
     const speedOffset = arcLength * (1 - speedRatio);
 
     const rpmRatio = Math.max(0.08, Math.min(1.0, rpm / 6.0));
     const rpmOffset = arcLength * (1 - rpmRatio);
 
-    // Fuel segments
+    // Fuel segments: 8 segments inside 144px width bar
     let fuelSegmentsSVG = '';
-    const segW = 16;
-    const segGap = 3;
-    const startX = 792;
+    const segW = 15;
+    const segGap = 2.5;
+    const startX = 803;
     for (let i = 0; i < total; i++) {
       const x = startX + i * (segW + segGap);
       const isFilled = i < filled;
       const fillCol = isFilled ? '#ffffff' : 'rgba(255, 255, 255, 0.12)';
-      fuelSegmentsSVG += `<rect x="${x}" y="38" width="${segW}" height="14" rx="1.5" fill="${fillCol}" />`;
-    }
-
-    // Status icon SVG
-    let iconSVG = '';
-    if (status.icon === 'seatbelt' || status.icon === 'seatbelt_ok') {
-      iconSVG = `
-        <g transform="translate(626, 14)" fill="${status.color}">
-          <circle cx="14" cy="5.5" r="4.5" />
-          <path d="M 8 13.5 C 6 15.5 5 18 5 22 L 8 23 C 8.5 19 10 16 13 14 Z" />
-          <path d="M 15 14 C 18 16 20 19 20 23 L 23 22 C 23 18 22 15 20 13 Z" />
-          <path d="M 6 24 L 6 36 L 22 36 L 22 33 L 9 33 L 9 24 Z" />
-          <path d="M 8 13.5 L 21 34 L 23 32 L 10 11.5 Z" />
-          <rect x="6" y="27" width="16" height="2.5" rx="1" />
-        </g>`;
-    } else if (status.icon === 'eco') {
-      iconSVG = `
-        <g transform="translate(626, 15)" fill="none" stroke="${status.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M 22 4 C 12 4 4 12 4 22 C 4 26 6 34 6 34 C 6 34 14 36 18 36 C 28 36 36 28 36 18 C 36 8 22 4 22 4 Z" fill="rgba(16, 185, 129, 0.2)" />
-          <path d="M 6 34 C 16 26 24 18 28 10" />
-        </g>`;
-    } else if (status.icon === 'door') {
-      iconSVG = `
-        <g transform="translate(626, 16)" fill="none" stroke="${status.color}" stroke-width="2" stroke-linecap="round">
-          <rect x="6" y="4" width="16" height="30" rx="3" />
-          <circle cx="18" cy="20" r="1.5" fill="${status.color}" />
-          <path d="M 10 4 L 2 10 L 2 32 L 10 34" />
-        </g>`;
-    } else {
-      iconSVG = `
-        <g transform="translate(626, 16)" fill="none" stroke="${status.color}" stroke-width="2.5" stroke-linecap="round">
-          <path d="M 6 26 A 14 14 0 1 1 24 26" />
-          <line x1="15" y1="18" x2="22" y2="12" />
-          <circle cx="15" cy="18" r="2" fill="${status.color}" />
-        </g>`;
+      fuelSegmentsSVG += `<rect x="${x.toFixed(1)}" y="33" width="${segW}" height="14" rx="1.5" fill="${fillCol}" />`;
     }
 
     return `
       <svg viewBox="0 0 1024 154" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <!-- 100% Opaque Solid Black Background -->
+        <rect width="1024" height="154" fill="#000000" />
+
         <!-- Cluster 1: Speedometer -->
         <g class="dash-cluster-speed">
-          <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
-          <path d="M 74 100 A 90 90 0 0 1 236 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
+          <path d="M 65 80 A 110 110 0 0 1 255 80" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
+          <path d="M 65 80 A 110 110 0 0 1 255 80" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${arcLength}" stroke-dashoffset="${speedOffset.toFixed(1)}" />
-          <text x="155" y="78" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
-          <text x="155" y="104" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
+          <text x="160" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
+          <text x="160" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
         </g>
 
         <!-- Cluster 2: Tachometer (RPM) -->
         <g class="dash-cluster-rpm">
-          <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
-          <path d="M 284 100 A 90 90 0 0 1 446 100" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
+          <path d="M 285 80 A 110 110 0 0 1 475 80" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
+          <path d="M 285 80 A 110 110 0 0 1 475 80" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${arcLength}" stroke-dashoffset="${rpmOffset.toFixed(1)}" />
-          <text x="365" y="78" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${rpm.toFixed(1)}</text>
-          <text x="365" y="104" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
+          <text x="380" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${rpm.toFixed(1)}</text>
+          <text x="380" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
-        <!-- Cluster 3: Center Status / Warning -->
-        <g class="dash-cluster-status">
-          ${iconSVG}
-          <text x="640" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.title}</text>
-          <text x="640" y="100" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">${status.subtitle}</text>
+        <!-- Cluster 3: Seatbelt Symbol ONLY (No text underneath) -->
+        <g class="dash-cluster-seatbelt" transform="translate(615, 42)" fill="#e2231a">
+          <circle cx="20" cy="8" r="6" />
+          <path d="M 11 18 C 8 20.5 7 25 7 30 L 11 31 C 12 27 14 24 17 22 Z" />
+          <path d="M 23 22 C 26 24 28 27 29 31 L 33 30 C 33 25 32 20.5 29 18 Z" />
+          <path d="M 8 34 L 8 50 L 32 50 L 32 46 L 13 46 L 13 34 Z" />
+          <polygon points="11,18 31,49 34,47 14,16" />
+          <rect x="8" y="38" width="24" height="3.5" rx="1.5" />
         </g>
 
         <!-- Cluster 4: Fuel Gauge & Range -->
         <g class="dash-cluster-fuel">
           <!-- Fuel Pump Icon -->
-          <g transform="translate(758, 32)" fill="#ffffff">
+          <g transform="translate(770, 31)" fill="#ffffff">
             <path d="M 2 4 C 2 2.9 2.9 2 4 2 L 11 2 C 12.1 2 13 2.9 13 4 L 13 19 L 2 19 Z" />
-            <rect x="4" y="5" width="7" height="4" fill="#09090b" rx="0.5" />
+            <rect x="4" y="5" width="7" height="4" fill="#000000" rx="0.5" />
             <rect x="1" y="19" width="13" height="2" rx="0.5" />
             <path d="M 13 6 C 16 6 17.5 8 17.5 11 L 17.5 17 C 17.5 18.5 16.5 19 15.5 19 L 15.5 16" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
             <path d="M 15.5 13 L 13.5 11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
           </g>
           <!-- Segmented Bar Outline -->
-          <rect x="788" y="30" width="156" height="22" rx="3" fill="none" stroke="#52525b" stroke-width="1.5" />
+          <rect x="800" y="31" width="144" height="18" rx="3" fill="none" stroke="#52525b" stroke-width="1.5" />
           ${fuelSegmentsSVG}
-          <text x="792" y="68" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa">E</text>
-          <text x="940" y="68" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#a1a1aa" text-anchor="end">F</text>
+          <text x="802" y="64" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#a1a1aa">E</text>
+          <text x="942" y="64" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#a1a1aa" text-anchor="end">F</text>
           <!-- Range -->
-          <text x="866" y="90" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">${range} km</text>
-          <text x="866" y="108" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#a1a1aa" text-anchor="middle">Range</text>
+          <text x="872" y="86" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="22" font-weight="800" fill="#ffffff" text-anchor="middle">${range} km</text>
+          <text x="872" y="108" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#a1a1aa" text-anchor="middle">Range</text>
         </g>
       </svg>`;
   }
