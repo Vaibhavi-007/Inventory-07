@@ -101,7 +101,10 @@
     // Speed recall probe state
     speedRecallTrials: new Set(),    // indices of trials AFTER which we ask speed recall
     speedRecallPending: false,       // true when speed recall prompt is showing
-    speedRecallResults: []           // { trial_index, actual_speed, user_response, accurate }
+    speedRecallResults: [],          // { trial_index, actual_speed, user_response, accurate }
+    speedRecallTimer: null,          // 1-minute timeout timer
+    speedRecallInterval: null,       // 1-second countdown interval
+    speedRecallRemainingSeconds: 60  // countdown seconds counter
   };
 
   // --- DOM Elements ---
@@ -204,7 +207,9 @@
     // Speed recall
     speedRecallOverlay: document.getElementById('speed-recall-overlay'),
     speedRecallInput: document.getElementById('speed-recall-input'),
-    speedRecallSubmit: document.getElementById('speed-recall-submit')
+    speedRecallSubmit: document.getElementById('speed-recall-submit'),
+    speedRecallTimerBadge: document.getElementById('speed-recall-timer-badge'),
+    speedRecallTimerVal: document.getElementById('speed-recall-timer-val')
   };
 
   const displayCtx = dom.displayCanvas.getContext('2d');
@@ -739,6 +744,8 @@
     clearTimeout(state.trialTimeoutTimer);
     clearInterval(state.countdownInterval);
     clearTimeout(state.fixationTimer);
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
     if (dom.fixationOverlay) {
       dom.fixationOverlay.classList.remove('active');
     }
@@ -851,6 +858,10 @@
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 
+    // Clear any active speed recall timers
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
+
     // Ensure the stimulus image from the previous trial is drawn on the canvas
     const prevTrial = state.trials[previousTrialIndex];
     if (prevTrial) {
@@ -882,10 +893,87 @@
       actualSpeed,
       nextTrialIndex
     };
+
+    // 1-minute (60 seconds) timer on the input speed dialogue
+    const limit = state.config.timeoutSec || 60;
+    state.speedRecallRemainingSeconds = limit;
+    updateSpeedRecallTimerUI();
+
+    state.speedRecallInterval = setInterval(() => {
+      if (!state.speedRecallPending) {
+        clearInterval(state.speedRecallInterval);
+        return;
+      }
+      state.speedRecallRemainingSeconds--;
+      updateSpeedRecallTimerUI();
+      if (state.speedRecallRemainingSeconds <= 0) {
+        clearInterval(state.speedRecallInterval);
+      }
+    }, 1000);
+
+    state.speedRecallTimer = setTimeout(() => {
+      if (!state.speedRecallPending) return;
+      handleSpeedRecallTimeout();
+    }, limit * 1000);
+  }
+
+  function updateSpeedRecallTimerUI() {
+    const sec = Math.max(0, state.speedRecallRemainingSeconds);
+    if (dom.speedRecallTimerVal) {
+      dom.speedRecallTimerVal.textContent = `${sec}s`;
+    }
+    if (dom.speedRecallTimerBadge) {
+      dom.speedRecallTimerBadge.classList.toggle('warning', sec <= 10);
+    }
+    state.remainingSeconds = sec;
+    updateTimeoutHUD();
+  }
+
+  function handleSpeedRecallTimeout() {
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
+
+    if (!state.speedRecallPending || !state._speedRecallContext) return;
+    const ctx = state._speedRecallContext;
+
+    // Timeout: user did not enter or submit speed within 1 minute
+    const recallEntry = {
+      trial_index: ctx.previousTrialIndex + 1,
+      actual_speed: ctx.actualSpeed,
+      user_response: null,
+      speed_recall_accurate: false,
+      speed_error_kmh: null,
+      timed_out: true
+    };
+    state.speedRecallResults.push(recallEntry);
+
+    const trialResult = state.trialResults.find(r => r.trial_index === ctx.previousTrialIndex + 1);
+    if (trialResult) {
+      trialResult.speed_recall_asked = true;
+      trialResult.speed_recall_actual = ctx.actualSpeed;
+      trialResult.speed_recall_response = null;
+      trialResult.speed_recall_accurate = false;
+      trialResult.speed_error_kmh = null;
+      trialResult.speed_recall_timed_out = true;
+    }
+
+    // Clean up overlay and unblur
+    state.speedRecallPending = false;
+    state._speedRecallContext = null;
+    dom.speedRecallOverlay.classList.remove('active');
+    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+    dom.stageWrapper.classList.remove('speed-recall-blur');
+
+    // Automatically advance to the next trial
+    runTrial(ctx.nextTrialIndex);
   }
 
   function submitSpeedRecall() {
     if (!state.speedRecallPending || !state._speedRecallContext) return;
+
+    // Clear active 1-min speed recall timers
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
 
     const ctx = state._speedRecallContext;
     const userInput = dom.speedRecallInput.value.trim();
@@ -899,7 +987,8 @@
       actual_speed: ctx.actualSpeed,
       user_response: userSpeed,
       speed_recall_accurate: isAccurate,
-      speed_error_kmh: errorKmh
+      speed_error_kmh: errorKmh,
+      timed_out: false
     };
     state.speedRecallResults.push(recallEntry);
 
@@ -911,6 +1000,7 @@
       trialResult.speed_recall_response = userSpeed;
       trialResult.speed_recall_accurate = isAccurate;
       trialResult.speed_error_kmh = errorKmh;
+      trialResult.speed_recall_timed_out = false;
     }
 
     // Clean up overlay and unblur
@@ -939,6 +1029,8 @@
         clearTimeout(state.trialTimeoutTimer);
         clearInterval(state.countdownInterval);
         clearTimeout(state.fixationTimer);
+        clearTimeout(state.speedRecallTimer);
+        clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         dom.speedRecallOverlay.classList.remove('active');
@@ -1146,6 +1238,8 @@
         clearTimeout(state.trialTimeoutTimer);
         clearInterval(state.countdownInterval);
         clearTimeout(state.fixationTimer);
+        clearTimeout(state.speedRecallTimer);
+        clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         showScreen('landing');
@@ -1157,6 +1251,8 @@
     clearTimeout(state.trialTimeoutTimer);
     clearInterval(state.countdownInterval);
     clearTimeout(state.fixationTimer);
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
     if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
     playSound('advance');
 

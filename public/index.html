@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=15">
+  <link rel="stylesheet" href="/public/style.css?v=16">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -309,6 +309,10 @@
       <!-- Speed Recall Overlay (blurs image, hides dashboard, asks for speed) -->
       <div id="speed-recall-overlay" class="speed-recall-overlay" aria-hidden="true">
         <div class="speed-recall-card">
+          <div class="speed-recall-timer-badge" id="speed-recall-timer-badge">
+            <span class="timer-icon">⏱️</span>
+            <span id="speed-recall-timer-val">60s</span>
+          </div>
           <div class="speed-recall-icon">🏎️</div>
           <h3 class="speed-recall-title">Speed Recall</h3>
           <p class="speed-recall-desc">What was the speed shown on the dashboard in the <strong>previous</strong> image?</p>
@@ -317,7 +321,7 @@
             <span class="speed-recall-unit">km/h</span>
           </div>
           <button id="speed-recall-submit" class="speed-recall-btn">Submit</button>
-          <p class="speed-recall-hint">Type the speed value and press Enter or click Submit</p>
+          <p class="speed-recall-hint">Type the speed value and press Enter or click Submit (1 min limit)</p>
         </div>
       </div>
 
@@ -506,6 +510,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=15"></script>
+  <script src="/public/app.js?v=16"></script>
 </body>
 </html>
