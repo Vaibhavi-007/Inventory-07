@@ -118,6 +118,9 @@
     sliderN: document.getElementById('slider-n'),
     inputN: document.getElementById('input-n'),
     valN: document.getElementById('val-n'),
+    valTotalN: document.getElementById('val-total-n'),
+    valHintN: document.getElementById('val-hint-n'),
+    valHintN2: document.getElementById('val-hint-n2'),
     presetsN: document.getElementById('presets-n'),
 
     sliderT: document.getElementById('slider-t'),
@@ -150,6 +153,7 @@
     hudProgressFill: document.getElementById('hud-progress-fill'),
     hudStateBadge: document.getElementById('hud-state-badge'),
     hudStateText: document.getElementById('hud-state-text'),
+    hudModuleBadge: document.getElementById('hud-module-badge'),
     hudTimerVal: document.getElementById('hud-timer-val'),
     hudAccVal: document.getElementById('hud-acc-val'),
     hudRtVal: document.getElementById('hud-rt-val'),
@@ -170,6 +174,10 @@
     // Results screen
     resAccuracy: document.getElementById('res-accuracy'),
     resCorrectCount: document.getElementById('res-correct-count'),
+    resModuleAAcc: document.getElementById('res-module-a-acc'),
+    resModuleASub: document.getElementById('res-module-a-sub'),
+    resModuleBAcc: document.getElementById('res-module-b-acc'),
+    resModuleBSub: document.getElementById('res-module-b-sub'),
     resSpeedAccuracy: document.getElementById('res-speed-accuracy'),
     resSpeedCorrectCount: document.getElementById('res-speed-correct-count'),
     resMeanRt: document.getElementById('res-mean-rt'),
@@ -177,6 +185,15 @@
     resMedianRt: document.getElementById('res-median-rt'),
     resFastestRt: document.getElementById('res-fastest-rt'),
     resFastestItem: document.getElementById('res-fastest-item'),
+
+    // Module comparison breakdown
+    resModAAccDetail: document.getElementById('res-mod-a-acc-detail'),
+    resModARtDetail: document.getElementById('res-mod-a-rt-detail'),
+    resModACount: document.getElementById('res-mod-a-count'),
+    resModBAccDetail: document.getElementById('res-mod-b-acc-detail'),
+    resModBRtDetail: document.getElementById('res-mod-b-rt-detail'),
+    resModBSpeedDetail: document.getElementById('res-mod-b-speed-detail'),
+    resModBCount: document.getElementById('res-mod-b-count'),
 
     resLeftAcc: document.getElementById('res-left-acc'),
     resLeftRt: document.getElementById('res-left-rt'),
@@ -204,12 +221,15 @@
     modalStats: document.getElementById('modal-stats'),
     btnCloseModal: document.getElementById('btn-close-modal'),
 
-    // Speed recall
+    // Speed recall MCQ modal
     speedRecallOverlay: document.getElementById('speed-recall-overlay'),
-    speedRecallInput: document.getElementById('speed-recall-input'),
-    speedRecallSubmit: document.getElementById('speed-recall-submit'),
+    speedRecallOptions: document.getElementById('speed-recall-options'),
     speedRecallTimerBadge: document.getElementById('speed-recall-timer-badge'),
-    speedRecallTimerVal: document.getElementById('speed-recall-timer-val')
+    speedRecallTimerVal: document.getElementById('speed-recall-timer-val'),
+
+    // Module transition modal
+    moduleTransitionOverlay: document.getElementById('module-transition-overlay'),
+    btnStartModuleB: document.getElementById('btn-start-module-b')
   };
 
   const displayCtx = dom.displayCanvas.getContext('2d');
@@ -295,6 +315,9 @@
       dom.sliderN.value = val;
       dom.inputN.value = val;
       dom.valN.textContent = val;
+      if (dom.valHintN) dom.valHintN.textContent = val;
+      if (dom.valHintN2) dom.valHintN2.textContent = val;
+      if (dom.valTotalN) dom.valTotalN.textContent = val * 2;
       state.config.n = val;
 
       // Update preset active state
@@ -396,14 +419,77 @@
     });
   }
 
+  // Helper for strictly 2-digit speed formatting (e.g., 8 -> "08", 45 -> "45")
+  function formatSpeed(val) {
+    if (val == null || val === '') return '--';
+    const num = parseInt(val, 10);
+    if (isNaN(num)) return String(val);
+    return String(num).padStart(2, '0');
+  }
+
+  // Generates 4 MCQ options: 1 correct, 2 plausible incorrect distractors, 1 "I don't know / no idea"
+  function generateSpeedMCQOptions(actualSpeed) {
+    const actualStr = formatSpeed(actualSpeed);
+    const distractors = new Set();
+
+    const offsets = [-24, -18, -12, -7, 7, 12, 18, 24, -15, 15, -9, 9, -5, 5];
+    const shuffledOffsets = [...offsets].sort(() => Math.random() - 0.5);
+
+    for (const offset of shuffledOffsets) {
+      const candidate = actualSpeed + offset;
+      if (candidate >= 1 && candidate <= 99 && candidate !== actualSpeed) {
+        distractors.add(candidate);
+        if (distractors.size === 2) break;
+      }
+    }
+
+    while (distractors.size < 2) {
+      const candidate = Math.floor(Math.random() * 90) + 5;
+      if (candidate !== actualSpeed && !distractors.has(candidate)) {
+        distractors.add(candidate);
+      }
+    }
+
+    const distractorArr = Array.from(distractors);
+
+    const numericChoices = [
+      { value: actualStr, speedNum: actualSpeed, isCorrect: true, isIdk: false, label: `${actualStr} km/h` },
+      { value: formatSpeed(distractorArr[0]), speedNum: distractorArr[0], isCorrect: false, isIdk: false, label: `${formatSpeed(distractorArr[0])} km/h` },
+      { value: formatSpeed(distractorArr[1]), speedNum: distractorArr[1], isCorrect: false, isIdk: false, label: `${formatSpeed(distractorArr[1])} km/h` }
+    ];
+
+    // Randomize positions of the 3 speed choices
+    numericChoices.sort(() => Math.random() - 0.5);
+
+    const idkChoice = {
+      value: 'IDK',
+      speedNum: null,
+      isCorrect: false,
+      isIdk: true,
+      label: "I don't know / no idea"
+    };
+
+    const allChoices = [...numericChoices, idkChoice];
+    const keys = ['1', '2', '3', '4'];
+    const letters = ['A', 'B', 'C', 'D'];
+
+    return allChoices.map((opt, i) => ({
+      ...opt,
+      key: keys[i],
+      letter: letters[i]
+    }));
+  }
+
   // --- Experiment Execution ---
   async function startExperiment() {
     dom.btnStart.disabled = true;
     dom.btnStart.textContent = 'Loading Stimuli...';
 
     try {
+      const n = state.config.n;
+      const totalTrialsNeeded = n * 2;
       const query = new URLSearchParams({
-        n: state.config.n,
+        n: totalTrialsNeeded,
         shuffle: state.config.shuffle
       });
 
@@ -417,25 +503,43 @@
         return;
       }
 
-      state.trials = data.trials;
+      // First n samples: Module A (pure flicker test only, no dashboard, no speed questions)
+      // Next n samples: Module B (flicker + speed test, random speed MCQ questions)
+      const rawTrials = data.trials;
+      const modATrials = rawTrials.slice(0, n).map((t, i) => ({
+        ...t,
+        module: 'a',
+        module_name: 'Module A (Flicker)',
+        hasDashboard: false,
+        isSpeedProbe: false
+      }));
+
+      const modBTrials = rawTrials.slice(n, totalTrialsNeeded).map((t, i) => ({
+        ...t,
+        module: 'b',
+        module_name: 'Module B (Speed & Flicker)',
+        hasDashboard: true,
+        dashboardData: generateRandomDashboardData(n + i),
+        isSpeedProbe: false
+      }));
+
+      // Randomly select ~40% of Module B trials for speed MCQ probes
+      const bIndices = modBTrials.map((_, i) => i);
+      for (let i = bIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [bIndices[i], bIndices[j]] = [bIndices[j], bIndices[i]];
+      }
+      const numProbes = Math.max(1, Math.round(modBTrials.length * 0.4));
+      for (let i = 0; i < numProbes; i++) {
+        modBTrials[bIndices[i]].isSpeedProbe = true;
+      }
+
+      state.trials = [...modATrials, ...modBTrials];
       state.currentTrialIndex = 0;
       state.trialResults = [];
       state.sessionStartTime = Date.now();
       state.sessionId = `session_${Date.now()}`;
       state.speedRecallResults = [];
-
-      // Randomly select ~35% of trials for speed recall probes
-      // (Probes can occur after any trial 0..N-1, corresponding to nextIndex 1..N)
-      state.speedRecallTrials = new Set();
-      for (let i = 1; i <= state.trials.length; i++) {
-        if (Math.random() < 0.35) {
-          state.speedRecallTrials.add(i);
-        }
-      }
-      // Ensure at least 1 speed recall probe if there are 2+ trials
-      if (state.speedRecallTrials.size === 0 && state.trials.length >= 2) {
-        state.speedRecallTrials.add(1 + Math.floor(Math.random() * state.trials.length));
-      }
 
       // Preload dashboard icon and first 3 trials
       const preloadPromises = [preloadImage('/public/seatbelt_icon_red.png')];
@@ -467,6 +571,17 @@
     dom.hudCurrentTrial.textContent = Math.min(current, total);
     dom.hudTotalTrials.textContent = total;
     dom.hudProgressFill.style.width = `${((current - 1) / total) * 100}%`;
+
+    const trial = state.trials[state.currentTrialIndex];
+    if (dom.hudModuleBadge && trial) {
+      if (trial.module === 'b') {
+        dom.hudModuleBadge.textContent = 'Module B: Speed & Flicker';
+        dom.hudModuleBadge.className = 'badge badge-module-b';
+      } else {
+        dom.hudModuleBadge.textContent = 'Module A: Flicker Only';
+        dom.hudModuleBadge.className = 'badge badge-module-a';
+      }
+    }
 
     // Calculate running accuracy and mean RT
     if (state.trialResults.length > 0) {
@@ -548,40 +663,22 @@
       timed_out: true
     };
 
-    // Record trial data
-    const trial = state.currentTrialData;
-    state.trialResults.push({
-      trial_index: state.currentTrialIndex + 1,
-      id: trial.id,
-      trial_str: trial.trial_str,
-      prefix: trial.prefix,
-      side: trial.side,
-      category: trial.category,
-      object_name: trial.object_name,
-      present_image: trial.present_image,
-      absent_image: trial.absent_image,
-      mask_image: trial.mask_image,
-      benchmark: trial.benchmark,
-      dashboardData: trial.dashboardData,
-      speed_recall_asked: false,
-      speed_recall_actual: trial.dashboardData?.speed ?? null,
-      speed_recall_response: null,
-      speed_recall_accurate: null,
-      speed_error_kmh: null,
-      ...state.currentClick
-    });
-
     playSound('miss');
 
-    // Show blank grey screen with white plus sign in exact center for 1 exact second, then advance automatically
-    const nextIndex = state.currentTrialIndex + 1;
+    const trial = state.currentTrialData;
+
+    // Check if this trial requires immediate speed MCQ popup:
+    // Skip the spacebar prompt completely and immediately display speed MCQ
+    if (trial.module === 'b' && trial.isSpeedProbe && trial.dashboardData) {
+      recordCurrentTrialResult();
+      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed);
+      return;
+    }
+
+    // Otherwise record result and show 1-second fixation cross
+    recordCurrentTrialResult();
     showFixationScreen(() => {
-      // Check if the next trial is flagged for speed recall about THIS trial
-      if (state.speedRecallTrials.has(nextIndex) && trial.dashboardData) {
-        showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed, nextIndex);
-      } else {
-        runTrial(nextIndex);
-      }
+      advanceAfterTrial(state.currentTrialIndex);
     });
   }
 
@@ -631,11 +728,12 @@
 
   // --- Automotive Cluster Dashboard Generator ---
   function generateRandomDashboardData(trialIndex) {
-    // Randomized Speed (42 - 134 km/h)
-    const speed = Math.floor(Math.random() * 92) + 42;
+    // Strictly two-digit speed (05 - 95 km/h)
+    const speed = Math.floor(Math.random() * 91) + 5;
+    const speedFormatted = formatSpeed(speed);
 
     // RPM roughly correlated with speed and gear (1.4 - 4.6 x1000 RPM)
-    const baseRpm = (speed / 134) * 2.6 + 1.4;
+    const baseRpm = (speed / 95) * 2.6 + 1.4;
     const jitter = (Math.random() - 0.5) * 0.4;
     const rpm = Math.max(1.2, Math.min(5.2, Number((baseRpm + jitter).toFixed(1))));
 
@@ -651,6 +749,7 @@
 
     return {
       speed,
+      speedFormatted,
       rpm,
       filledSegments,
       totalSegments,
@@ -661,6 +760,7 @@
 
   function createDashboardSVG(data) {
     const speed = data?.speed ?? 72;
+    const speedStr = formatSpeed(speed);
     const rpm = data?.rpm ?? 2.8;
     const filled = data?.filledSegments ?? 7;
     const total = data?.totalSegments ?? 8;
@@ -669,7 +769,7 @@
 
     // Arc length for R=110 circular arc (from x=65,y=80 to x=255,y=80) is approx 230px
     const arcLength = 230;
-    const speedRatio = Math.max(0.08, Math.min(1.0, speed / 160));
+    const speedRatio = Math.max(0.08, Math.min(1.0, speed / 100));
     const speedOffset = arcLength * (1 - speedRatio);
 
     const rpmRatio = Math.max(0.08, Math.min(1.0, rpm / 6.0));
@@ -692,12 +792,12 @@
         <!-- 100% Opaque Solid Black Background -->
         <rect width="1024" height="154" fill="#000000" />
 
-        <!-- Cluster 1: Speedometer -->
+        <!-- Cluster 1: Speedometer (Strictly 2-digit speed display) -->
         <g class="dash-cluster-speed">
           <path d="M 65 80 A 110 110 0 0 1 255 80" fill="none" stroke="#27272a" stroke-width="4.5" stroke-linecap="round" />
           <path d="M 65 80 A 110 110 0 0 1 255 80" fill="none" stroke="#e2231a" stroke-width="5" stroke-linecap="round"
                 stroke-dasharray="${arcLength}" stroke-dashoffset="${speedOffset.toFixed(1)}" />
-          <text x="160" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speed}</text>
+          <text x="160" y="82" font-family="'SF Pro Display', system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">${speedStr}</text>
           <text x="160" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">km/h</text>
         </g>
 
@@ -749,6 +849,10 @@
     if (dom.fixationOverlay) {
       dom.fixationOverlay.classList.remove('active');
     }
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.remove('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'true');
+    }
 
     state.remainingSeconds = state.config.timeoutSec || 60;
     updateTimeoutHUD();
@@ -763,14 +867,21 @@
     state.currentClick = null;
     state.trialState = 'present';
 
-    // Randomize cockpit dashboard data for this image trial (exact 20% overlay)
     const trial = state.currentTrialData;
-    if (!trial.dashboardData) {
-      trial.dashboardData = generateRandomDashboardData(index);
-    }
-    if (dom.carDashboardOverlay) {
-      dom.carDashboardOverlay.innerHTML = createDashboardSVG(trial.dashboardData);
-      dom.carDashboardOverlay.style.display = 'flex';
+
+    // Show cockpit dashboard ONLY for Module B
+    if (trial.module === 'b' && trial.hasDashboard) {
+      if (!trial.dashboardData) {
+        trial.dashboardData = generateRandomDashboardData(index);
+      }
+      if (dom.carDashboardOverlay) {
+        dom.carDashboardOverlay.innerHTML = createDashboardSVG(trial.dashboardData);
+        dom.carDashboardOverlay.style.display = 'flex';
+      }
+    } else {
+      if (dom.carDashboardOverlay) {
+        dom.carDashboardOverlay.style.display = 'none';
+      }
     }
 
     updateHUD();
@@ -853,49 +964,66 @@
     state.phaseTimer = setTimeout(step, state.config.imgDuration);
   }
 
-  // ===== Speed Recall Probe System =====
-  function showSpeedRecallPrompt(previousTrialIndex, actualSpeed, nextTrialIndex) {
+  // ===== Speed Recall MCQ System =====
+  function showSpeedRecallPrompt(trialIndex, actualSpeed) {
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 
-    // Clear any active speed recall timers
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
 
-    // Ensure the stimulus image from the previous trial is drawn on the canvas
-    const prevTrial = state.trials[previousTrialIndex];
-    if (prevTrial) {
-      const img = imageCache.get(`/images/${prevTrial.absent_image}`) || imageCache.get(`/images/${prevTrial.present_image}`);
+    // Stimulus image stays on canvas
+    const trial = state.trials[trialIndex];
+    if (trial) {
+      const img = imageCache.get(`/images/${trial.absent_image}`) || imageCache.get(`/images/${trial.present_image}`);
       if (img) {
         displayCtx.drawImage(img, 0, 0);
       }
     }
 
-    // Blur the stage image and remove/hide the bottom speedometer bar from display
+    // Blur stage wrapper and hide bottom speedometer bar
     dom.stageWrapper.classList.add('speed-recall-blur');
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
     }
 
-    // Show the speed recall overlay
+    dom.spacebarPrompt.classList.remove('active');
+    dom.feedbackOverlay.classList.remove('visible');
+    dom.clickMarker.className = 'click-marker';
+
+    // Show speed recall modal
     dom.speedRecallOverlay.classList.add('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'false');
 
-    // Reset & focus input
-    dom.speedRecallInput.value = '';
-    setTimeout(() => dom.speedRecallInput.focus(), 150);
+    setHUDState('speed_recall', 'Speed Recall (MCQ)');
 
-    setHUDState('speed_recall', 'Speed Recall Probe');
-
-    // Store context for submission
+    // Generate 4 MCQ options: 1 correct, 2 incorrect, 1 "I don't know / no idea"
+    const options = generateSpeedMCQOptions(actualSpeed);
+    state._currentSpeedOptions = options;
     state._speedRecallContext = {
-      previousTrialIndex,
+      trialIndex,
       actualSpeed,
-      nextTrialIndex
+      speedFormatted: formatSpeed(actualSpeed)
     };
 
-    // 1-minute (60 seconds) timer on the input speed dialogue
-    const limit = state.config.timeoutSec || 60;
+    if (dom.speedRecallOptions) {
+      dom.speedRecallOptions.innerHTML = '';
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
+        btn.dataset.key = opt.key;
+        btn.innerHTML = `
+          <span class="opt-badge">${opt.key}</span>
+          <span class="opt-label">${opt.label}</span>
+        `;
+        btn.addEventListener('click', () => submitSpeedRecallMCQ(opt));
+        dom.speedRecallOptions.appendChild(btn);
+      });
+    }
+
+    // 1-minute countdown timer
+    const limit = 60;
     state.speedRecallRemainingSeconds = limit;
     updateSpeedRecallTimerUI();
 
@@ -935,93 +1063,200 @@
 
     if (!state.speedRecallPending || !state._speedRecallContext) return;
     const ctx = state._speedRecallContext;
+    const actualStr = ctx.speedFormatted;
 
-    // Timeout: user did not enter or submit speed within 1 minute
     const recallEntry = {
-      trial_index: ctx.previousTrialIndex + 1,
+      trial_index: ctx.trialIndex + 1,
       actual_speed: ctx.actualSpeed,
+      actual_speed_formatted: actualStr,
       user_response: null,
       speed_recall_accurate: false,
       speed_error_kmh: null,
+      is_idk: false,
       timed_out: true
     };
     state.speedRecallResults.push(recallEntry);
 
-    const trialResult = state.trialResults.find(r => r.trial_index === ctx.previousTrialIndex + 1);
+    const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
     if (trialResult) {
       trialResult.speed_recall_asked = true;
-      trialResult.speed_recall_actual = ctx.actualSpeed;
+      trialResult.speed_recall_actual = actualStr;
       trialResult.speed_recall_response = null;
       trialResult.speed_recall_accurate = false;
       trialResult.speed_error_kmh = null;
       trialResult.speed_recall_timed_out = true;
+      trialResult.speed_recall_idk = false;
     }
 
-    // Clean up overlay and unblur
     state.speedRecallPending = false;
     state._speedRecallContext = null;
+    state._currentSpeedOptions = null;
     dom.speedRecallOverlay.classList.remove('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
     dom.stageWrapper.classList.remove('speed-recall-blur');
 
-    // Automatically advance to the next trial
-    runTrial(ctx.nextTrialIndex);
+    advanceAfterTrial(ctx.trialIndex);
   }
 
-  function submitSpeedRecall() {
+  function submitSpeedRecallMCQ(selectedOption) {
     if (!state.speedRecallPending || !state._speedRecallContext) return;
 
-    // Clear active 1-min speed recall timers
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
 
     const ctx = state._speedRecallContext;
-    const userInput = dom.speedRecallInput.value.trim();
-    const userSpeed = userInput !== '' ? parseInt(userInput, 10) : null;
-    const isAccurate = userSpeed !== null && !isNaN(userSpeed) && userSpeed === ctx.actualSpeed;
-    const errorKmh = (userSpeed !== null && !isNaN(userSpeed)) ? Math.abs(userSpeed - ctx.actualSpeed) : null;
+    const isAccurate = selectedOption.isCorrect === true;
+    const actualStr = ctx.speedFormatted;
+    const userResponse = selectedOption.value;
 
-    // Record speed recall result in session log
+    let errorKmh = null;
+    if (selectedOption.speedNum != null && !isNaN(selectedOption.speedNum)) {
+      errorKmh = Math.abs(selectedOption.speedNum - ctx.actualSpeed);
+    }
+
     const recallEntry = {
-      trial_index: ctx.previousTrialIndex + 1,
+      trial_index: ctx.trialIndex + 1,
       actual_speed: ctx.actualSpeed,
-      user_response: userSpeed,
+      actual_speed_formatted: actualStr,
+      user_response: userResponse,
       speed_recall_accurate: isAccurate,
       speed_error_kmh: errorKmh,
+      is_idk: selectedOption.isIdk || false,
       timed_out: false
     };
     state.speedRecallResults.push(recallEntry);
 
-    // Attach to the trial result record for that trial
-    const trialResult = state.trialResults.find(r => r.trial_index === ctx.previousTrialIndex + 1);
+    const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
     if (trialResult) {
       trialResult.speed_recall_asked = true;
-      trialResult.speed_recall_actual = ctx.actualSpeed;
-      trialResult.speed_recall_response = userSpeed;
+      trialResult.speed_recall_actual = actualStr;
+      trialResult.speed_recall_response = userResponse;
       trialResult.speed_recall_accurate = isAccurate;
       trialResult.speed_error_kmh = errorKmh;
       trialResult.speed_recall_timed_out = false;
+      trialResult.speed_recall_idk = selectedOption.isIdk || false;
     }
 
-    // Clean up overlay and unblur
+    // Clean up overlay and unblur (no feedback given to participant!)
     state.speedRecallPending = false;
     state._speedRecallContext = null;
+    state._currentSpeedOptions = null;
     dom.speedRecallOverlay.classList.remove('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
     dom.stageWrapper.classList.remove('speed-recall-blur');
 
-    // Proceed to next trial (no feedback shown to participant)
-    runTrial(ctx.nextTrialIndex);
+    playSound('advance');
+    advanceAfterTrial(ctx.trialIndex);
+  }
+
+  // ===== Module Transition System =====
+  function showModuleTransitionModal() {
+    state.trialState = 'module_transition';
+    setHUDState('module_transition', 'Module Completed');
+
+    dom.stageWrapper.classList.add('speed-recall-blur');
+    if (dom.carDashboardOverlay) {
+      dom.carDashboardOverlay.style.display = 'none';
+    }
+    dom.spacebarPrompt.classList.remove('active');
+    dom.feedbackOverlay.classList.remove('visible');
+    dom.clickMarker.className = 'click-marker';
+
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.add('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function continueToModuleB() {
+    if (state.trialState !== 'module_transition') return;
+
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.remove('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'true');
+    }
+    dom.stageWrapper.classList.remove('speed-recall-blur');
+
+    playSound('advance');
+    runTrial(state.config.n);
+  }
+
+  function advanceAfterTrial(completedIndex) {
+    const nextIndex = completedIndex + 1;
+
+    // Transition from Module A to Module B
+    if (nextIndex === state.config.n && nextIndex < state.trials.length) {
+      showModuleTransitionModal();
+      return;
+    }
+
+    if (nextIndex >= state.trials.length) {
+      finishExperiment();
+      return;
+    }
+
+    runTrial(nextIndex);
+  }
+
+  function recordCurrentTrialResult() {
+    const existing = state.trialResults.find(r => r.trial_index === state.currentTrialIndex + 1);
+    if (existing) return;
+
+    const trial = state.currentTrialData;
+    const clickData = state.currentClick || {
+      accurate: false,
+      response_time_ms: null,
+      click_x: null,
+      click_y: null,
+      target_x: trial?.benchmark?.x ?? null,
+      target_y: trial?.benchmark?.y ?? null,
+      distance_px: null,
+      skipped: true
+    };
+
+    const speedActualFormatted = trial?.dashboardData?.speed != null ? formatSpeed(trial.dashboardData.speed) : null;
+
+    state.trialResults.push({
+      trial_index: state.currentTrialIndex + 1,
+      module: trial?.module || 'a',
+      module_name: trial?.module_name || (trial?.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'),
+      id: trial?.id,
+      trial_str: trial?.trial_str,
+      prefix: trial?.prefix,
+      side: trial?.side,
+      category: trial?.category,
+      object_name: trial?.object_name,
+      present_image: trial?.present_image,
+      absent_image: trial?.absent_image,
+      mask_image: trial?.mask_image,
+      benchmark: trial?.benchmark,
+      dashboardData: trial?.dashboardData,
+      speed_recall_asked: false,
+      speed_recall_actual: speedActualFormatted,
+      speed_recall_response: null,
+      speed_recall_accurate: null,
+      speed_error_kmh: null,
+      ...clickData
+    });
+  }
+
+  function advanceToNextTrial() {
+    clearTimeout(state.trialTimeoutTimer);
+    clearInterval(state.countdownInterval);
+    clearTimeout(state.fixationTimer);
+    clearTimeout(state.speedRecallTimer);
+    clearInterval(state.speedRecallInterval);
+    if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
+    playSound('advance');
+
+    recordCurrentTrialResult();
+    advanceAfterTrial(state.currentTrialIndex);
   }
 
   function bindExperimentControls() {
-    // Click on canvas
     dom.stageWrapper.addEventListener('click', handleStageClick);
-
-    // Spacebar listener & escape
     window.addEventListener('keydown', handleGlobalKeydown);
 
-    // Quit button
     dom.btnQuit.addEventListener('click', () => {
       if (confirm('Are you sure you want to exit the current experiment session?')) {
         clearTimeout(state.phaseTimer);
@@ -1033,6 +1268,7 @@
         clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+        if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
         dom.speedRecallOverlay.classList.remove('active');
         dom.stageWrapper.classList.remove('speed-recall-blur');
         state.speedRecallPending = false;
@@ -1040,27 +1276,16 @@
       }
     });
 
-    // Speed recall submit button and Enter key
-    if (dom.speedRecallSubmit) {
-      dom.speedRecallSubmit.addEventListener('click', submitSpeedRecall);
-    }
-    if (dom.speedRecallInput) {
-      dom.speedRecallInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          submitSpeedRecall();
-        }
-      });
+    if (dom.btnStartModuleB) {
+      dom.btnStartModuleB.addEventListener('click', continueToModuleB);
     }
   }
 
   function handleStageClick(e) {
-    // Clicks are active only in absent / feedback state
     if (state.trialState !== 'absent') return;
 
     const rt = window.performance.now() - state.stimulusStartTime;
 
-    // Convert client coordinates to 1024x768 native coordinate system
     const rect = dom.displayCanvas.getBoundingClientRect();
     const scaleX = 1024 / rect.width;
     const scaleY = 768 / rect.height;
@@ -1070,19 +1295,16 @@
 
     if (clickX < 0 || clickX >= 1024 || clickY < 0 || clickY >= 768) return;
 
-    // Check hit on mask
     const isHit = checkMaskHit(clickX, clickY, state.config.tolerance);
 
-    // Calculate distance to benchmark center if available
     let distanceToTarget = null;
-    const bench = state.currentTrialData.benchmark;
+    const bench = state.currentTrialData?.benchmark;
     if (bench && bench.x != null && bench.y != null) {
       const dx = clickX - bench.x;
       const dy = clickY - bench.y;
       distanceToTarget = Math.sqrt(dx * dx + dy * dy);
     }
 
-    // Save current trial result
     state.currentClick = {
       accurate: isHit,
       response_time_ms: rt,
@@ -1107,41 +1329,48 @@
       dom.blackOverlay.classList.remove('active');
     }
 
-    // Position click marker
+    if (isHit) {
+      playSound('hit');
+    } else {
+      playSound('miss');
+    }
+
+    const trial = state.currentTrialData;
+
+    // Check if this trial requires immediate speed MCQ popup:
+    // Skip the spacebar prompt completely and immediately display speed MCQ
+    if (trial.module === 'b' && trial.isSpeedProbe && trial.dashboardData) {
+      recordCurrentTrialResult();
+      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed);
+      return;
+    }
+
+    // Module A trial or non-probe Module B trial: standard click feedback & spacebar schedule
     const cssX = (clickX / 1024) * 100;
     const cssY = (clickY / 768) * 100;
     dom.clickMarker.style.left = `${cssX}%`;
     dom.clickMarker.style.top = `${cssY}%`;
     dom.clickMarker.className = `click-marker show ${isHit ? 'hit' : 'miss'}`;
 
-    // Sound and UI feedback
     if (isHit) {
-      playSound('hit');
       dom.feedbackMsg.className = 'feedback-msg correct';
       dom.feedbackMsg.textContent = `✓ Correct! Response Time: ${Math.round(rt)} ms`;
     } else {
-      playSound('miss');
       dom.feedbackMsg.className = 'feedback-msg incorrect';
       dom.feedbackMsg.textContent = `✗ Missed! Response Time: ${Math.round(rt)} ms`;
     }
 
-    // Reveal target mask overlay if feedback enabled
     if (state.config.feedback) {
       renderTargetRevealOverlay();
     }
 
-    // Activate spacebar prompt
     dom.spacebarPrompt.classList.add('active');
     setHUDState('feedback', 'Press Spacebar to Advance');
   }
 
   function checkMaskHit(clickX, clickY, radius) {
-    // In our verified masks:
-    // Background = WHITE (255, 255, 255)
-    // Target Difference Object = BLACK / DARK (RGB < 128)
     radius = Math.max(0, radius || 0);
 
-    // Test bounding box within radius
     const startX = Math.max(0, clickX - radius);
     const endX = Math.min(1023, clickX + radius);
     const startY = Math.max(0, clickY - radius);
@@ -1163,9 +1392,8 @@
           const r = data[idx];
           const g = data[idx + 1];
           const b = data[idx + 2];
-          // Dark pixel check (< 128)
           if (r < 128 && g < 128 && b < 128) {
-            return true; // Target HIT!
+            return true;
           }
         }
       }
@@ -1186,14 +1414,13 @@
       const r = m[i];
       const g = m[i + 1];
       const b = m[i + 2];
-      // If dark in mask (the target difference)
       if (r < 128 && g < 128 && b < 128) {
-        o[i] = 249;     // Golden Amber R (TSLAS #F9A01B)
-        o[i + 1] = 160; // Golden Amber G
-        o[i + 2] = 27;  // Golden Amber B
-        o[i + 3] = 190; // Alpha
+        o[i] = 249;
+        o[i + 1] = 160;
+        o[i + 2] = 27;
+        o[i + 3] = 190;
       } else {
-        o[i + 3] = 0;   // Transparent
+        o[i + 3] = 0;
       }
     }
 
@@ -1204,20 +1431,38 @@
   function handleGlobalKeydown(e) {
     if (state.screen !== 'experiment') return;
 
-    // Block spacebar and other shortcuts during speed recall (let input handle its own keys)
-    if (state.trialState === 'speed_recall') {
+    // Handle Module Transition Modal shortcut (Spacebar or Enter)
+    if (state.trialState === 'module_transition') {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        continueToModuleB();
+      }
+      return;
+    }
+
+    // Handle Speed Recall MCQ keyboard shortcuts (1..4 or A..D)
+    if (state.trialState === 'speed_recall' && state.speedRecallPending && state._currentSpeedOptions) {
+      const key = e.key.toUpperCase();
+      let matched = null;
+      if (['1', '2', '3', '4'].includes(key)) {
+        matched = state._currentSpeedOptions.find(o => o.key === key);
+      } else if (['A', 'B', 'C', 'D'].includes(key)) {
+        matched = state._currentSpeedOptions.find(o => o.letter === key);
+      }
+      if (matched) {
+        e.preventDefault();
+        submitSpeedRecallMCQ(matched);
+      }
       if (e.code === 'Space') e.preventDefault();
       return;
     }
 
     if (e.code === 'Space') {
-      e.preventDefault(); // prevent scroll
+      e.preventDefault();
 
       if (state.trialState === 'feedback') {
-        // Spacebar after clicking: proceed to next
         advanceToNextTrial();
       } else if (state.trialState === 'absent') {
-        // Spacebar pressed before clicking -> skipped/missed
         const rt = window.performance.now() - state.stimulusStartTime;
         state.currentClick = {
           accurate: false,
@@ -1242,61 +1487,12 @@
         clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+        if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
+        dom.speedRecallOverlay.classList.remove('active');
+        dom.stageWrapper.classList.remove('speed-recall-blur');
+        state.speedRecallPending = false;
         showScreen('landing');
       }
-    }
-  }
-
-  function advanceToNextTrial() {
-    clearTimeout(state.trialTimeoutTimer);
-    clearInterval(state.countdownInterval);
-    clearTimeout(state.fixationTimer);
-    clearTimeout(state.speedRecallTimer);
-    clearInterval(state.speedRecallInterval);
-    if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
-    playSound('advance');
-
-    // Record trial data
-    const trial = state.currentTrialData;
-    const clickData = state.currentClick || {
-      accurate: false,
-      response_time_ms: null,
-      click_x: null,
-      click_y: null,
-      target_x: trial.benchmark?.x ?? null,
-      target_y: trial.benchmark?.y ?? null,
-      distance_px: null,
-      skipped: true
-    };
-
-    state.trialResults.push({
-      trial_index: state.currentTrialIndex + 1,
-      id: trial.id,
-      trial_str: trial.trial_str,
-      prefix: trial.prefix,
-      side: trial.side,
-      category: trial.category,
-      object_name: trial.object_name,
-      present_image: trial.present_image,
-      absent_image: trial.absent_image,
-      mask_image: trial.mask_image,
-      benchmark: trial.benchmark,
-      dashboardData: trial.dashboardData,
-      speed_recall_asked: false,
-      speed_recall_actual: trial.dashboardData?.speed ?? null,
-      speed_recall_response: null,
-      speed_recall_accurate: null,
-      speed_error_kmh: null,
-      ...clickData
-    });
-
-    const nextIndex = state.currentTrialIndex + 1;
-
-    // Check if the NEXT trial is flagged for a speed recall probe about THIS trial
-    if (state.speedRecallTrials.has(nextIndex) && trial.dashboardData) {
-      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed, nextIndex);
-    } else {
-      runTrial(nextIndex);
     }
   }
 
@@ -1310,7 +1506,6 @@
     const results = state.trialResults;
     const total = results.length;
     const hits = results.filter(r => r.accurate);
-    const misses = results.filter(r => !r.accurate);
 
     const accuracyPct = total > 0 ? Math.round((hits.length / total) * 100) : 0;
     const validRts = results.filter(r => r.response_time_ms != null).map(r => r.response_time_ms);
@@ -1331,7 +1526,21 @@
       if (fastestTrial) fastestItem = fastestTrial.object_name;
     }
 
-    // Calculate Speed Recall metrics
+    // Module A metrics
+    const modATrials = results.filter(r => r.module === 'a');
+    const modAHits = modATrials.filter(r => r.accurate);
+    const modAAccPct = modATrials.length > 0 ? Math.round((modAHits.length / modATrials.length) * 100) : 0;
+    const modARts = modATrials.filter(r => r.response_time_ms != null).map(r => r.response_time_ms);
+    const modAMeanRt = modARts.length > 0 ? Math.round(modARts.reduce((a, b) => a + b, 0) / modARts.length) : '--';
+
+    // Module B metrics
+    const modBTrials = results.filter(r => r.module === 'b');
+    const modBHits = modBTrials.filter(r => r.accurate);
+    const modBAccPct = modBTrials.length > 0 ? Math.round((modBHits.length / modBTrials.length) * 100) : 0;
+    const modBRts = modBTrials.filter(r => r.response_time_ms != null).map(r => r.response_time_ms);
+    const modBMeanRt = modBRts.length > 0 ? Math.round(modBRts.reduce((a, b) => a + b, 0) / modBRts.length) : '--';
+
+    // Speed Recall metrics (probed on Module B)
     const probedTrials = results.filter(r => r.speed_recall_asked);
     const speedProbedCount = probedTrials.length;
     const speedHits = probedTrials.filter(r => r.speed_recall_accurate);
@@ -1345,9 +1554,15 @@
       ? (speedErrors.reduce((a, b) => a + b, 0) / speedErrors.length).toFixed(1)
       : null;
 
-    // KPI values
+    // KPI Card values
     dom.resAccuracy.textContent = `${accuracyPct}%`;
     dom.resCorrectCount.textContent = `${hits.length} / ${total} correct`;
+
+    if (dom.resModuleAAcc) dom.resModuleAAcc.textContent = `${modAAccPct}%`;
+    if (dom.resModuleASub) dom.resModuleASub.textContent = `${modAHits.length} / ${modATrials.length} correct`;
+
+    if (dom.resModuleBAcc) dom.resModuleBAcc.textContent = `${modBAccPct}%`;
+    if (dom.resModuleBSub) dom.resModuleBSub.textContent = `${modBHits.length} / ${modBTrials.length} correct`;
 
     if (dom.resSpeedAccuracy) {
       dom.resSpeedAccuracy.textContent = speedProbedCount > 0 ? `${speedAccuracyPct}%` : '--%';
@@ -1365,6 +1580,16 @@
     dom.resMedianRt.textContent = `${medianRt} ms`;
     dom.resFastestRt.textContent = fastestRt ? `${fastestRt} ms` : '--';
     dom.resFastestItem.textContent = fastestItem;
+
+    // Module Comparison Breakdown Cards
+    if (dom.resModAAccDetail) dom.resModAAccDetail.textContent = `${modAAccPct}%`;
+    if (dom.resModARtDetail) dom.resModARtDetail.textContent = typeof modAMeanRt === 'number' ? `${modAMeanRt} ms` : `${modAMeanRt}`;
+    if (dom.resModACount) dom.resModACount.textContent = modATrials.length;
+
+    if (dom.resModBAccDetail) dom.resModBAccDetail.textContent = `${modBAccPct}%`;
+    if (dom.resModBRtDetail) dom.resModBRtDetail.textContent = typeof modBMeanRt === 'number' ? `${modBMeanRt} ms` : `${modBMeanRt}`;
+    if (dom.resModBSpeedDetail) dom.resModBSpeedDetail.textContent = speedProbedCount > 0 ? `${speedAccuracyPct}%` : '--%';
+    if (dom.resModBCount) dom.resModBCount.textContent = modBTrials.length;
 
     // Visual Field Breakdown
     const leftTrials = results.filter(r => r.side === 'L');
@@ -1401,16 +1626,28 @@
         ? `<span class="pill-hit">✓ Correct</span>`
         : (r.skipped ? `<span class="pill-miss">⏭ Skipped</span>` : `<span class="pill-miss">✗ Missed</span>`);
 
+      const moduleBadge = r.module === 'b'
+        ? `<span class="badge badge-module-b">Module B</span>`
+        : `<span class="badge badge-module-a">Module A</span>`;
+
       const rtText = r.response_time_ms != null ? `${Math.round(r.response_time_ms)} ms` : '--';
       const benchRt = r.benchmark?.rt_ms ? `${Math.round(r.benchmark.rt_ms)} ms` : '--';
       const coords = r.click_x != null ? `(${r.click_x}, ${r.click_y})` : '--';
       const dist = r.distance_px != null ? `${Math.round(r.distance_px)} px` : '--';
 
-      const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? r.dashboardData.speed : null);
-      const speedShownText = speedShownVal != null ? `${speedShownVal} km/h` : '--';
-      const speedRecalledText = r.speed_recall_asked
-        ? (r.speed_recall_response != null ? `<strong>${r.speed_recall_response} km/h</strong>` : '<span style="color: var(--text-dim);">No input</span>')
-        : '<span style="color: var(--text-dim);">—</span>';
+      const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? formatSpeed(r.dashboardData.speed) : null);
+      const speedShownText = (r.module === 'b' && speedShownVal != null) ? `${speedShownVal} km/h` : '—';
+
+      let speedRecalledText = '<span style="color: var(--text-dim);">—</span>';
+      if (r.speed_recall_asked) {
+        if (r.speed_recall_response != null) {
+          speedRecalledText = r.speed_recall_response === 'IDK'
+            ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
+            : `<strong>${r.speed_recall_response} km/h</strong>`;
+        } else {
+          speedRecalledText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+        }
+      }
 
       let speedAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
       if (r.speed_recall_asked) {
@@ -1424,6 +1661,7 @@
 
       tr.innerHTML = `
         <td><strong>#${idx + 1}</strong></td>
+        <td>${moduleBadge}</td>
         <td><code>${r.object_name}</code></td>
         <td><span class="badge">${r.side || 'P'}</span></td>
         <td>${outcomeBadge}</td>
@@ -1445,6 +1683,7 @@
       timestamp: new Date().toISOString(),
       parameters: {
         n: state.config.n,
+        total_trials: total,
         t_interval_ms: state.config.t,
         image_duration_ms: state.config.imgDuration,
         mode: state.config.mode,
@@ -1456,6 +1695,12 @@
         total_trials: total,
         correct_count: hits.length,
         accuracy_percent: accuracyPct,
+        module_a_trials: modATrials.length,
+        module_a_correct: modAHits.length,
+        module_a_accuracy: modAAccPct,
+        module_b_trials: modBTrials.length,
+        module_b_correct: modBHits.length,
+        module_b_accuracy: modBAccPct,
         speed_recall_probed_count: speedProbedCount,
         speed_recall_correct_count: speedHitsCount,
         speed_recall_accuracy_percent: speedAccuracyPct,
@@ -1508,20 +1753,22 @@
     const trial = state.trialResults[idx];
     if (!trial) return;
 
-    dom.modalTitle.textContent = `Trial #${idx + 1}: ${trial.object_name} (${trial.side} field)`;
+    dom.modalTitle.textContent = `Trial #${idx + 1}: ${trial.object_name} (${trial.module === 'b' ? 'Module B' : 'Module A'})`;
     dom.modalImgPresent.src = `/images/${trial.present_image}`;
     dom.modalImgAbsent.src = `/images/${trial.absent_image}`;
     dom.modalImgMask.src = `/masks/${trial.mask_image}`;
 
-    // Render trial's cockpit dashboard overlay in modal previews
-    const dashData = trial.dashboardData || generateRandomDashboardData(idx);
-    if (dom.modalDashboardPresent) {
-      dom.modalDashboardPresent.innerHTML = createDashboardSVG(dashData);
+    // Render trial's cockpit dashboard overlay in modal previews ONLY if Module B
+    if (trial.module === 'b' && trial.dashboardData) {
+      dom.modalDashboardPresent.innerHTML = createDashboardSVG(trial.dashboardData);
       dom.modalDashboardPresent.style.display = 'flex';
-    }
-    if (dom.modalDashboardAbsent) {
-      dom.modalDashboardAbsent.innerHTML = createDashboardSVG(dashData);
+      dom.modalDashboardAbsent.innerHTML = createDashboardSVG(trial.dashboardData);
       dom.modalDashboardAbsent.style.display = 'flex';
+    } else {
+      dom.modalDashboardPresent.innerHTML = '';
+      dom.modalDashboardPresent.style.display = 'none';
+      dom.modalDashboardAbsent.innerHTML = '';
+      dom.modalDashboardAbsent.style.display = 'none';
     }
 
     if (trial.click_x != null && trial.click_y != null) {
@@ -1536,19 +1783,22 @@
     const rt = trial.response_time_ms ? `${Math.round(trial.response_time_ms)} ms` : 'Skipped';
     const outcome = trial.accurate ? '✓ Correct Hit' : '✗ Missed';
 
-    const speedShownVal = trial.speed_recall_actual != null ? trial.speed_recall_actual : (trial.dashboardData?.speed != null ? trial.dashboardData.speed : '--');
+    const speedShownVal = (trial.module === 'b' && trial.speed_recall_actual != null)
+      ? `${trial.speed_recall_actual} km/h`
+      : (trial.module === 'b' && trial.dashboardData?.speed != null ? `${formatSpeed(trial.dashboardData.speed)} km/h` : '— (Module A)');
     let speedRecallDetail = 'Not probed on this trial';
     if (trial.speed_recall_asked) {
-      const recalled = trial.speed_recall_response != null ? `${trial.speed_recall_response} km/h` : 'No response';
+      const recalled = trial.speed_recall_response != null ? `${trial.speed_recall_response}` : 'No response';
       const status = trial.speed_recall_accurate ? '✓ Correct' : `✗ Error (off by ${trial.speed_error_kmh != null ? trial.speed_error_kmh : '?'} km/h)`;
-      speedRecallDetail = `Entered: <strong>${recalled}</strong> (${status})`;
+      speedRecallDetail = `Response: <strong>${recalled}</strong> (${status})`;
     }
 
     dom.modalStats.innerHTML = `
+      <div>Module: <strong>${trial.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker Only)'}</strong></div>
       <div>Detection Outcome: <strong>${outcome}</strong></div>
       <div>Response Time: <strong>${rt}</strong></div>
-      <div>Dashboard Speed Shown: <strong>${speedShownVal} km/h</strong></div>
-      <div>Speed Recall: <span>${speedRecallDetail}</span></div>
+      <div>Dashboard Speed Shown: <strong>${speedShownVal}</strong></div>
+      <div>Speed Recall (MCQ): <span>${speedRecallDetail}</span></div>
       <div>Click Coordinates: <strong>${trial.click_x != null ? `(${trial.click_x}, ${trial.click_y})` : 'None'}</strong></div>
       <div>Benchmark Center: <strong>${trial.target_x != null ? `(${trial.target_x}, ${trial.target_y})` : '--'}</strong></div>
       <div>Error Distance: <strong>${trial.distance_px != null ? Math.round(trial.distance_px) + ' px' : '--'}</strong></div>
@@ -1581,6 +1831,7 @@
 
     const headers = [
       'trial_index',
+      'module',
       'id',
       'object_name',
       'side',
@@ -1607,7 +1858,8 @@
 
     const rows = [headers.join(',')];
     trials.forEach(t => {
-      const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+      const modLabel = t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)';
+      const speedShown = (t.module === 'b' && t.speed_recall_actual != null) ? t.speed_recall_actual : (t.module === 'b' && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const speedProbed = t.speed_recall_asked ? 1 : 0;
       const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
       const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
@@ -1615,6 +1867,7 @@
 
       rows.push([
         t.trial_index,
+        `"${modLabel}"`,
         `"${t.id}"`,
         `"${t.object_name}"`,
         `"${t.side}"`,
@@ -1646,7 +1899,6 @@
   }
 
   async function exportXlsx() {
-    // If session is saved on server, use direct download endpoint
     if (state.sessionId) {
       triggerDownload(`/api/download/${state.sessionId}/xlsx`, `change_blindness_${state.sessionId}.xlsx`);
       return;
@@ -1657,7 +1909,7 @@
 
     // Client-side Excel SpreadsheetML XML fallback
     const headers = [
-      'trial_index', 'id', 'object_name', 'side', 'category', 'accurate',
+      'trial_index', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
       'response_time_ms', 'speed_shown_kmh', 'speed_recall_probed', 'speed_recalled_kmh',
       'speed_recall_accurate', 'speed_error_kmh', 'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
@@ -1681,7 +1933,8 @@
     xml += '   </Row>\n';
 
     trials.forEach(t => {
-      const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+      const modLabel = t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)';
+      const speedShown = (t.module === 'b' && t.speed_recall_actual != null) ? t.speed_recall_actual : (t.module === 'b' && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const speedProbed = t.speed_recall_asked ? 1 : 0;
       const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
       const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
@@ -1689,15 +1942,16 @@
 
       xml += '   <Row>\n' +
         `    <Cell><Data ss:Type="Number">${t.trial_index}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${modLabel}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="String">${t.id}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="String">${t.object_name}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="String">${t.side || ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="String">${t.category || ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="Number">${t.accurate ? 1 : 0}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.response_time_ms != null ? 'Number' : 'String'}">${t.response_time_ms != null ? t.response_time_ms.toFixed(1) : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedShown !== '' ? 'Number' : 'String'}">${speedShown}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedShown !== '' ? 'String' : 'String'}">${speedShown}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="Number">${speedProbed}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedRecalled !== '' ? 'Number' : 'String'}">${speedRecalled}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${speedRecalled !== '' ? 'String' : 'String'}">${speedRecalled}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${speedAccurate !== '' ? 'Number' : 'String'}">${speedAccurate}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${speedError !== '' ? 'Number' : 'String'}">${speedError}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.click_x != null ? 'Number' : 'String'}">${t.click_x != null ? t.click_x : ''}</Data></Cell>\n` +

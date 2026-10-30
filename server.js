@@ -160,9 +160,20 @@ const server = http.createServer((req, res) => {
     }
 
     if (n < 1) n = 1;
-    if (n > filtered.length) n = filtered.length;
+    let selected = [];
+    if (filtered.length > 0) {
+      if (n <= filtered.length) {
+        selected = filtered.slice(0, n);
+      } else {
+        selected = [...filtered];
+        while (selected.length < n) {
+          const batch = shuffle ? shuffleArray([...filtered]) : [...filtered];
+          const needed = n - selected.length;
+          selected = selected.concat(batch.slice(0, needed));
+        }
+      }
+    }
 
-    const selected = filtered.slice(0, n);
     sendJson(res, 200, {
       count: selected.length,
       total_available: filtered.length,
@@ -198,6 +209,7 @@ const server = http.createServer((req, res) => {
         // Convert trials to CSV
         const headers = [
           'trial_number',
+          'module',
           'pair_id',
           'trial_str',
           'category',
@@ -231,17 +243,25 @@ const server = http.createServer((req, res) => {
         const params = payload.parameters || {};
 
         trials.forEach((t, idx) => {
-          const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+          const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+          const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+          const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
           const speedProbed = t.speed_recall_asked ? 1 : 0;
-          const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+          let speedRecalled = '';
+          if (t.speed_recall_asked && t.speed_recall_response != null) {
+            speedRecalled = !isNaN(Number(t.speed_recall_response)) 
+              ? String(Math.round(Number(t.speed_recall_response))).padStart(2, '0') 
+              : String(t.speed_recall_response);
+          }
           const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
           let speedError = '';
-          if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '') {
+          if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '' && !isNaN(Number(speedShown))) {
             speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
           }
 
           const row = [
             t.trial_index || (idx + 1),
+            `"${moduleLabel}"`,
             `"${t.id || ''}"`,
             `"${t.trial_str || ''}"`,
             `"${t.category || ''}"`,
@@ -250,9 +270,9 @@ const server = http.createServer((req, res) => {
             t.accurate ? 1 : 0,
             t.response_time_ms != null ? Number(t.response_time_ms).toFixed(1) : '',
             t.response_time_ms != null ? (Number(t.response_time_ms) / 1000).toFixed(3) : '',
-            speedShown,
+            speedShown ? `"${speedShown}"` : '',
             speedProbed,
-            speedRecalled,
+            speedRecalled ? `"${speedRecalled}"` : '',
             speedAccurate,
             speedError,
             t.click_x != null ? t.click_x : '',
@@ -279,17 +299,25 @@ const server = http.createServer((req, res) => {
         const xlsxPath = path.join(RESULTS_DIR, xlsxFilename);
         try {
           const xlsxRows = trials.map((t, idx) => {
-            const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+            const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+            const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+            const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
             const speedProbed = t.speed_recall_asked ? 1 : 0;
-            const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? Number(t.speed_recall_response) : '';
+            let speedRecalled = '';
+            if (t.speed_recall_asked && t.speed_recall_response != null) {
+              speedRecalled = !isNaN(Number(t.speed_recall_response)) 
+                ? String(Math.round(Number(t.speed_recall_response))).padStart(2, '0') 
+                : String(t.speed_recall_response);
+            }
             const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
             let speedError = '';
-            if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '') {
+            if (t.speed_recall_asked && t.speed_recall_response != null && !isNaN(Number(t.speed_recall_response)) && speedShown !== '' && !isNaN(Number(speedShown))) {
               speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
             }
 
             return [
               t.trial_index || (idx + 1),
+              moduleLabel,
               t.id || '',
               t.trial_str || '',
               t.category || '',
@@ -298,9 +326,9 @@ const server = http.createServer((req, res) => {
               t.accurate ? 1 : 0,
               t.response_time_ms != null ? Number(Number(t.response_time_ms).toFixed(1)) : '',
               t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
-              speedShown !== '' ? Number(speedShown) : '',
+              speedShown || '',
               speedProbed,
-              speedRecalled,
+              speedRecalled || '',
               speedAccurate !== '' ? Number(speedAccurate) : '',
               speedError !== '' ? Number(speedError) : '',
               t.click_x != null ? t.click_x : '',

@@ -968,68 +968,209 @@ kbd {
   color: #f9a01b;
 }
 
-.speed-recall-input-row {
+/* Speed Recall MCQ Options */
+.speed-recall-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 480px) {
+  .speed-recall-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.speed-option-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.speed-recall-input {
-  width: 120px;
-  padding: 10px 14px;
-  font-size: 1.4rem;
-  font-weight: 700;
-  text-align: center;
-  border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 14px;
   color: #ffffff;
-  outline: none;
-  transition: border-color 0.2s ease;
-  font-family: 'SF Pro Display', system-ui, -apple-system, sans-serif;
-  -moz-appearance: textfield;
-}
-
-.speed-recall-input::-webkit-outer-spin-button,
-.speed-recall-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.speed-recall-input:focus {
-  border-color: #e2231a;
-  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.18);
-}
-
-.speed-recall-unit {
-  font-size: 1.1rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.05rem;
   font-weight: 600;
+  text-align: left;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  user-select: none;
+}
+
+.speed-option-btn:hover {
+  background: rgba(226, 35, 26, 0.16);
+  border-color: #e2231a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(226, 35, 26, 0.25);
+}
+
+.speed-option-btn:active {
+  transform: translateY(0);
+}
+
+.speed-option-btn .opt-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f9a01b;
+  font-size: 0.82rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+
+.speed-option-btn:hover .opt-badge {
+  background: #e2231a;
+  color: #ffffff;
+}
+
+.speed-option-btn .opt-label {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.speed-option-btn.opt-idk {
+  grid-column: 1 / -1;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.09);
   color: #a1a1aa;
 }
 
-.speed-recall-btn {
-  display: inline-block;
-  padding: 10px 36px;
-  font-size: 1rem;
-  font-weight: 600;
+.speed-option-btn.opt-idk:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
   color: #ffffff;
-  background: #e2231a;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
-  margin-bottom: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
-.speed-recall-btn:hover {
-  background: #c91e17;
-  transform: translateY(-1px);
+.speed-option-btn.selected {
+  background: #e2231a !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
 }
 
-.speed-recall-btn:active {
-  transform: translateY(0);
+/* Module Transition Overlay */
+.module-transition-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 950;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  user-select: none;
+}
+
+.module-transition-overlay.active {
+  display: flex;
+}
+
+.module-transition-card {
+  background: rgba(18, 18, 22, 0.95);
+  border: 1px solid rgba(249, 160, 27, 0.3);
+  border-radius: 20px;
+  padding: 36px 44px;
+  text-align: center;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 160, 27, 0.15);
+  animation: speedRecallFadeIn 0.35s ease;
+}
+
+.module-transition-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: rgba(249, 160, 27, 0.15);
+  color: #f9a01b;
+  border: 1px solid rgba(249, 160, 27, 0.35);
+  margin-bottom: 12px;
+}
+
+.module-transition-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.module-transition-desc {
+  font-size: 0.95rem;
+  color: #a1a1aa;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.module-transition-desc strong {
+  color: #ffffff;
+}
+
+/* Module HUD pill */
+.module-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.module-hud-pill.module-a {
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.module-hud-pill.module-b {
+  background: rgba(249, 160, 27, 0.14);
+  color: #f9a01b;
+  border: 1px solid rgba(249, 160, 27, 0.3);
+}
+
+/* Table badges for modules */
+.badge-module-a {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-module-b {
+  background: rgba(249, 160, 27, 0.12);
+  color: #f9a01b;
+  border: 1px solid rgba(249, 160, 27, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .speed-recall-hint {

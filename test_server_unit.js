@@ -83,6 +83,8 @@ const testPayload = {
     absent_image: p.absent_image,
     mask_image: p.mask_image,
     dashboardData: { speed: 85 + i * 5 },
+    module: i < 2 ? 'a' : 'b',
+    module_name: i < 2 ? 'Module A (Flicker)' : 'Module B (Speed & Flicker)',
     speed_recall_asked: i % 2 === 0,
     speed_recall_actual: 85 + i * 5,
     speed_recall_response: i % 2 === 0 ? 85 + i * 5 : null,
@@ -96,6 +98,7 @@ fs.writeFileSync(testJsonPath, JSON.stringify(testPayload, null, 2), 'utf-8');
 // Build CSV
 const headers = [
   'trial_number',
+  'module',
   'pair_id',
   'trial_str',
   'category',
@@ -124,15 +127,18 @@ const headers = [
   'timestamp'
 ];
 const csvRows = [headers.join(',')];
-testPayload.trials.forEach(t => {
-  const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+testPayload.trials.forEach((t, i) => {
+  const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+  const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+  const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
   const speedProbed = t.speed_recall_asked ? 1 : 0;
-  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
+  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? String(t.speed_recall_response).padStart(2, '0') : '';
   const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
   const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
 
   csvRows.push([
     t.trial_index,
+    `"${moduleLabel}"`,
     `"${t.id}"`,
     `"${t.trial_str}"`,
     `"${t.category}"`,
@@ -141,9 +147,9 @@ testPayload.trials.forEach(t => {
     t.accurate ? 1 : 0,
     t.response_time_ms.toFixed(1),
     (t.response_time_ms / 1000).toFixed(3),
-    speedShown,
+    speedShown ? `"${speedShown}"` : '',
     speedProbed,
-    speedRecalled,
+    speedRecalled ? `"${speedRecalled}"` : '',
     speedAccurate,
     speedError,
     t.click_x,
@@ -167,14 +173,17 @@ fs.writeFileSync(testCsvPath, csvRows.join('\n'), 'utf-8');
 // Test XLSX generation
 const { generateXlsx } = require('./xlsx_builder.js');
 const xlsxRows = testPayload.trials.map((t, idx) => {
-  const speedShown = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+  const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+  const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
+  const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
   const speedProbed = t.speed_recall_asked ? 1 : 0;
-  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? Number(t.speed_recall_response) : '';
+  const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? String(t.speed_recall_response).padStart(2, '0') : '';
   const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
   const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
 
   return [
     t.trial_index || (idx + 1),
+    moduleLabel,
     t.id || '',
     t.trial_str || '',
     t.category || '',
@@ -183,9 +192,9 @@ const xlsxRows = testPayload.trials.map((t, idx) => {
     t.accurate ? 1 : 0,
     t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
     t.response_time_ms != null ? Number((t.response_time_ms / 1000).toFixed(3)) : '',
-    speedShown !== '' ? Number(speedShown) : '',
+    speedShown || '',
     speedProbed,
-    speedRecalled,
+    speedRecalled || '',
     speedAccurate !== '' ? Number(speedAccurate) : '',
     speedError !== '' ? Number(speedError) : '',
     t.click_x != null ? t.click_x : '',

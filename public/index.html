@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=16">
+  <link rel="stylesheet" href="/public/style.css?v=17">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -37,10 +37,10 @@
           </div>
 
           <form id="config-form" onsubmit="return false;">
-            <!-- Parameter: Number of images 'n' -->
+            <!-- Parameter: Number of images 'n' per module -->
             <div class="form-group">
               <div class="label-row">
-                <label for="input-n">Number of Images to Display (<span class="code">n</span>)</label>
+                <label for="input-n">Number of Samples per Module (<span class="code">n</span>)</label>
                 <span class="param-value" id="val-n">10</span>
               </div>
               <div class="slider-row">
@@ -50,11 +50,11 @@
               <div class="preset-chips" id="presets-n">
                 <button type="button" class="chip" data-val="5">5</button>
                 <button type="button" class="chip active" data-val="10">10</button>
+                <button type="button" class="chip" data-val="13">13</button>
                 <button type="button" class="chip" data-val="15">15</button>
                 <button type="button" class="chip" data-val="20">20</button>
-                <button type="button" class="chip" data-val="26">All (26)</button>
               </div>
-              <p class="helper-text">Select how many image pairs to present in this session.</p>
+              <p class="helper-text">First <span id="val-hint-n">10</span> samples: Module A (Flicker only) • Next <span id="val-hint-n2">10</span> samples: Module B (Speed & Flicker). Total: <strong id="val-total-n">20</strong> trials.</p>
             </div>
 
             <!-- Parameter: Time in ms before each interval 't' -->
@@ -245,6 +245,7 @@
         </div>
 
         <div class="hud-center">
+          <span class="module-hud-pill module-a" id="hud-module-badge">Module A (Flicker)</span>
           <div class="state-badge" id="hud-state-badge">
             <span class="dot"></span>
             <span id="hud-state-text">Preparing...</span>
@@ -306,7 +307,7 @@
         </div>
       </footer>
 
-      <!-- Speed Recall Overlay (blurs image, hides dashboard, asks for speed) -->
+      <!-- Speed Recall Overlay (blurs image, hides dashboard, asks for speed via MCQ) -->
       <div id="speed-recall-overlay" class="speed-recall-overlay" aria-hidden="true">
         <div class="speed-recall-card">
           <div class="speed-recall-timer-badge" id="speed-recall-timer-badge">
@@ -315,13 +316,27 @@
           </div>
           <div class="speed-recall-icon">🏎️</div>
           <h3 class="speed-recall-title">Speed Recall</h3>
-          <p class="speed-recall-desc">What was the speed shown on the dashboard in the <strong>previous</strong> image?</p>
-          <div class="speed-recall-input-row">
-            <input type="number" id="speed-recall-input" class="speed-recall-input" min="0" max="300" placeholder="Enter speed" autocomplete="off" />
-            <span class="speed-recall-unit">km/h</span>
+          <p class="speed-recall-desc">What was the speed displayed on the dashboard meter?</p>
+          <div class="speed-recall-options-grid" id="speed-recall-options">
+            <!-- 4 MCQ options injected dynamically -->
           </div>
-          <button id="speed-recall-submit" class="speed-recall-btn">Submit</button>
-          <p class="speed-recall-hint">Type the speed value and press Enter or click Submit (1 min limit)</p>
+          <p class="speed-recall-hint">Select one option or press 1, 2, 3, or 4 on your keyboard (1 min limit)</p>
+        </div>
+      </div>
+
+      <!-- Module Transition Overlay (Between Module A and Module B) -->
+      <div id="module-transition-overlay" class="module-transition-overlay" aria-hidden="true">
+        <div class="module-transition-card">
+          <div class="module-transition-badge">MODULE A COMPLETED</div>
+          <h2 class="module-transition-title">Starting Module B: Speed &amp; Flicker Test</h2>
+          <p class="module-transition-desc">
+            In this module, the <strong>automotive instrument cluster</strong> will be shown at the bottom of each image.<br>
+            Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall the speed shown on the meter.
+          </p>
+          <button id="btn-start-module-b" class="btn-primary">
+            <span>Begin Module B</span>
+            <span class="kbd-hint">Spacebar</span>
+          </button>
         </div>
       </div>
 
@@ -368,10 +383,28 @@
           <div class="glass-card kpi-card">
             <div class="kpi-header">
               <span class="kpi-icon">🎯</span>
-              <span class="kpi-label">Detection Accuracy</span>
+              <span class="kpi-label">Overall Accuracy</span>
             </div>
             <div class="kpi-val" id="res-accuracy">0%</div>
             <div class="kpi-sub" id="res-correct-count">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">👁️</span>
+              <span class="kpi-label">Module A Accuracy</span>
+            </div>
+            <div class="kpi-val" id="res-module-a-acc">0%</div>
+            <div class="kpi-sub" id="res-module-a-sub">Flicker only</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">🚗</span>
+              <span class="kpi-label">Module B Detection</span>
+            </div>
+            <div class="kpi-val" id="res-module-b-acc">0%</div>
+            <div class="kpi-sub" id="res-module-b-sub">Speed + Flicker</div>
           </div>
 
           <div class="glass-card kpi-card">
@@ -391,23 +424,32 @@
             <div class="kpi-val" id="res-mean-rt">0 ms</div>
             <div class="kpi-sub" id="res-mean-rt-sec">0.00 seconds</div>
           </div>
+        </div>
 
-          <div class="glass-card kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-icon">📊</span>
-              <span class="kpi-label">Median Response Time</span>
-            </div>
-            <div class="kpi-val" id="res-median-rt">0 ms</div>
-            <div class="kpi-sub">50th percentile</div>
+        <!-- Module Comparison Breakdown -->
+        <div class="glass-card field-comparison-card">
+          <div class="card-title">
+            <span class="icon">⚖️</span>
+            <h3>Module Comparison: Flicker Only (A) vs. Speed &amp; Flicker (B)</h3>
           </div>
-
-          <div class="glass-card kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-icon">🚀</span>
-              <span class="kpi-label">Fastest Hit</span>
+          <div class="field-stats-row">
+            <div class="field-stat-box">
+              <div class="field-title">Module A: Flicker Test Only</div>
+              <div class="field-metrics">
+                <div>Detection Accuracy: <strong id="res-mod-a-acc-detail">--%</strong></div>
+                <div>Mean Response Time: <strong id="res-mod-a-rt-detail">-- ms</strong></div>
+                <div>Samples: <span id="res-mod-a-count">0</span></div>
+              </div>
             </div>
-            <div class="kpi-val" id="res-fastest-rt">-- ms</div>
-            <div class="kpi-sub" id="res-fastest-item">--</div>
+            <div class="field-stat-box">
+              <div class="field-title">Module B: Speed &amp; Flicker Test</div>
+              <div class="field-metrics">
+                <div>Detection Accuracy: <strong id="res-mod-b-acc-detail">--%</strong></div>
+                <div>Mean Response Time: <strong id="res-mod-b-rt-detail">-- ms</strong></div>
+                <div>Speed Recall (MCQ): <strong id="res-mod-b-speed-detail">--%</strong></div>
+                <div>Samples: <span id="res-mod-b-count">0</span></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -450,6 +492,7 @@
               <thead>
                 <tr>
                   <th>#</th>
+                  <th>Module</th>
                   <th>Target Object</th>
                   <th>Field</th>
                   <th>Detection</th>
@@ -510,6 +553,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=16"></script>
+  <script src="/public/app.js?v=17"></script>
 </body>
 </html>
