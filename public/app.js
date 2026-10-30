@@ -160,6 +160,7 @@
     btnQuit: document.getElementById('btn-quit'),
 
     stageContainer: document.getElementById('stage-container'),
+    stageDisplayUnit: document.getElementById('stage-display-unit'),
     stageWrapper: document.getElementById('stage-wrapper'),
     displayCanvas: document.getElementById('display-canvas'),
     blackOverlay: document.getElementById('black-screen-overlay'),
@@ -187,6 +188,12 @@
     resMedianRt: document.getElementById('res-median-rt'),
     resFastestRt: document.getElementById('res-fastest-rt'),
     resFastestItem: document.getElementById('res-fastest-item'),
+
+    // KPI Visual Field cards
+    resKpiLeftAcc: document.getElementById('res-kpi-left-acc'),
+    resKpiLeftSub: document.getElementById('res-kpi-left-sub'),
+    resKpiRightAcc: document.getElementById('res-kpi-right-acc'),
+    resKpiRightSub: document.getElementById('res-kpi-right-sub'),
 
     // Module comparison breakdown
     resModAAccDetail: document.getElementById('res-mod-a-acc-detail'),
@@ -289,11 +296,12 @@
       const res = await fetch('/api/dataset-info');
       const data = await res.json();
       state.datasetInfo = data;
-      if (data.total_pairs) {
-        dom.sliderN.max = data.total_pairs;
-        dom.inputN.max = data.total_pairs;
-        dom.datasetStatusText.textContent = `${data.total_pairs} Stimuli Pairs Ready (${data.categories.filler} fillers, ${data.categories.practice} practice, ${data.categories.window} window, ${data.categories.mirror} mirror)`;
-      }
+      const totalAvailable = data.total_pairs || 256;
+      const maxPerModule = Math.floor(totalAvailable / 2); // 128 per module = 256 total
+      dom.sliderN.max = maxPerModule;
+      dom.inputN.max = maxPerModule;
+      dom.datasetStatusText.textContent = `${totalAvailable} Stimuli Pairs Ready (${data.categories?.filler || 168} fillers, ${data.categories?.window || 40} window, ${data.categories?.mirror || 48} mirror)`;
+      
       if (data.defaults) {
         if (data.defaults.n) setN(data.defaults.n);
         if (data.defaults.t_interval_ms) setT(data.defaults.t_interval_ms);
@@ -315,10 +323,11 @@
   let setN, setT, setImgDur, setTimeoutSec;
 
   function bindLandingControls() {
-    // Sync Number of images (n)
+    // Sync Number of images (n per module, total 2n trials)
     setN = function(val) {
-      const maxPairs = state.datasetInfo?.total_pairs || 26;
-      val = Math.max(1, Math.min(maxPairs, parseInt(val, 10) || 1));
+      const totalPairs = state.datasetInfo?.total_pairs || 256;
+      const maxPerModule = Math.floor(totalPairs / 2);
+      val = Math.max(1, Math.min(maxPerModule, parseInt(val, 10) || 1));
       dom.sliderN.value = val;
       dom.inputN.value = val;
       dom.valN.textContent = val;
@@ -541,9 +550,9 @@
 
     try {
       const n = state.config.n;
-      const totalTrialsNeeded = n * 2;
+      // Fetch full pool of pairs so disjoint Module A & B subsets are guaranteed without image overlap
       const query = new URLSearchParams({
-        n: totalTrialsNeeded,
+        n: 256,
         shuffle: state.config.shuffle
       });
 
@@ -559,16 +568,42 @@
 
       // First n samples: Module A (pure flicker test only, no dashboard, no speed/symbol questions)
       // Next n samples: Module B (flicker + speed/symbol test, random speed/symbol MCQ questions)
-      const rawTrials = data.trials;
-      const modATrials = rawTrials.slice(0, n).map((t, i) => ({
-        ...t,
-        module: 'a',
-        module_name: 'Module A (Flicker)',
-        hasDashboard: false,
-        isProbe: false
-      }));
+      // Strictly guarantee that images used in Module A never repeat in Module B
+      const pool = data.trials;
+      const modATrials = [];
+      const usedImagesA = new Set();
+      const usedScenesA = new Set();
+      const usedIdsA = new Set();
 
-      const modBTrials = rawTrials.slice(n, totalTrialsNeeded).map((t, i) => ({
+      for (const t of pool) {
+        if (modATrials.length < n) {
+          modATrials.push({
+            ...t,
+            module: 'a',
+            module_name: 'Module A (Flicker)',
+            hasDashboard: false,
+            isProbe: false
+          });
+          if (t.id) usedIdsA.add(t.id);
+          if (t.present_image) usedImagesA.add(t.present_image);
+          if (t.absent_image) usedImagesA.add(t.absent_image);
+          if (t.trial_num) usedScenesA.add(t.trial_num);
+        }
+      }
+
+      // From remaining pool, strictly exclude any that share images with Module A
+      const remainingTrials = pool.filter(t =>
+        !usedIdsA.has(t.id) &&
+        !usedImagesA.has(t.present_image) &&
+        !usedImagesA.has(t.absent_image)
+      );
+
+      // Prioritize completely distinct scenes when possible (e.g. when n <= 64)
+      const nonOverlappingScenesB = remainingTrials.filter(t => !usedScenesA.has(t.trial_num));
+      const fallbackScenesB = remainingTrials.filter(t => usedScenesA.has(t.trial_num));
+      const selectedB = [...nonOverlappingScenesB, ...fallbackScenesB].slice(0, n);
+
+      const modBTrials = selectedB.map((t, i) => ({
         ...t,
         module: 'b',
         module_name: 'Module B (Speed & Flicker)',
@@ -776,6 +811,9 @@
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
     }
+    if (dom.stageDisplayUnit) {
+      dom.stageDisplayUnit.classList.remove('has-dashboard');
+    }
 
     // Hold for exactly 1.0 second (1000 ms), then automatically proceed to next trial
     clearTimeout(state.fixationTimer);
@@ -945,9 +983,15 @@
         dom.carDashboardOverlay.innerHTML = createDashboardSVG(trial.dashboardData);
         dom.carDashboardOverlay.style.display = 'flex';
       }
+      if (dom.stageDisplayUnit) {
+        dom.stageDisplayUnit.classList.add('has-dashboard');
+      }
     } else {
       if (dom.carDashboardOverlay) {
         dom.carDashboardOverlay.style.display = 'none';
+      }
+      if (dom.stageDisplayUnit) {
+        dom.stageDisplayUnit.classList.remove('has-dashboard');
       }
     }
 
@@ -1052,6 +1096,9 @@
     dom.stageWrapper.classList.add('speed-recall-blur');
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
+    }
+    if (dom.stageDisplayUnit) {
+      dom.stageDisplayUnit.classList.remove('has-dashboard');
     }
 
     dom.spacebarPrompt.classList.remove('active');
@@ -1334,6 +1381,9 @@
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
     }
+    if (dom.stageDisplayUnit) {
+      dom.stageDisplayUnit.classList.remove('has-dashboard');
+    }
     dom.spacebarPrompt.classList.remove('active');
     dom.feedbackOverlay.classList.remove('visible');
     dom.clickMarker.className = 'click-marker';
@@ -1459,6 +1509,7 @@
         clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+        if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
         if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
         dom.speedRecallOverlay.classList.remove('active');
         dom.stageWrapper.classList.remove('speed-recall-blur');
@@ -1678,6 +1729,7 @@
         clearInterval(state.speedRecallInterval);
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+        if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
         if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
         dom.speedRecallOverlay.classList.remove('active');
         dom.stageWrapper.classList.remove('speed-recall-blur');
@@ -1691,6 +1743,9 @@
   async function finishExperiment() {
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
+    }
+    if (dom.stageDisplayUnit) {
+      dom.stageDisplayUnit.classList.remove('has-dashboard');
     }
     showScreen('results');
 
@@ -1823,6 +1878,22 @@
 
     const leftStats = getFieldStats(leftTrials);
     const rightStats = getFieldStats(rightTrials);
+
+    if (dom.resKpiLeftAcc) dom.resKpiLeftAcc.textContent = leftStats.acc;
+    if (dom.resKpiLeftSub) {
+      const leftCorrect = leftTrials.filter(r => r.accurate).length;
+      dom.resKpiLeftSub.textContent = leftTrials.length > 0
+        ? `${leftCorrect} / ${leftTrials.length} correct`
+        : '0 trials';
+    }
+
+    if (dom.resKpiRightAcc) dom.resKpiRightAcc.textContent = rightStats.acc;
+    if (dom.resKpiRightSub) {
+      const rightCorrect = rightTrials.filter(r => r.accurate).length;
+      dom.resKpiRightSub.textContent = rightTrials.length > 0
+        ? `${rightCorrect} / ${rightTrials.length} correct`
+        : '0 trials';
+    }
 
     dom.resLeftAcc.textContent = leftStats.acc;
     dom.resLeftRt.textContent = leftStats.rt;
@@ -1967,6 +2038,14 @@
         symbol_recall_probed_count: symbolProbedCount,
         symbol_recall_correct_count: symbolHitsCount,
         symbol_recall_accuracy_percent: symbolAccuracyPct,
+        left_trials: leftTrials.length,
+        left_correct: leftTrials.filter(r => r.accurate).length,
+        left_accuracy: leftStats.acc,
+        left_mean_rt: leftStats.rt,
+        right_trials: rightTrials.length,
+        right_correct: rightTrials.filter(r => r.accurate).length,
+        right_accuracy: rightStats.acc,
+        right_mean_rt: rightStats.rt,
         mean_rt_ms: meanRt,
         median_rt_ms: medianRt,
         fastest_rt_ms: fastestRt,

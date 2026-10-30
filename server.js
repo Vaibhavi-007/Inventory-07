@@ -150,6 +150,9 @@ const server = http.createServer((req, res) => {
     let filtered = [...allPairs];
     if (category !== 'all') {
       filtered = filtered.filter(p => p.category === category);
+    } else {
+      // Exclude practice pairs from general experimental trials
+      filtered = filtered.filter(p => p.category !== 'practice');
     }
     if (side !== 'all') {
       filtered = filtered.filter(p => p.side === side);

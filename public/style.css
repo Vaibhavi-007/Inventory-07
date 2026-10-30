@@ -793,14 +793,31 @@ kbd {
   position: relative;
   overflow: hidden;
   background: #000000;
-  padding: 8px 16px;
+  padding: 6px 16px;
   box-sizing: border-box;
+}
+
+.stage-display-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  max-height: calc(100vh - 120px);
+  width: fit-content;
+  max-width: min(906px, calc(100vw - 32px));
+  margin: auto;
+  box-sizing: border-box;
+}
+
+.stage-display-unit.has-dashboard {
+  align-items: stretch;
 }
 
 .stage-wrapper {
   position: relative;
   aspect-ratio: 1024 / 768;
-  height: calc(100vh - 130px);
+  height: calc(100vh - 125px);
   max-height: 680px;
   max-width: min(906px, calc(100vw - 32px));
   width: auto;
@@ -808,7 +825,16 @@ kbd {
   border-radius: 6px;
   overflow: hidden;
   cursor: crosshair;
-  margin: auto;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+/* When Module B dashboard is active below the image */
+.stage-display-unit.has-dashboard .stage-wrapper {
+  height: calc(100vh - 225px);
+  max-height: 565px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
 }
 
 #display-canvas {
@@ -816,7 +842,7 @@ kbd {
   height: 100%;
   display: block;
   object-fit: contain;
-  background: #000;
+  background: #000000;
 }
 
 /* Black overlay */
@@ -833,23 +859,21 @@ kbd {
   transition: opacity 0.02s linear;
 }
 
-/* Automotive Instrument Cluster Dashboard Overlay (Bottom exact 20%, 100% opacity) */
+/* Automotive Instrument Cluster Dashboard Bar (Displayed cleanly BELOW the image, no overlapping!) */
 .car-dashboard-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   width: 100%;
-  height: 20%; /* Exactly 20% height of the overall image */
-  background: #000000; /* Completely 100% opaque black */
-  z-index: 6;
-  pointer-events: none; /* Allows user clicks to pass through to image underneath */
-  display: flex;
+  height: 95px;
+  background: #000000;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+  display: none;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
   user-select: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .car-dashboard-overlay svg {
@@ -859,6 +883,9 @@ kbd {
 }
 
 .modal-dashboard {
+  position: relative;
+  width: 100%;
+  height: 50px;
   border-radius: 0 0 8px 8px;
   z-index: 3;
 }

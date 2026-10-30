@@ -9,7 +9,7 @@ console.log('Testing server request handling logic...');
 const DATA_FILE = path.join(__dirname, 'data', 'pairs.json');
 assert(fs.existsSync(DATA_FILE), 'pairs.json must exist');
 const pairs = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-assert(pairs.length === 26, `Expected 26 pairs, got ${pairs.length}`);
+assert(pairs.length === 258, `Expected 258 pairs, got ${pairs.length}`);
 console.log(`✓ Dataset loaded: ${pairs.length} pairs validated.`);
 
 // Validate that every pair's present image, absent image, and mask image exist
@@ -34,7 +34,7 @@ for (const p of pairs) {
 }
 
 assert(missing === 0, `All assets must exist, but found ${missing} missing.`);
-console.log(`✓ All 26 present images, absent images, and masks exist on disk!`);
+console.log(`✓ All ${pairs.length} present images, absent images, and masks exist on disk!`);
 
 // Validate frontend files
 assert(fs.existsSync(path.join(__dirname, 'public', 'index.html')), 'index.html exists');

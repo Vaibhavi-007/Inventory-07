@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=19">
+  <link rel="stylesheet" href="/public/style.css?v=20">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -44,17 +44,19 @@
                 <span class="param-value" id="val-n">10</span>
               </div>
               <div class="slider-row">
-                <input type="range" id="slider-n" min="1" max="26" value="10" class="range-slider">
-                <input type="number" id="input-n" min="1" max="26" value="10" class="number-input">
+                <input type="range" id="slider-n" min="1" max="128" value="10" class="range-slider">
+                <input type="number" id="input-n" min="1" max="128" value="10" class="number-input">
               </div>
               <div class="preset-chips" id="presets-n">
                 <button type="button" class="chip" data-val="5">5</button>
                 <button type="button" class="chip active" data-val="10">10</button>
-                <button type="button" class="chip" data-val="13">13</button>
-                <button type="button" class="chip" data-val="15">15</button>
                 <button type="button" class="chip" data-val="20">20</button>
+                <button type="button" class="chip" data-val="30">30</button>
+                <button type="button" class="chip" data-val="50">50</button>
+                <button type="button" class="chip" data-val="64">64</button>
+                <button type="button" class="chip" data-val="100">100</button>
               </div>
-              <p class="helper-text">First <span id="val-hint-n">10</span> samples: Module A (Flicker only) • Next <span id="val-hint-n2">10</span> samples: Module B (Speed & Flicker). Total: <strong id="val-total-n">20</strong> trials.</p>
+              <p class="helper-text">First <span id="val-hint-n">10</span> samples: Module A (Flicker only) • Next <span id="val-hint-n2">10</span> samples: Module B (Speed & Flicker). Total: <strong id="val-total-n">20</strong> trials (256 unique pairs in dataset).</p>
             </div>
 
             <!-- Parameter: Time in ms before each interval 't' -->
@@ -273,24 +275,26 @@
 
       <!-- Stimulus Stage -->
       <main class="stage-container" id="stage-container">
-        <div class="stage-wrapper" id="stage-wrapper">
-          <!-- Main Display Canvas -->
-          <canvas id="display-canvas" width="1024" height="768"></canvas>
+        <div class="stage-display-unit" id="stage-display-unit">
+          <div class="stage-wrapper" id="stage-wrapper">
+            <!-- Main Display Canvas (Full uncropped 1024x768 stimulus view) -->
+            <canvas id="display-canvas" width="1024" height="768"></canvas>
 
-          <!-- Automotive Cluster Dashboard Overlay (Bottom 20%, 85% opacity) -->
-          <div id="car-dashboard-overlay" class="car-dashboard-overlay" aria-hidden="true"></div>
+            <!-- Black Screen Overlay -->
+            <div id="black-screen-overlay" class="black-overlay"></div>
 
-          <!-- Black Screen Overlay -->
-          <div id="black-screen-overlay" class="black-overlay"></div>
+            <!-- Click Ripple & Marker -->
+            <div id="click-marker" class="click-marker">
+              <div class="marker-pulse"></div>
+              <div class="marker-dot"></div>
+            </div>
 
-          <!-- Click Ripple & Marker -->
-          <div id="click-marker" class="click-marker">
-            <div class="marker-pulse"></div>
-            <div class="marker-dot"></div>
+            <!-- Target Highlight Mask Overlay (for feedback) -->
+            <canvas id="feedback-overlay" width="1024" height="768" class="feedback-overlay"></canvas>
           </div>
 
-          <!-- Target Highlight Mask Overlay (for feedback) -->
-          <canvas id="feedback-overlay" width="1024" height="768" class="feedback-overlay"></canvas>
+          <!-- Automotive Cluster Dashboard Bar (Displayed cleanly BELOW the image, no overlapping!) -->
+          <div id="car-dashboard-overlay" class="car-dashboard-overlay" aria-hidden="true"></div>
         </div>
       </main>
 
@@ -433,6 +437,24 @@
             <div class="kpi-val" id="res-mean-rt">0 ms</div>
             <div class="kpi-sub" id="res-mean-rt-sec">0.00 seconds</div>
           </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">⬅️</span>
+              <span class="kpi-label">Left Visual Field (L)</span>
+            </div>
+            <div class="kpi-val" id="res-kpi-left-acc">--%</div>
+            <div class="kpi-sub" id="res-kpi-left-sub">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">➡️</span>
+              <span class="kpi-label">Right Visual Field (R)</span>
+            </div>
+            <div class="kpi-val" id="res-kpi-right-acc">--%</div>
+            <div class="kpi-sub" id="res-kpi-right-sub">0 / 0 correct</div>
+          </div>
         </div>
 
         <!-- Module Comparison Breakdown -->
@@ -565,6 +587,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=19"></script>
+  <script src="/public/app.js?v=20"></script>
 </body>
 </html>
