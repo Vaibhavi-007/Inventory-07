@@ -82,14 +82,20 @@ const testPayload = {
     present_image: p.present_image,
     absent_image: p.absent_image,
     mask_image: p.mask_image,
-    dashboardData: { speed: 85 + i * 5 },
+    dashboardData: { speed: 85 + i * 5, symbol: { name: ['Seatbelt', 'Engine', 'Brake', 'ABS'][i % 4] } },
     module: i < 2 ? 'a' : 'b',
     module_name: i < 2 ? 'Module A (Flicker)' : 'Module B (Speed & Flicker)',
-    speed_recall_asked: i % 2 === 0,
+    probe_type: i >= 2 ? (i % 2 === 0 ? 'speed' : 'symbol') : null,
+    speed_recall_asked: i >= 2 && i % 2 === 0,
     speed_recall_actual: 85 + i * 5,
-    speed_recall_response: i % 2 === 0 ? 85 + i * 5 : null,
-    speed_recall_accurate: i % 2 === 0,
-    speed_error_kmh: i % 2 === 0 ? 0 : null
+    speed_recall_response: i >= 2 && i % 2 === 0 ? 85 + i * 5 : null,
+    speed_recall_accurate: i >= 2 && i % 2 === 0,
+    speed_error_kmh: i >= 2 && i % 2 === 0 ? 0 : null,
+    symbol_recall_asked: i >= 2 && i % 2 !== 0,
+    symbol_recall_actual: ['Seatbelt', 'Engine', 'Brake', 'ABS'][i % 4],
+    symbol_recall_response: i >= 2 && i % 2 !== 0 ? ['Seatbelt', 'Engine', 'Brake', 'ABS'][i % 4] : null,
+    symbol_recall_accurate: i >= 2 && i % 2 !== 0,
+    recall_accurate: i >= 2 ? true : null
   }))
 };
 
@@ -108,10 +114,16 @@ const headers = [
   'response_time_ms',
   'response_time_sec',
   'speed_shown_kmh',
+  'symbol_shown',
+  'probe_type',
   'speed_recall_probed',
   'speed_recalled_kmh',
   'speed_recall_accurate',
   'speed_error_kmh',
+  'symbol_recall_probed',
+  'symbol_recalled',
+  'symbol_recall_accurate',
+  'recall_accurate',
   'click_x',
   'click_y',
   'target_x',
@@ -131,10 +143,20 @@ testPayload.trials.forEach((t, i) => {
   const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
   const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
   const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
+
+  const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
+  const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
+
+  const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
   const speedProbed = t.speed_recall_asked ? 1 : 0;
   const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? String(t.speed_recall_response).padStart(2, '0') : '';
   const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
   const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
+  const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+  const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
+  const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+  const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
   csvRows.push([
     t.trial_index,
@@ -148,10 +170,16 @@ testPayload.trials.forEach((t, i) => {
     t.response_time_ms.toFixed(1),
     (t.response_time_ms / 1000).toFixed(3),
     speedShown ? `"${speedShown}"` : '',
+    symbolShown ? `"${symbolShown}"` : '',
+    probeType ? `"${probeType}"` : '',
     speedProbed,
     speedRecalled ? `"${speedRecalled}"` : '',
     speedAccurate,
     speedError,
+    symbolProbed,
+    symbolRecalled ? `"${symbolRecalled}"` : '',
+    symbolAccurate,
+    recallAccurate,
     t.click_x,
     t.click_y,
     t.target_x,
@@ -176,10 +204,20 @@ const xlsxRows = testPayload.trials.map((t, idx) => {
   const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
   const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
   const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
+
+  const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
+  const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
+
+  const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
   const speedProbed = t.speed_recall_asked ? 1 : 0;
   const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? String(t.speed_recall_response).padStart(2, '0') : '';
   const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
   const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+
+  const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+  const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
+  const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+  const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
   return [
     t.trial_index || (idx + 1),
@@ -193,10 +231,16 @@ const xlsxRows = testPayload.trials.map((t, idx) => {
     t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
     t.response_time_ms != null ? Number((t.response_time_ms / 1000).toFixed(3)) : '',
     speedShown || '',
+    symbolShown || '',
+    probeType || '',
     speedProbed,
     speedRecalled || '',
     speedAccurate !== '' ? Number(speedAccurate) : '',
     speedError !== '' ? Number(speedError) : '',
+    symbolProbed,
+    symbolRecalled || '',
+    symbolAccurate !== '' ? Number(symbolAccurate) : '',
+    recallAccurate !== '' ? Number(recallAccurate) : '',
     t.click_x != null ? t.click_x : '',
     t.click_y != null ? t.click_y : '',
     t.target_x != null ? t.target_x : '',

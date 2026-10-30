@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=17">
+  <link rel="stylesheet" href="/public/style.css?v=18">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -307,20 +307,20 @@
         </div>
       </footer>
 
-      <!-- Speed Recall Overlay (blurs image, hides dashboard, asks for speed via MCQ) -->
+      <!-- Speed / Symbol Recall Overlay (blurs image, hides dashboard, asks for speed or symbol via MCQ) -->
       <div id="speed-recall-overlay" class="speed-recall-overlay" aria-hidden="true">
         <div class="speed-recall-card">
           <div class="speed-recall-timer-badge" id="speed-recall-timer-badge">
             <span class="timer-icon">⏱️</span>
             <span id="speed-recall-timer-val">60s</span>
           </div>
-          <div class="speed-recall-icon">🏎️</div>
-          <h3 class="speed-recall-title">Speed Recall</h3>
-          <p class="speed-recall-desc">What was the speed displayed on the dashboard meter?</p>
+          <div class="speed-recall-icon" id="recall-modal-icon">🏎️</div>
+          <h3 class="speed-recall-title" id="recall-modal-title">Speed Recall</h3>
+          <p class="speed-recall-desc" id="recall-modal-desc">What was the speed displayed on the dashboard meter?</p>
           <div class="speed-recall-options-grid" id="speed-recall-options">
             <!-- 4 MCQ options injected dynamically -->
           </div>
-          <p class="speed-recall-hint">Select one option or press 1, 2, 3, or 4 on your keyboard (1 min limit)</p>
+          <p class="speed-recall-hint" id="recall-modal-hint">Select one option or press 1, 2, 3, or 4 on your keyboard (1 min limit)</p>
         </div>
       </div>
 
@@ -331,7 +331,7 @@
           <h2 class="module-transition-title">Starting Module B: Speed &amp; Flicker Test</h2>
           <p class="module-transition-desc">
             In this module, the <strong>automotive instrument cluster</strong> will be shown at the bottom of each image.<br>
-            Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall the speed shown on the meter.
+            Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall either the speed or the warning symbol shown on the meter.
           </p>
           <button id="btn-start-module-b" class="btn-primary">
             <span>Begin Module B</span>
@@ -418,6 +418,15 @@
 
           <div class="glass-card kpi-card">
             <div class="kpi-header">
+              <span class="kpi-icon">⚠️</span>
+              <span class="kpi-label">Symbol Recall Accuracy</span>
+            </div>
+            <div class="kpi-val" id="res-symbol-accuracy">--%</div>
+            <div class="kpi-sub" id="res-symbol-correct-count">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
               <span class="kpi-icon">⚡</span>
               <span class="kpi-label">Mean Response Time</span>
             </div>
@@ -447,6 +456,7 @@
                 <div>Detection Accuracy: <strong id="res-mod-b-acc-detail">--%</strong></div>
                 <div>Mean Response Time: <strong id="res-mod-b-rt-detail">-- ms</strong></div>
                 <div>Speed Recall (MCQ): <strong id="res-mod-b-speed-detail">--%</strong></div>
+                <div>Symbol Recall (MCQ): <strong id="res-mod-b-symbol-detail">--%</strong></div>
                 <div>Samples: <span id="res-mod-b-count">0</span></div>
               </div>
             </div>
@@ -498,8 +508,10 @@
                   <th>Detection</th>
                   <th>Detection RT</th>
                   <th>Speed Shown</th>
-                  <th>Speed Recalled</th>
-                  <th>Speed Accuracy</th>
+                  <th>Symbol Shown</th>
+                  <th>Recall Probe</th>
+                  <th>Recall Response</th>
+                  <th>Recall Accuracy</th>
                   <th>Benchmark RT</th>
                   <th>Coordinates</th>
                   <th>Error Distance</th>
@@ -553,6 +565,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=17"></script>
+  <script src="/public/app.js?v=18"></script>
 </body>
 </html>

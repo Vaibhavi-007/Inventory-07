@@ -180,6 +180,8 @@
     resModuleBSub: document.getElementById('res-module-b-sub'),
     resSpeedAccuracy: document.getElementById('res-speed-accuracy'),
     resSpeedCorrectCount: document.getElementById('res-speed-correct-count'),
+    resSymbolAccuracy: document.getElementById('res-symbol-accuracy'),
+    resSymbolCorrectCount: document.getElementById('res-symbol-correct-count'),
     resMeanRt: document.getElementById('res-mean-rt'),
     resMeanRtSec: document.getElementById('res-mean-rt-sec'),
     resMedianRt: document.getElementById('res-median-rt'),
@@ -193,6 +195,7 @@
     resModBAccDetail: document.getElementById('res-mod-b-acc-detail'),
     resModBRtDetail: document.getElementById('res-mod-b-rt-detail'),
     resModBSpeedDetail: document.getElementById('res-mod-b-speed-detail'),
+    resModBSymbolDetail: document.getElementById('res-mod-b-symbol-detail'),
     resModBCount: document.getElementById('res-mod-b-count'),
 
     resLeftAcc: document.getElementById('res-left-acc'),
@@ -221,8 +224,12 @@
     modalStats: document.getElementById('modal-stats'),
     btnCloseModal: document.getElementById('btn-close-modal'),
 
-    // Speed recall MCQ modal
+    // Recall MCQ modal
     speedRecallOverlay: document.getElementById('speed-recall-overlay'),
+    recallModalIcon: document.getElementById('recall-modal-icon'),
+    recallModalTitle: document.getElementById('recall-modal-title'),
+    recallModalDesc: document.getElementById('recall-modal-desc'),
+    recallModalHint: document.getElementById('recall-modal-hint'),
     speedRecallOptions: document.getElementById('speed-recall-options'),
     speedRecallTimerBadge: document.getElementById('speed-recall-timer-badge'),
     speedRecallTimerVal: document.getElementById('speed-recall-timer-val'),
@@ -419,6 +426,14 @@
     });
   }
 
+  // Available automotive warning symbols
+  const SYMBOLS = [
+    { id: 'seatbelt', name: 'Seatbelt', label: 'Seatbelt Warning', path: '/public/symbols/seatbelt.png' },
+    { id: 'engine', name: 'Engine', label: 'Check Engine Warning', path: '/public/symbols/engine.png' },
+    { id: 'brake', name: 'Brake', label: 'Brake System Warning', path: '/public/symbols/brake.png' },
+    { id: 'abs', name: 'ABS', label: 'ABS Warning', path: '/public/symbols/abs.png' }
+  ];
+
   // Helper for strictly 2-digit speed formatting (e.g., 8 -> "08", 45 -> "45")
   function formatSpeed(val) {
     if (val == null || val === '') return '--';
@@ -427,7 +442,7 @@
     return String(num).padStart(2, '0');
   }
 
-  // Generates 4 MCQ options: 1 correct, 2 plausible incorrect distractors, 1 "I don't know / no idea"
+  // Generates 4 MCQ options for speed recall: 1 correct, 2 plausible incorrect distractors, 1 "I don't know / no idea"
   function generateSpeedMCQOptions(actualSpeed) {
     const actualStr = formatSpeed(actualSpeed);
     const distractors = new Set();
@@ -480,6 +495,44 @@
     }));
   }
 
+  // Generates 4 MCQ options for symbol recall: 1 correct symbol, 2 incorrect distractors, 1 "I don't know / no idea"
+  function generateSymbolMCQOptions(actualSymbolId) {
+    const correctSymbol = SYMBOLS.find(s => s.id === actualSymbolId) || SYMBOLS[0];
+    const otherSymbols = SYMBOLS.filter(s => s.id !== correctSymbol.id);
+
+    // Shuffle other 3 symbols and pick 2 as distractors
+    const shuffledOthers = [...otherSymbols].sort(() => Math.random() - 0.5);
+    const distractor1 = shuffledOthers[0];
+    const distractor2 = shuffledOthers[1];
+
+    const symbolChoices = [
+      { type: 'symbol', value: correctSymbol.id, label: correctSymbol.label, path: correctSymbol.path, isCorrect: true, isIdk: false },
+      { type: 'symbol', value: distractor1.id, label: distractor1.label, path: distractor1.path, isCorrect: false, isIdk: false },
+      { type: 'symbol', value: distractor2.id, label: distractor2.label, path: distractor2.path, isCorrect: false, isIdk: false }
+    ];
+
+    symbolChoices.sort(() => Math.random() - 0.5);
+
+    const idkChoice = {
+      type: 'idk',
+      value: 'IDK',
+      label: "I don't know / no idea",
+      path: null,
+      isCorrect: false,
+      isIdk: true
+    };
+
+    const allChoices = [...symbolChoices, idkChoice];
+    const keys = ['1', '2', '3', '4'];
+    const letters = ['A', 'B', 'C', 'D'];
+
+    return allChoices.map((opt, i) => ({
+      ...opt,
+      key: keys[i],
+      letter: letters[i]
+    }));
+  }
+
   // --- Experiment Execution ---
   async function startExperiment() {
     dom.btnStart.disabled = true;
@@ -503,15 +556,15 @@
         return;
       }
 
-      // First n samples: Module A (pure flicker test only, no dashboard, no speed questions)
-      // Next n samples: Module B (flicker + speed test, random speed MCQ questions)
+      // First n samples: Module A (pure flicker test only, no dashboard, no speed/symbol questions)
+      // Next n samples: Module B (flicker + speed/symbol test, random speed/symbol MCQ questions)
       const rawTrials = data.trials;
       const modATrials = rawTrials.slice(0, n).map((t, i) => ({
         ...t,
         module: 'a',
         module_name: 'Module A (Flicker)',
         hasDashboard: false,
-        isSpeedProbe: false
+        isProbe: false
       }));
 
       const modBTrials = rawTrials.slice(n, totalTrialsNeeded).map((t, i) => ({
@@ -520,18 +573,21 @@
         module_name: 'Module B (Speed & Flicker)',
         hasDashboard: true,
         dashboardData: generateRandomDashboardData(n + i),
-        isSpeedProbe: false
+        isProbe: false
       }));
 
-      // Randomly select ~40% of Module B trials for speed MCQ probes
+      // Randomly select ~40% of Module B trials for probes (speed or symbol MCQ)
       const bIndices = modBTrials.map((_, i) => i);
       for (let i = bIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [bIndices[i], bIndices[j]] = [bIndices[j], bIndices[i]];
       }
-      const numProbes = Math.max(1, Math.round(modBTrials.length * 0.4));
+      const numProbes = Math.max(2, Math.round(modBTrials.length * 0.4));
+      const firstType = Math.random() < 0.5 ? 'speed' : 'symbol';
       for (let i = 0; i < numProbes; i++) {
-        modBTrials[bIndices[i]].isSpeedProbe = true;
+        const trialRef = modBTrials[bIndices[i]];
+        trialRef.isProbe = true;
+        trialRef.probeType = (i % 2 === 0) ? firstType : (firstType === 'speed' ? 'symbol' : 'speed');
       }
 
       state.trials = [...modATrials, ...modBTrials];
@@ -540,9 +596,15 @@
       state.sessionStartTime = Date.now();
       state.sessionId = `session_${Date.now()}`;
       state.speedRecallResults = [];
+      state.symbolRecallResults = [];
 
-      // Preload dashboard icon and first 3 trials
-      const preloadPromises = [preloadImage('/public/seatbelt_icon_red.png')];
+      // Preload all dashboard symbol icons and first 3 trials
+      const preloadPromises = [
+        preloadImage('/public/symbols/seatbelt.png'),
+        preloadImage('/public/symbols/engine.png'),
+        preloadImage('/public/symbols/brake.png'),
+        preloadImage('/public/symbols/abs.png')
+      ];
       for (let i = 0; i < Math.min(3, state.trials.length); i++) {
         const t = state.trials[i];
         preloadPromises.push(preloadImage(`/images/${t.present_image}`));
@@ -667,11 +729,11 @@
 
     const trial = state.currentTrialData;
 
-    // Check if this trial requires immediate speed MCQ popup:
-    // Skip the spacebar prompt completely and immediately display speed MCQ
-    if (trial.module === 'b' && trial.isSpeedProbe && trial.dashboardData) {
+    // Check if this trial requires immediate speed or symbol recall MCQ popup:
+    // Skip the spacebar prompt completely and immediately display recall MCQ
+    if (trial.module === 'b' && trial.isProbe && trial.dashboardData) {
       recordCurrentTrialResult();
-      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed);
+      showRecallPrompt(state.currentTrialIndex);
       return;
     }
 
@@ -732,6 +794,9 @@
     const speed = Math.floor(Math.random() * 91) + 5;
     const speedFormatted = formatSpeed(speed);
 
+    // Alternate systematically through all 4 automotive warning symbols
+    const symbolObj = SYMBOLS[trialIndex % SYMBOLS.length];
+
     // RPM roughly correlated with speed and gear (1.4 - 4.6 x1000 RPM)
     const baseRpm = (speed / 95) * 2.6 + 1.4;
     const jitter = (Math.random() - 0.5) * 0.4;
@@ -744,17 +809,18 @@
     // Range: roughly 42 to 55 km per segment
     const rangeKm = Math.round(filledSegments * 46 + (Math.random() * 26 - 13));
 
-    // Seatbelt warning: randomly shown (~50% of trials)
-    const showSeatbelt = Math.random() < 0.5;
-
     return {
       speed,
       speedFormatted,
+      symbol: symbolObj,
+      symbolId: symbolObj.id,
+      symbolName: symbolObj.name,
+      symbolLabel: symbolObj.label,
+      symbolPath: symbolObj.path,
       rpm,
       filledSegments,
       totalSegments,
-      rangeKm,
-      showSeatbelt
+      rangeKm
     };
   }
 
@@ -765,7 +831,7 @@
     const filled = data?.filledSegments ?? 7;
     const total = data?.totalSegments ?? 8;
     const range = data?.rangeKm ?? 320;
-    const showSeatbelt = data?.showSeatbelt ?? false;
+    const symbolPath = data?.symbolPath || '/public/symbols/seatbelt.png';
 
     // Arc length for R=110 circular arc (from x=65,y=80 to x=255,y=80) is approx 230px
     const arcLength = 230;
@@ -810,10 +876,10 @@
           <text x="380" y="108" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
-        <!-- Cluster 3: Seatbelt Warning Symbol (randomly shown/hidden) -->
-        ${showSeatbelt ? `<g class="dash-cluster-seatbelt">
-          <image href="/public/seatbelt_icon_red.png" xlink:href="/public/seatbelt_icon_red.png" x="610" y="42" width="36" height="60" preserveAspectRatio="xMidYMid meet" />
-        </g>` : ''}
+        <!-- Cluster 3: Automotive Warning Symbol (alternating) -->
+        <g class="dash-cluster-warning-symbol">
+          <image href="${symbolPath}" xlink:href="${symbolPath}" x="596" y="47" width="54" height="54" preserveAspectRatio="xMidYMid meet" />
+        </g>
 
         <!-- Cluster 4: Fuel Gauge & Range -->
         <g class="dash-cluster-fuel">
@@ -964,8 +1030,8 @@
     state.phaseTimer = setTimeout(step, state.config.imgDuration);
   }
 
-  // ===== Speed Recall MCQ System =====
-  function showSpeedRecallPrompt(trialIndex, actualSpeed) {
+  // ===== Recall MCQ System (Speed or Symbol) =====
+  function showRecallPrompt(trialIndex) {
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 
@@ -991,41 +1057,89 @@
     dom.feedbackOverlay.classList.remove('visible');
     dom.clickMarker.className = 'click-marker';
 
-    // Show speed recall modal
+    // Show recall modal
     dom.speedRecallOverlay.classList.add('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'false');
 
-    setHUDState('speed_recall', 'Speed Recall (MCQ)');
+    const probeType = trial?.probeType || 'speed';
+    const actualSpeed = trial?.dashboardData?.speed || 0;
+    const actualSymbol = trial?.dashboardData?.symbol || SYMBOLS[0];
 
-    // Generate 4 MCQ options: 1 correct, 2 incorrect, 1 "I don't know / no idea"
-    const options = generateSpeedMCQOptions(actualSpeed);
-    state._currentSpeedOptions = options;
-    state._speedRecallContext = {
+    state._recallContext = {
       trialIndex,
+      probeType,
       actualSpeed,
-      speedFormatted: formatSpeed(actualSpeed)
+      speedFormatted: formatSpeed(actualSpeed),
+      actualSymbol
     };
 
-    if (dom.speedRecallOptions) {
-      dom.speedRecallOptions.innerHTML = '';
-      options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
-        btn.dataset.key = opt.key;
-        btn.innerHTML = `
-          <span class="opt-badge">${opt.key}</span>
-          <span class="opt-label">${opt.label}</span>
-        `;
-        btn.addEventListener('click', () => submitSpeedRecallMCQ(opt));
-        dom.speedRecallOptions.appendChild(btn);
-      });
+    if (probeType === 'symbol') {
+      setHUDState('speed_recall', 'Symbol Recall (MCQ)');
+      if (dom.recallModalIcon) dom.recallModalIcon.textContent = '⚠️';
+      if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Warning Symbol Recall';
+      if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'Which warning symbol was displayed on the dashboard cluster?';
+      if (dom.recallModalHint) dom.recallModalHint.innerHTML = 'Press <kbd>1</kbd>–<kbd>4</kbd> or click the symbol logo matching your recollection.';
+
+      const actualId = actualSymbol.id || actualSymbol;
+      const options = generateSymbolMCQOptions(actualId);
+      state._currentMCQOptions = options;
+
+      if (dom.speedRecallOptions) {
+        dom.speedRecallOptions.innerHTML = '';
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `speed-option-btn symbol-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
+          btn.dataset.key = opt.key;
+          if (opt.isIdk) {
+            btn.innerHTML = `
+              <span class="opt-badge">${opt.key}</span>
+              <span class="opt-symbol-container"><span class="opt-idk-icon">❓</span></span>
+              <span class="opt-label">${opt.label}</span>
+            `;
+          } else {
+            btn.innerHTML = `
+              <span class="opt-badge">${opt.key}</span>
+              <span class="opt-symbol-container"><img src="${opt.path}" alt="${opt.label}" class="opt-symbol-img"></span>
+              <span class="opt-label">${opt.name}</span>
+            `;
+          }
+          btn.addEventListener('click', () => submitRecallMCQ(opt));
+          dom.speedRecallOptions.appendChild(btn);
+        });
+      }
+    } else {
+      // Speed recall
+      setHUDState('speed_recall', 'Speed Recall (MCQ)');
+      if (dom.recallModalIcon) dom.recallModalIcon.textContent = '🏎️';
+      if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Dashboard Speed Recall';
+      if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'What was the vehicle speed displayed on the dashboard meter in the previous trial?';
+      if (dom.recallModalHint) dom.recallModalHint.innerHTML = 'Press <kbd>1</kbd>–<kbd>4</kbd> or click an option to submit your answer.';
+
+      const options = generateSpeedMCQOptions(actualSpeed);
+      state._currentMCQOptions = options;
+
+      if (dom.speedRecallOptions) {
+        dom.speedRecallOptions.innerHTML = '';
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
+          btn.dataset.key = opt.key;
+          btn.innerHTML = `
+            <span class="opt-badge">${opt.key}</span>
+            <span class="opt-label">${opt.label}</span>
+          `;
+          btn.addEventListener('click', () => submitRecallMCQ(opt));
+          dom.speedRecallOptions.appendChild(btn);
+        });
+      }
     }
 
     // 1-minute countdown timer
     const limit = 60;
     state.speedRecallRemainingSeconds = limit;
-    updateSpeedRecallTimerUI();
+    updateRecallTimerUI();
 
     state.speedRecallInterval = setInterval(() => {
       if (!state.speedRecallPending) {
@@ -1033,7 +1147,7 @@
         return;
       }
       state.speedRecallRemainingSeconds--;
-      updateSpeedRecallTimerUI();
+      updateRecallTimerUI();
       if (state.speedRecallRemainingSeconds <= 0) {
         clearInterval(state.speedRecallInterval);
       }
@@ -1041,11 +1155,11 @@
 
     state.speedRecallTimer = setTimeout(() => {
       if (!state.speedRecallPending) return;
-      handleSpeedRecallTimeout();
+      handleRecallTimeout();
     }, limit * 1000);
   }
 
-  function updateSpeedRecallTimerUI() {
+  function updateRecallTimerUI() {
     const sec = Math.max(0, state.speedRecallRemainingSeconds);
     if (dom.speedRecallTimerVal) {
       dom.speedRecallTimerVal.textContent = `${sec}s`;
@@ -1057,40 +1171,70 @@
     updateTimeoutHUD();
   }
 
-  function handleSpeedRecallTimeout() {
+  function handleRecallTimeout() {
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
 
-    if (!state.speedRecallPending || !state._speedRecallContext) return;
-    const ctx = state._speedRecallContext;
-    const actualStr = ctx.speedFormatted;
-
-    const recallEntry = {
-      trial_index: ctx.trialIndex + 1,
-      actual_speed: ctx.actualSpeed,
-      actual_speed_formatted: actualStr,
-      user_response: null,
-      speed_recall_accurate: false,
-      speed_error_kmh: null,
-      is_idk: false,
-      timed_out: true
-    };
-    state.speedRecallResults.push(recallEntry);
-
+    if (!state.speedRecallPending || !state._recallContext) return;
+    const ctx = state._recallContext;
+    const probeType = ctx.probeType;
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
-    if (trialResult) {
-      trialResult.speed_recall_asked = true;
-      trialResult.speed_recall_actual = actualStr;
-      trialResult.speed_recall_response = null;
-      trialResult.speed_recall_accurate = false;
-      trialResult.speed_error_kmh = null;
-      trialResult.speed_recall_timed_out = true;
-      trialResult.speed_recall_idk = false;
+
+    if (probeType === 'symbol') {
+      const symName = ctx.actualSymbol?.name || 'Unknown';
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'symbol',
+        actual_symbol: ctx.actualSymbol?.id,
+        actual_symbol_name: symName,
+        user_response: null,
+        symbol_recall_accurate: false,
+        is_idk: false,
+        timed_out: true
+      };
+      state.symbolRecallResults.push(recallEntry);
+
+      if (trialResult) {
+        trialResult.probe_type = 'symbol';
+        trialResult.symbol_recall_asked = true;
+        trialResult.symbol_recall_actual = symName;
+        trialResult.symbol_recall_response = null;
+        trialResult.symbol_recall_accurate = false;
+        trialResult.symbol_recall_timed_out = true;
+        trialResult.symbol_recall_idk = false;
+        trialResult.recall_accurate = false;
+      }
+    } else {
+      const actualStr = ctx.speedFormatted;
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'speed',
+        actual_speed: ctx.actualSpeed,
+        actual_speed_formatted: actualStr,
+        user_response: null,
+        speed_recall_accurate: false,
+        speed_error_kmh: null,
+        is_idk: false,
+        timed_out: true
+      };
+      state.speedRecallResults.push(recallEntry);
+
+      if (trialResult) {
+        trialResult.probe_type = 'speed';
+        trialResult.speed_recall_asked = true;
+        trialResult.speed_recall_actual = actualStr;
+        trialResult.speed_recall_response = null;
+        trialResult.speed_recall_accurate = false;
+        trialResult.speed_error_kmh = null;
+        trialResult.speed_recall_timed_out = true;
+        trialResult.speed_recall_idk = false;
+        trialResult.recall_accurate = false;
+      }
     }
 
     state.speedRecallPending = false;
-    state._speedRecallContext = null;
-    state._currentSpeedOptions = null;
+    state._recallContext = null;
+    state._currentMCQOptions = null;
     dom.speedRecallOverlay.classList.remove('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
     dom.stageWrapper.classList.remove('speed-recall-blur');
@@ -1098,49 +1242,81 @@
     advanceAfterTrial(ctx.trialIndex);
   }
 
-  function submitSpeedRecallMCQ(selectedOption) {
-    if (!state.speedRecallPending || !state._speedRecallContext) return;
+  function submitRecallMCQ(selectedOption) {
+    if (!state.speedRecallPending || !state._recallContext) return;
 
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
 
-    const ctx = state._speedRecallContext;
+    const ctx = state._recallContext;
+    const probeType = ctx.probeType;
     const isAccurate = selectedOption.isCorrect === true;
-    const actualStr = ctx.speedFormatted;
-    const userResponse = selectedOption.value;
-
-    let errorKmh = null;
-    if (selectedOption.speedNum != null && !isNaN(selectedOption.speedNum)) {
-      errorKmh = Math.abs(selectedOption.speedNum - ctx.actualSpeed);
-    }
-
-    const recallEntry = {
-      trial_index: ctx.trialIndex + 1,
-      actual_speed: ctx.actualSpeed,
-      actual_speed_formatted: actualStr,
-      user_response: userResponse,
-      speed_recall_accurate: isAccurate,
-      speed_error_kmh: errorKmh,
-      is_idk: selectedOption.isIdk || false,
-      timed_out: false
-    };
-    state.speedRecallResults.push(recallEntry);
-
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
-    if (trialResult) {
-      trialResult.speed_recall_asked = true;
-      trialResult.speed_recall_actual = actualStr;
-      trialResult.speed_recall_response = userResponse;
-      trialResult.speed_recall_accurate = isAccurate;
-      trialResult.speed_error_kmh = errorKmh;
-      trialResult.speed_recall_timed_out = false;
-      trialResult.speed_recall_idk = selectedOption.isIdk || false;
+
+    if (probeType === 'symbol') {
+      const symName = ctx.actualSymbol?.name || 'Unknown';
+      const userResp = selectedOption.isIdk ? 'IDK' : selectedOption.name;
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'symbol',
+        actual_symbol: ctx.actualSymbol?.id,
+        actual_symbol_name: symName,
+        user_response: userResp,
+        symbol_recall_accurate: isAccurate,
+        is_idk: selectedOption.isIdk || false,
+        timed_out: false
+      };
+      state.symbolRecallResults.push(recallEntry);
+
+      if (trialResult) {
+        trialResult.probe_type = 'symbol';
+        trialResult.symbol_recall_asked = true;
+        trialResult.symbol_recall_actual = symName;
+        trialResult.symbol_recall_response = userResp;
+        trialResult.symbol_recall_accurate = isAccurate;
+        trialResult.symbol_recall_timed_out = false;
+        trialResult.symbol_recall_idk = selectedOption.isIdk || false;
+        trialResult.recall_accurate = isAccurate;
+      }
+    } else {
+      const actualStr = ctx.speedFormatted;
+      const userResponse = selectedOption.value;
+
+      let errorKmh = null;
+      if (selectedOption.speedNum != null && !isNaN(selectedOption.speedNum)) {
+        errorKmh = Math.abs(selectedOption.speedNum - ctx.actualSpeed);
+      }
+
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'speed',
+        actual_speed: ctx.actualSpeed,
+        actual_speed_formatted: actualStr,
+        user_response: userResponse,
+        speed_recall_accurate: isAccurate,
+        speed_error_kmh: errorKmh,
+        is_idk: selectedOption.isIdk || false,
+        timed_out: false
+      };
+      state.speedRecallResults.push(recallEntry);
+
+      if (trialResult) {
+        trialResult.probe_type = 'speed';
+        trialResult.speed_recall_asked = true;
+        trialResult.speed_recall_actual = actualStr;
+        trialResult.speed_recall_response = userResponse;
+        trialResult.speed_recall_accurate = isAccurate;
+        trialResult.speed_error_kmh = errorKmh;
+        trialResult.speed_recall_timed_out = false;
+        trialResult.speed_recall_idk = selectedOption.isIdk || false;
+        trialResult.recall_accurate = isAccurate;
+      }
     }
 
     // Clean up overlay and unblur (no feedback given to participant!)
     state.speedRecallPending = false;
-    state._speedRecallContext = null;
-    state._currentSpeedOptions = null;
+    state._recallContext = null;
+    state._currentMCQOptions = null;
     dom.speedRecallOverlay.classList.remove('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
     dom.stageWrapper.classList.remove('speed-recall-blur');
@@ -1215,6 +1391,7 @@
     };
 
     const speedActualFormatted = trial?.dashboardData?.speed != null ? formatSpeed(trial.dashboardData.speed) : null;
+    const symbolActualName = trial?.dashboardData?.symbolName || trial?.dashboardData?.symbol?.name || null;
 
     state.trialResults.push({
       trial_index: state.currentTrialIndex + 1,
@@ -1231,11 +1408,18 @@
       mask_image: trial?.mask_image,
       benchmark: trial?.benchmark,
       dashboardData: trial?.dashboardData,
+      is_probe: trial?.isProbe || false,
+      probe_type: null,
       speed_recall_asked: false,
       speed_recall_actual: speedActualFormatted,
       speed_recall_response: null,
       speed_recall_accurate: null,
       speed_error_kmh: null,
+      symbol_recall_asked: false,
+      symbol_recall_actual: symbolActualName,
+      symbol_recall_response: null,
+      symbol_recall_accurate: null,
+      recall_accurate: null,
       ...clickData
     });
   }
@@ -1248,6 +1432,13 @@
     clearInterval(state.speedRecallInterval);
     if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
     playSound('advance');
+
+    const trial = state.currentTrialData;
+    if (trial && trial.module === 'b' && trial.isProbe && trial.dashboardData) {
+      recordCurrentTrialResult();
+      showRecallPrompt(state.currentTrialIndex);
+      return;
+    }
 
     recordCurrentTrialResult();
     advanceAfterTrial(state.currentTrialIndex);
@@ -1337,11 +1528,11 @@
 
     const trial = state.currentTrialData;
 
-    // Check if this trial requires immediate speed MCQ popup:
-    // Skip the spacebar prompt completely and immediately display speed MCQ
-    if (trial.module === 'b' && trial.isSpeedProbe && trial.dashboardData) {
+    // Check if this trial requires immediate speed or symbol recall MCQ popup:
+    // Skip the spacebar prompt completely and immediately display recall MCQ
+    if (trial.module === 'b' && trial.isProbe && trial.dashboardData) {
       recordCurrentTrialResult();
-      showSpeedRecallPrompt(state.currentTrialIndex, trial.dashboardData.speed);
+      showRecallPrompt(state.currentTrialIndex);
       return;
     }
 
@@ -1440,18 +1631,18 @@
       return;
     }
 
-    // Handle Speed Recall MCQ keyboard shortcuts (1..4 or A..D)
-    if (state.trialState === 'speed_recall' && state.speedRecallPending && state._currentSpeedOptions) {
+    // Handle Recall MCQ keyboard shortcuts (1..4 or A..D)
+    if (state.trialState === 'speed_recall' && state.speedRecallPending && state._currentMCQOptions) {
       const key = e.key.toUpperCase();
       let matched = null;
       if (['1', '2', '3', '4'].includes(key)) {
-        matched = state._currentSpeedOptions.find(o => o.key === key);
+        matched = state._currentMCQOptions.find(o => o.key === key);
       } else if (['A', 'B', 'C', 'D'].includes(key)) {
-        matched = state._currentSpeedOptions.find(o => o.letter === key);
+        matched = state._currentMCQOptions.find(o => o.letter === key);
       }
       if (matched) {
         e.preventDefault();
-        submitSpeedRecallMCQ(matched);
+        submitRecallMCQ(matched);
       }
       if (e.code === 'Space') e.preventDefault();
       return;
@@ -1541,18 +1732,32 @@
     const modBMeanRt = modBRts.length > 0 ? Math.round(modBRts.reduce((a, b) => a + b, 0) / modBRts.length) : '--';
 
     // Speed Recall metrics (probed on Module B)
-    const probedTrials = results.filter(r => r.speed_recall_asked);
-    const speedProbedCount = probedTrials.length;
-    const speedHits = probedTrials.filter(r => r.speed_recall_accurate);
+    // Speed Recall metrics (probed on Module B)
+    const speedProbedTrials = results.filter(r => r.speed_recall_asked);
+    const speedProbedCount = speedProbedTrials.length;
+    const speedHits = speedProbedTrials.filter(r => r.speed_recall_accurate);
     const speedHitsCount = speedHits.length;
     const speedAccuracyPct = speedProbedCount > 0 ? Math.round((speedHitsCount / speedProbedCount) * 100) : 0;
 
-    const speedErrors = probedTrials
+    const speedErrors = speedProbedTrials
       .filter(r => r.speed_error_kmh != null)
       .map(r => r.speed_error_kmh);
     const meanSpeedError = speedErrors.length > 0
       ? (speedErrors.reduce((a, b) => a + b, 0) / speedErrors.length).toFixed(1)
       : null;
+
+    // Symbol Recall metrics (probed on Module B)
+    const symbolProbedTrials = results.filter(r => r.symbol_recall_asked);
+    const symbolProbedCount = symbolProbedTrials.length;
+    const symbolHits = symbolProbedTrials.filter(r => r.symbol_recall_accurate);
+    const symbolHitsCount = symbolHits.length;
+    const symbolAccuracyPct = symbolProbedCount > 0 ? Math.round((symbolHitsCount / symbolProbedCount) * 100) : 0;
+
+    // Overall Recall metrics (speed + symbol combined)
+    const allProbedTrials = results.filter(r => r.speed_recall_asked || r.symbol_recall_asked);
+    const allProbedCount = allProbedTrials.length;
+    const allRecallHits = allProbedTrials.filter(r => r.recall_accurate);
+    const allRecallAccPct = allProbedCount > 0 ? Math.round((allRecallHits.length / allProbedCount) * 100) : 0;
 
     // KPI Card values
     dom.resAccuracy.textContent = `${accuracyPct}%`;
@@ -1575,6 +1780,17 @@
       }
     }
 
+    if (dom.resSymbolAccuracy) {
+      dom.resSymbolAccuracy.textContent = symbolProbedCount > 0 ? `${symbolAccuracyPct}%` : '--%';
+    }
+    if (dom.resSymbolCorrectCount) {
+      if (symbolProbedCount > 0) {
+        dom.resSymbolCorrectCount.textContent = `${symbolHitsCount} / ${symbolProbedCount} correct`;
+      } else {
+        dom.resSymbolCorrectCount.textContent = '0 trials probed';
+      }
+    }
+
     dom.resMeanRt.textContent = `${meanRt} ms`;
     dom.resMeanRtSec.textContent = `${(meanRt / 1000).toFixed(2)} seconds`;
     dom.resMedianRt.textContent = `${medianRt} ms`;
@@ -1589,6 +1805,7 @@
     if (dom.resModBAccDetail) dom.resModBAccDetail.textContent = `${modBAccPct}%`;
     if (dom.resModBRtDetail) dom.resModBRtDetail.textContent = typeof modBMeanRt === 'number' ? `${modBMeanRt} ms` : `${modBMeanRt}`;
     if (dom.resModBSpeedDetail) dom.resModBSpeedDetail.textContent = speedProbedCount > 0 ? `${speedAccuracyPct}%` : '--%';
+    if (dom.resModBSymbolDetail) dom.resModBSymbolDetail.textContent = symbolProbedCount > 0 ? `${symbolAccuracyPct}%` : '--%';
     if (dom.resModBCount) dom.resModBCount.textContent = modBTrials.length;
 
     // Visual Field Breakdown
@@ -1617,7 +1834,7 @@
 
     dom.resTotalBadge.textContent = `${total} Trials`;
 
-    // Populate Table
+    // Populate Table (15 Columns aligned with index.html thead)
     dom.trialsTbody.innerHTML = '';
     results.forEach((r, idx) => {
       const tr = document.createElement('tr');
@@ -1635,27 +1852,67 @@
       const coords = r.click_x != null ? `(${r.click_x}, ${r.click_y})` : '--';
       const dist = r.distance_px != null ? `${Math.round(r.distance_px)} px` : '--';
 
+      // Speed Shown
       const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? formatSpeed(r.dashboardData.speed) : null);
       const speedShownText = (r.module === 'b' && speedShownVal != null) ? `${speedShownVal} km/h` : '—';
 
-      let speedRecalledText = '<span style="color: var(--text-dim);">—</span>';
-      if (r.speed_recall_asked) {
-        if (r.speed_recall_response != null) {
-          speedRecalledText = r.speed_recall_response === 'IDK'
-            ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
-            : `<strong>${r.speed_recall_response} km/h</strong>`;
-        } else {
-          speedRecalledText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+      // Symbol Shown
+      let symbolShownText = '—';
+      if (r.module === 'b') {
+        const symObj = r.dashboardData?.symbol || (r.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === r.dashboardData.symbolId) : null);
+        if (symObj) {
+          symbolShownText = `<span class="table-symbol-icon"><img src="${symObj.path}" alt="${symObj.name}"> ${symObj.name}</span>`;
+        } else if (r.dashboardData?.symbolName) {
+          symbolShownText = `<span>${r.dashboardData.symbolName}</span>`;
         }
       }
 
-      let speedAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
+      // Recall Probe Type
+      let probeBadge = '<span style="color: var(--text-dim);">—</span>';
+      if (r.probe_type === 'speed' || r.speed_recall_asked) {
+        probeBadge = '<span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏎️ Speed</span>';
+      } else if (r.probe_type === 'symbol' || r.symbol_recall_asked) {
+        probeBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⚠️ Symbol</span>';
+      }
+
+      // Recall Response
+      let recallResponseText = '<span style="color: var(--text-dim);">—</span>';
+      if (r.speed_recall_asked) {
+        if (r.speed_recall_response != null) {
+          recallResponseText = r.speed_recall_response === 'IDK'
+            ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
+            : `<strong>${r.speed_recall_response} km/h</strong>`;
+        } else {
+          recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+        }
+      } else if (r.symbol_recall_asked) {
+        if (r.symbol_recall_response != null) {
+          if (r.symbol_recall_response === 'IDK') {
+            recallResponseText = `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`;
+          } else {
+            const matchingSym = SYMBOLS.find(s => s.name === r.symbol_recall_response || s.id === r.symbol_recall_response);
+            const iconHtml = matchingSym ? `<img src="${matchingSym.path}" class="table-symbol-icon-inline" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;">` : '';
+            recallResponseText = `<strong>${iconHtml}${r.symbol_recall_response}</strong>`;
+          }
+        } else {
+          recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+        }
+      }
+
+      // Recall Accuracy Badge
+      let recallAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
       if (r.speed_recall_asked) {
         if (r.speed_recall_accurate) {
-          speedAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+          recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
         } else {
           const errDiff = r.speed_error_kmh != null ? ` (±${r.speed_error_kmh})` : '';
-          speedAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+          recallAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+        }
+      } else if (r.symbol_recall_asked) {
+        if (r.symbol_recall_accurate) {
+          recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+        } else {
+          recallAccuracyBadge = '<span class="pill-miss">✗ Incorrect</span>';
         }
       }
 
@@ -1667,8 +1924,10 @@
         <td>${outcomeBadge}</td>
         <td><strong>${rtText}</strong></td>
         <td>${speedShownText}</td>
-        <td>${speedRecalledText}</td>
-        <td>${speedAccuracyBadge}</td>
+        <td>${symbolShownText}</td>
+        <td>${probeBadge}</td>
+        <td>${recallResponseText}</td>
+        <td>${recallAccuracyBadge}</td>
         <td style="color: var(--text-dim);">${benchRt}</td>
         <td style="font-family: var(--font-mono); font-size: 0.85em;">${coords}</td>
         <td style="font-family: var(--font-mono);">${dist}</td>
@@ -1705,6 +1964,9 @@
         speed_recall_correct_count: speedHitsCount,
         speed_recall_accuracy_percent: speedAccuracyPct,
         speed_recall_mean_error_kmh: meanSpeedError != null ? Number(meanSpeedError) : null,
+        symbol_recall_probed_count: symbolProbedCount,
+        symbol_recall_correct_count: symbolHitsCount,
+        symbol_recall_accuracy_percent: symbolAccuracyPct,
         mean_rt_ms: meanRt,
         median_rt_ms: medianRt,
         fastest_rt_ms: fastestRt,
@@ -1786,11 +2048,21 @@
     const speedShownVal = (trial.module === 'b' && trial.speed_recall_actual != null)
       ? `${trial.speed_recall_actual} km/h`
       : (trial.module === 'b' && trial.dashboardData?.speed != null ? `${formatSpeed(trial.dashboardData.speed)} km/h` : '— (Module A)');
-    let speedRecallDetail = 'Not probed on this trial';
+
+    const symbolObj = trial.module === 'b'
+      ? (trial.dashboardData?.symbol || (trial.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === trial.dashboardData.symbolId) : null))
+      : null;
+    const symbolShownVal = symbolObj ? `${symbolObj.name}` : (trial.module === 'b' && trial.symbol_recall_actual ? trial.symbol_recall_actual : '— (Module A)');
+
+    let recallDetail = 'Not probed on this trial';
     if (trial.speed_recall_asked) {
-      const recalled = trial.speed_recall_response != null ? `${trial.speed_recall_response}` : 'No response';
+      const recalled = trial.speed_recall_response != null ? `${trial.speed_recall_response} km/h` : 'No response / Timed out';
       const status = trial.speed_recall_accurate ? '✓ Correct' : `✗ Error (off by ${trial.speed_error_kmh != null ? trial.speed_error_kmh : '?'} km/h)`;
-      speedRecallDetail = `Response: <strong>${recalled}</strong> (${status})`;
+      recallDetail = `🏎️ Speed Probe: Response <strong>${recalled}</strong> (${status})`;
+    } else if (trial.symbol_recall_asked) {
+      const recalled = trial.symbol_recall_response != null ? `${trial.symbol_recall_response}` : 'No response / Timed out';
+      const status = trial.symbol_recall_accurate ? '✓ Correct' : '✗ Incorrect';
+      recallDetail = `⚠️ Symbol Probe: Response <strong>${recalled}</strong> (${status})`;
     }
 
     dom.modalStats.innerHTML = `
@@ -1798,7 +2070,8 @@
       <div>Detection Outcome: <strong>${outcome}</strong></div>
       <div>Response Time: <strong>${rt}</strong></div>
       <div>Dashboard Speed Shown: <strong>${speedShownVal}</strong></div>
-      <div>Speed Recall (MCQ): <span>${speedRecallDetail}</span></div>
+      <div>Warning Symbol Shown: <strong>${symbolShownVal}</strong></div>
+      <div>MCQ Recall Evaluation: <span>${recallDetail}</span></div>
       <div>Click Coordinates: <strong>${trial.click_x != null ? `(${trial.click_x}, ${trial.click_y})` : 'None'}</strong></div>
       <div>Benchmark Center: <strong>${trial.target_x != null ? `(${trial.target_x}, ${trial.target_y})` : '--'}</strong></div>
       <div>Error Distance: <strong>${trial.distance_px != null ? Math.round(trial.distance_px) + ' px' : '--'}</strong></div>
@@ -1839,10 +2112,16 @@
       'accurate',
       'response_time_ms',
       'speed_shown_kmh',
+      'symbol_shown',
+      'probe_type',
       'speed_recall_probed',
       'speed_recalled_kmh',
       'speed_recall_accurate',
       'speed_error_kmh',
+      'symbol_recall_probed',
+      'symbol_recalled',
+      'symbol_recall_accurate',
+      'recall_accurate',
       'click_x',
       'click_y',
       'target_x',
@@ -1860,10 +2139,17 @@
     trials.forEach(t => {
       const modLabel = t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)';
       const speedShown = (t.module === 'b' && t.speed_recall_actual != null) ? t.speed_recall_actual : (t.module === 'b' && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
+      const symObj = t.module === 'b' ? (t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null)) : null;
+      const symbolShown = symObj?.name || (t.module === 'b' && t.symbol_recall_actual ? t.symbol_recall_actual : '');
+      const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
       const speedProbed = t.speed_recall_asked ? 1 : 0;
       const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
       const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
       const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+      const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+      const symbolRecalled = (t.symbol_recall_response != null && t.symbol_recall_response !== '') ? t.symbol_recall_response : '';
+      const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+      const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       rows.push([
         t.trial_index,
@@ -1875,10 +2161,16 @@
         t.accurate ? 1 : 0,
         t.response_time_ms != null ? t.response_time_ms.toFixed(1) : '',
         speedShown,
+        `"${symbolShown}"`,
+        `"${probeType}"`,
         speedProbed,
         speedRecalled,
         speedAccurate,
         speedError,
+        symbolProbed,
+        `"${symbolRecalled}"`,
+        symbolAccurate,
+        recallAccurate,
         t.click_x != null ? t.click_x : '',
         t.click_y != null ? t.click_y : '',
         t.target_x != null ? t.target_x : '',
@@ -1910,8 +2202,10 @@
     // Client-side Excel SpreadsheetML XML fallback
     const headers = [
       'trial_index', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
-      'response_time_ms', 'speed_shown_kmh', 'speed_recall_probed', 'speed_recalled_kmh',
-      'speed_recall_accurate', 'speed_error_kmh', 'click_x', 'click_y', 'target_x', 'target_y',
+      'response_time_ms', 'speed_shown_kmh', 'symbol_shown', 'probe_type',
+      'speed_recall_probed', 'speed_recalled_kmh', 'speed_recall_accurate', 'speed_error_kmh',
+      'symbol_recall_probed', 'symbol_recalled', 'symbol_recall_accurate', 'recall_accurate',
+      'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
       'interval_t_ms', 'image_duration_ms'
     ];
@@ -1935,10 +2229,17 @@
     trials.forEach(t => {
       const modLabel = t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)';
       const speedShown = (t.module === 'b' && t.speed_recall_actual != null) ? t.speed_recall_actual : (t.module === 'b' && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
+      const symObj = t.module === 'b' ? (t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null)) : null;
+      const symbolShown = symObj?.name || (t.module === 'b' && t.symbol_recall_actual ? t.symbol_recall_actual : '');
+      const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
       const speedProbed = t.speed_recall_asked ? 1 : 0;
       const speedRecalled = (t.speed_recall_response != null && t.speed_recall_response !== '') ? t.speed_recall_response : '';
       const speedAccurate = t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '';
       const speedError = (t.speed_recall_asked && t.speed_error_kmh != null) ? t.speed_error_kmh : '';
+      const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+      const symbolRecalled = (t.symbol_recall_response != null && t.symbol_recall_response !== '') ? t.symbol_recall_response : '';
+      const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+      const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       xml += '   <Row>\n' +
         `    <Cell><Data ss:Type="Number">${t.trial_index}</Data></Cell>\n` +
@@ -1949,11 +2250,17 @@
         `    <Cell><Data ss:Type="String">${t.category || ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="Number">${t.accurate ? 1 : 0}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.response_time_ms != null ? 'Number' : 'String'}">${t.response_time_ms != null ? t.response_time_ms.toFixed(1) : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedShown !== '' ? 'String' : 'String'}">${speedShown}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${speedShown}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${symbolShown}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${probeType}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="Number">${speedProbed}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedRecalled !== '' ? 'String' : 'String'}">${speedRecalled}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${speedRecalled}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${speedAccurate !== '' ? 'Number' : 'String'}">${speedAccurate}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${speedError !== '' ? 'Number' : 'String'}">${speedError}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="Number">${symbolProbed}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="String">${symbolRecalled}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${symbolAccurate !== '' ? 'Number' : 'String'}">${symbolAccurate}</Data></Cell>\n` +
+        `    <Cell><Data ss:Type="${recallAccurate !== '' ? 'Number' : 'String'}">${recallAccurate}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.click_x != null ? 'Number' : 'String'}">${t.click_x != null ? t.click_x : ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.click_y != null ? 'Number' : 'String'}">${t.click_y != null ? t.click_y : ''}</Data></Cell>\n` +
         `    <Cell><Data ss:Type="${t.target_x != null ? 'Number' : 'String'}">${t.target_x != null ? t.target_x : ''}</Data></Cell>\n` +

@@ -219,10 +219,16 @@ const server = http.createServer((req, res) => {
           'response_time_ms',
           'response_time_sec',
           'speed_shown_kmh',
+          'symbol_shown',
+          'probe_type',
           'speed_recall_probed',
           'speed_recalled_kmh',
           'speed_recall_accurate',
           'speed_error_kmh',
+          'symbol_recall_probed',
+          'symbol_recalled',
+          'symbol_recall_accurate',
+          'recall_accurate',
           'click_x',
           'click_y',
           'target_x',
@@ -245,7 +251,12 @@ const server = http.createServer((req, res) => {
         trials.forEach((t, idx) => {
           const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
           const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
-          const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
+          const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
+
+          const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
+          const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
+
+          const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
           const speedProbed = t.speed_recall_asked ? 1 : 0;
           let speedRecalled = '';
           if (t.speed_recall_asked && t.speed_recall_response != null) {
@@ -259,6 +270,11 @@ const server = http.createServer((req, res) => {
             speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
           }
 
+          const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+          const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
+          const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+          const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+
           const row = [
             t.trial_index || (idx + 1),
             `"${moduleLabel}"`,
@@ -271,10 +287,16 @@ const server = http.createServer((req, res) => {
             t.response_time_ms != null ? Number(t.response_time_ms).toFixed(1) : '',
             t.response_time_ms != null ? (Number(t.response_time_ms) / 1000).toFixed(3) : '',
             speedShown ? `"${speedShown}"` : '',
+            symbolShown ? `"${symbolShown}"` : '',
+            probeType ? `"${probeType}"` : '',
             speedProbed,
             speedRecalled ? `"${speedRecalled}"` : '',
             speedAccurate,
             speedError,
+            symbolProbed,
+            symbolRecalled ? `"${symbolRecalled}"` : '',
+            symbolAccurate,
+            recallAccurate,
             t.click_x != null ? t.click_x : '',
             t.click_y != null ? t.click_y : '',
             t.target_x != null ? t.target_x : '',
@@ -301,7 +323,12 @@ const server = http.createServer((req, res) => {
           const xlsxRows = trials.map((t, idx) => {
             const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
             const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
-            const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : '';
+            const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
+
+            const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
+            const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
+
+            const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
             const speedProbed = t.speed_recall_asked ? 1 : 0;
             let speedRecalled = '';
             if (t.speed_recall_asked && t.speed_recall_response != null) {
@@ -315,6 +342,11 @@ const server = http.createServer((req, res) => {
               speedError = Math.abs(Number(t.speed_recall_response) - Number(speedShown));
             }
 
+            const symbolProbed = t.symbol_recall_asked ? 1 : 0;
+            const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
+            const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
+            const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+
             return [
               t.trial_index || (idx + 1),
               moduleLabel,
@@ -327,10 +359,16 @@ const server = http.createServer((req, res) => {
               t.response_time_ms != null ? Number(Number(t.response_time_ms).toFixed(1)) : '',
               t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
               speedShown || '',
+              symbolShown || '',
+              probeType || '',
               speedProbed,
               speedRecalled || '',
               speedAccurate !== '' ? Number(speedAccurate) : '',
               speedError !== '' ? Number(speedError) : '',
+              symbolProbed,
+              symbolRecalled || '',
+              symbolAccurate !== '' ? Number(symbolAccurate) : '',
+              recallAccurate !== '' ? Number(recallAccurate) : '',
               t.click_x != null ? t.click_x : '',
               t.click_y != null ? t.click_y : '',
               t.target_x != null ? t.target_x : '',
