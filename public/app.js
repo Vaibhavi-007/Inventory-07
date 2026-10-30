@@ -506,9 +506,9 @@
     const distractor2 = shuffledOthers[1];
 
     const symbolChoices = [
-      { type: 'symbol', value: correctSymbol.id, label: correctSymbol.label, path: correctSymbol.path, isCorrect: true, isIdk: false },
-      { type: 'symbol', value: distractor1.id, label: distractor1.label, path: distractor1.path, isCorrect: false, isIdk: false },
-      { type: 'symbol', value: distractor2.id, label: distractor2.label, path: distractor2.path, isCorrect: false, isIdk: false }
+      { type: 'symbol', value: correctSymbol.id, name: correctSymbol.name, label: correctSymbol.label, path: correctSymbol.path, isCorrect: true, isIdk: false },
+      { type: 'symbol', value: distractor1.id, name: distractor1.name, label: distractor1.label, path: distractor1.path, isCorrect: false, isIdk: false },
+      { type: 'symbol', value: distractor2.id, name: distractor2.name, label: distractor2.label, path: distractor2.path, isCorrect: false, isIdk: false }
     ];
 
     symbolChoices.sort(() => Math.random() - 0.5);
@@ -516,6 +516,7 @@
     const idkChoice = {
       type: 'idk',
       value: 'IDK',
+      name: 'IDK',
       label: "I don't know / no idea",
       path: null,
       isCorrect: false,
@@ -1094,14 +1095,13 @@
           if (opt.isIdk) {
             btn.innerHTML = `
               <span class="opt-badge">${opt.key}</span>
-              <span class="opt-symbol-container"><span class="opt-idk-icon">❓</span></span>
+              <span class="opt-idk-icon">❓</span>
               <span class="opt-label">${opt.label}</span>
             `;
           } else {
             btn.innerHTML = `
               <span class="opt-badge">${opt.key}</span>
-              <span class="opt-symbol-container"><img src="${opt.path}" alt="${opt.label}" class="opt-symbol-img"></span>
-              <span class="opt-label">${opt.name}</span>
+              <span class="opt-symbol-container"><img src="${opt.path}" alt="${opt.label || 'Warning Symbol'}" class="opt-symbol-img"></span>
             `;
           }
           btn.addEventListener('click', () => submitRecallMCQ(opt));
