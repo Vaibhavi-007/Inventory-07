@@ -876,7 +876,43 @@ kbd {
   flex-shrink: 0;
 }
 
+.car-dashboard-overlay.module-3-strip {
+  background: #000000 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
 .car-dashboard-overlay svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Floating Heads-Up Display (HUD) Pill Capsule (Module 3 - 4th hypothetical row) */
+.stage-hud-overlay {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  width: 760px;
+  max-width: 90%;
+  height: 98px;
+  border-radius: 9999px;
+  background: rgba(15, 17, 21, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), inset 0 1.5px 2px rgba(255, 255, 255, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  pointer-events: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.stage-hud-overlay svg {
   width: 100%;
   height: 100%;
   display: block;
@@ -920,7 +956,8 @@ kbd {
   transition: filter 0.25s ease;
 }
 
-.stage-wrapper.speed-recall-blur .car-dashboard-overlay {
+.stage-wrapper.speed-recall-blur .car-dashboard-overlay,
+.stage-wrapper.speed-recall-blur .stage-hud-overlay {
   display: none !important;
 }
 
@@ -1239,6 +1276,12 @@ kbd {
   border: 1px solid rgba(249, 160, 27, 0.3);
 }
 
+.module-hud-pill.module-c {
+  background: rgba(168, 85, 247, 0.16);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
 /* Table badges for modules */
 .badge-module-a {
   background: rgba(56, 189, 248, 0.12);
@@ -1256,6 +1299,18 @@ kbd {
   background: rgba(249, 160, 27, 0.12);
   color: #f9a01b;
   border: 1px solid rgba(249, 160, 27, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-module-c {
+  background: rgba(168, 85, 247, 0.16);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 0.75rem;

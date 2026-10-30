@@ -18,7 +18,8 @@
       "rt_ms": 7054.6,
       "area_pixels": 3283.0,
       "eccentricity": 127.094453
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "01_R_filler_mirror",
@@ -39,7 +40,8 @@
       "rt_ms": 11332.5,
       "area_pixels": 3283.0,
       "eccentricity": 127.094453
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "02_L_filler_napkin",
@@ -60,7 +62,8 @@
       "rt_ms": 6938.1,
       "area_pixels": 4343.0,
       "eccentricity": 266.159726
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "02_R_filler_napkin",
@@ -81,7 +84,8 @@
       "rt_ms": 7222.6,
       "area_pixels": 4343.0,
       "eccentricity": 266.159726
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "03_L_filler_ducks",
@@ -102,7 +106,8 @@
       "rt_ms": 32474.7,
       "area_pixels": 1956.0,
       "eccentricity": 186.868938
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "03_R_filler_ducks",
@@ -123,7 +128,8 @@
       "rt_ms": 7045.4,
       "area_pixels": 1956.0,
       "eccentricity": 186.868938
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "04_L_filler_electricalgrid",
@@ -144,7 +150,8 @@
       "rt_ms": 12591.8,
       "area_pixels": 11858.0,
       "eccentricity": 376.558096
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "04_R_filler_electricalgrid",
@@ -165,7 +172,8 @@
       "rt_ms": 18101.5,
       "area_pixels": 11858.0,
       "eccentricity": 376.558096
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "05_L_filler_mirror",
@@ -186,7 +194,8 @@
       "rt_ms": 7726.3,
       "area_pixels": 9767.0,
       "eccentricity": 282.931087
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "05_R_filler_mirror",
@@ -207,7 +216,8 @@
       "rt_ms": 12497.1,
       "area_pixels": 9767.0,
       "eccentricity": 282.931087
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "06_L_filler_vase",
@@ -228,7 +238,8 @@
       "rt_ms": 6686.2,
       "area_pixels": 1942.0,
       "eccentricity": 209.009569
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "06_R_filler_vase",
@@ -249,7 +260,8 @@
       "rt_ms": 2726.2,
       "area_pixels": 1942.0,
       "eccentricity": 209.009569
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "07_L_filler_soap",
@@ -270,7 +282,8 @@
       "rt_ms": 5150.5,
       "area_pixels": 3005.0,
       "eccentricity": 443.630477
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "07_R_filler_soap",
@@ -291,7 +304,8 @@
       "rt_ms": 12990.3,
       "area_pixels": 3005.0,
       "eccentricity": 443.630477
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "08_L_filler_bottle",
@@ -312,7 +326,8 @@
       "rt_ms": 14992.6,
       "area_pixels": 2778.0,
       "eccentricity": 391.126578
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "08_R_filler_bottle",
@@ -333,7 +348,8 @@
       "rt_ms": 17359.9,
       "area_pixels": 2778.0,
       "eccentricity": 391.126578
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "09_L_filler_carpet",
@@ -354,7 +370,8 @@
       "rt_ms": 13313.2,
       "area_pixels": 54627.0,
       "eccentricity": 340.343944
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "09_R_filler_carpet",
@@ -375,7 +392,8 @@
       "rt_ms": 37433.1,
       "area_pixels": 54627.0,
       "eccentricity": 340.343944
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "010_L_filler_candle",
@@ -396,7 +414,8 @@
       "rt_ms": 9632.7,
       "area_pixels": 416.0,
       "eccentricity": 405.208588
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "010_R_filler_candle",
@@ -417,7 +436,8 @@
       "rt_ms": 8185.4,
       "area_pixels": 416.0,
       "eccentricity": 405.208588
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "011_L_filler_parfum",
@@ -438,7 +458,8 @@
       "rt_ms": 5355.2,
       "area_pixels": 2796.0,
       "eccentricity": 161.47136
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "011_R_filler_parfum",
@@ -459,7 +480,8 @@
       "rt_ms": 9037.4,
       "area_pixels": 2796.0,
       "eccentricity": 161.47136
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "012_L_filler_tubaccesory",
@@ -480,7 +502,8 @@
       "rt_ms": 10392.2,
       "area_pixels": 311.0,
       "eccentricity": 228.043855
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "012_R_filler_tubaccesory",
@@ -501,7 +524,8 @@
       "rt_ms": 1905.7,
       "area_pixels": 311.0,
       "eccentricity": 228.043855
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "013_L_filler_lamp",
@@ -522,7 +546,8 @@
       "rt_ms": 14518.8,
       "area_pixels": 1309.0,
       "eccentricity": 322.456199
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "013_R_filler_lamp",
@@ -543,7 +568,8 @@
       "rt_ms": 14686.6,
       "area_pixels": 1309.0,
       "eccentricity": 322.456199
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "014_L_filler_lamp",
@@ -564,7 +590,8 @@
       "rt_ms": 17422.1,
       "area_pixels": 1344.0,
       "eccentricity": 326.718533
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "014_R_filler_lamp",
@@ -585,7 +612,8 @@
       "rt_ms": 6873.8,
       "area_pixels": 1344.0,
       "eccentricity": 326.718533
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "015_L_filler_ceilinglight",
@@ -606,7 +634,8 @@
       "rt_ms": 18680.3,
       "area_pixels": 1086.0,
       "eccentricity": 448.857438
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "015_R_filler_ceilinglight",
@@ -627,7 +656,8 @@
       "rt_ms": 12526.4,
       "area_pixels": 1086.0,
       "eccentricity": 448.857438
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "016_L_filler_art",
@@ -648,7 +678,8 @@
       "rt_ms": 4306.1,
       "area_pixels": 1861.0,
       "eccentricity": 445.0
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "016_R_filler_art",
@@ -669,7 +700,8 @@
       "rt_ms": 2983.8,
       "area_pixels": 1861.0,
       "eccentricity": 445.0
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "017_L_filler_wood",
@@ -690,7 +722,8 @@
       "rt_ms": 14743.6,
       "area_pixels": 2651.0,
       "eccentricity": 477.903756
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "017_R_filler_wood",
@@ -711,7 +744,8 @@
       "rt_ms": 21597.0,
       "area_pixels": 2651.0,
       "eccentricity": 477.903756
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "018_L_filler_plant",
@@ -732,7 +766,8 @@
       "rt_ms": 14839.6,
       "area_pixels": 38455.0,
       "eccentricity": 376.702801
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "018_R_filler_plant",
@@ -753,7 +788,8 @@
       "rt_ms": 9568.2,
       "area_pixels": 38455.0,
       "eccentricity": 376.702801
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "019_L_filler_sized",
@@ -774,7 +810,8 @@
       "rt_ms": 5159.1,
       "area_pixels": 1540.0,
       "eccentricity": 280.223125
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "019_R_filler_sized",
@@ -795,7 +832,8 @@
       "rt_ms": 4403.4,
       "area_pixels": 1540.0,
       "eccentricity": 280.223125
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "020_L_filler_walldeco",
@@ -816,7 +854,8 @@
       "rt_ms": 7253.4,
       "area_pixels": 3887.0,
       "eccentricity": 533.385414
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "020_R_filler_walldeco",
@@ -837,7 +876,8 @@
       "rt_ms": 9861.7,
       "area_pixels": 3887.0,
       "eccentricity": 533.385414
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "021_L_filler_keyboard",
@@ -858,7 +898,8 @@
       "rt_ms": 6073.6,
       "area_pixels": 2773.0,
       "eccentricity": 358.699038
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "021_R_filler_keyboard",
@@ -879,7 +920,8 @@
       "rt_ms": 9784.9,
       "area_pixels": 2773.0,
       "eccentricity": 358.699038
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "022_L_filler_lamp",
@@ -900,7 +942,8 @@
       "rt_ms": 9106.1,
       "area_pixels": 8778.0,
       "eccentricity": 328.823661
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "022_R_filler_lamp",
@@ -921,7 +964,8 @@
       "rt_ms": 7832.3,
       "area_pixels": 8778.0,
       "eccentricity": 328.823661
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "023_L_filler_remote",
@@ -942,7 +986,8 @@
       "rt_ms": 3585.7,
       "area_pixels": 3568.0,
       "eccentricity": 376.575358
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "023_R_filler_remote",
@@ -963,7 +1008,8 @@
       "rt_ms": 9559.3,
       "area_pixels": 3568.0,
       "eccentricity": 376.575358
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "024_L_filler_towels",
@@ -984,7 +1030,8 @@
       "rt_ms": 17908.9,
       "area_pixels": 4108.0,
       "eccentricity": 272.325173
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "024_R_filler_towels",
@@ -1005,7 +1052,8 @@
       "rt_ms": 9969.1,
       "area_pixels": 4108.0,
       "eccentricity": 272.325173
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "025_L_filler_vase",
@@ -1026,7 +1074,8 @@
       "rt_ms": 19930.0,
       "area_pixels": 2275.0,
       "eccentricity": 462.714815
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "025_R_filler_vase",
@@ -1047,7 +1096,8 @@
       "rt_ms": 12525.5,
       "area_pixels": 2275.0,
       "eccentricity": 462.714815
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "026_L_filler_rack",
@@ -1068,7 +1118,8 @@
       "rt_ms": 23313.1,
       "area_pixels": 3604.0,
       "eccentricity": 420.634045
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "026_R_filler_rack",
@@ -1089,7 +1140,8 @@
       "rt_ms": 26484.5,
       "area_pixels": 3604.0,
       "eccentricity": 420.634045
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "027_L_filler_soapdish",
@@ -1110,7 +1162,8 @@
       "rt_ms": 17152.9,
       "area_pixels": 1135.0,
       "eccentricity": 457.580594
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "027_R_filler_soapdish",
@@ -1131,7 +1184,8 @@
       "rt_ms": 7504.2,
       "area_pixels": 1135.0,
       "eccentricity": 458.577147
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "028_L_filler_vase",
@@ -1152,7 +1206,8 @@
       "rt_ms": 11265.0,
       "area_pixels": 2411.0,
       "eccentricity": 232.280003
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "028_R_filler_vase",
@@ -1173,7 +1228,8 @@
       "rt_ms": 13737.7,
       "area_pixels": 2411.0,
       "eccentricity": 232.280003
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "029_L_filler_glass",
@@ -1194,7 +1250,8 @@
       "rt_ms": 11188.7,
       "area_pixels": 1651.0,
       "eccentricity": 234.23279
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "029_R_filler_glass",
@@ -1215,7 +1272,8 @@
       "rt_ms": 6745.8,
       "area_pixels": 1651.0,
       "eccentricity": 234.23279
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "030_L_filler_drawer",
@@ -1236,7 +1294,8 @@
       "rt_ms": 34515.8,
       "area_pixels": 3067.0,
       "eccentricity": 159.62456
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "030_R_filler_drawer",
@@ -1257,7 +1316,8 @@
       "rt_ms": 29897.5,
       "area_pixels": 3067.0,
       "eccentricity": 159.62456
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "031_L_filler_log",
@@ -1278,7 +1338,8 @@
       "rt_ms": 16850.1,
       "area_pixels": 5706.0,
       "eccentricity": 412.800194
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "031_R_filler_log",
@@ -1299,7 +1360,8 @@
       "rt_ms": 28028.2,
       "area_pixels": 5706.0,
       "eccentricity": 412.800194
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "032_L_filler_bottle",
@@ -1320,7 +1382,8 @@
       "rt_ms": 4172.4,
       "area_pixels": 766.0,
       "eccentricity": 209.117192
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "032_R_filler_bottle",
@@ -1341,7 +1404,8 @@
       "rt_ms": 3461.8,
       "area_pixels": 766.0,
       "eccentricity": 209.117192
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "033_L_filler_vase",
@@ -1362,7 +1426,8 @@
       "rt_ms": 6402.3,
       "area_pixels": 2611.0,
       "eccentricity": 402.435088
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "033_R_filler_vase",
@@ -1383,7 +1448,8 @@
       "rt_ms": 17062.2,
       "area_pixels": 2611.0,
       "eccentricity": 402.435088
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "034_L_filler_handle",
@@ -1404,7 +1470,8 @@
       "rt_ms": 27766.6,
       "area_pixels": 1272.0,
       "eccentricity": 380.131556
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "034_R_filler_handle",
@@ -1425,7 +1492,8 @@
       "rt_ms": 12345.9,
       "area_pixels": 1272.0,
       "eccentricity": 380.131556
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "035_L_filler_fruit",
@@ -1446,7 +1514,8 @@
       "rt_ms": 6885.5,
       "area_pixels": 983.0,
       "eccentricity": 304.645696
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "035_R_filler_fruit",
@@ -1467,7 +1536,8 @@
       "rt_ms": 4358.1,
       "area_pixels": 983.0,
       "eccentricity": 304.645696
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "036_L_filler_bowl",
@@ -1488,7 +1558,8 @@
       "rt_ms": 17645.9,
       "area_pixels": 588.0,
       "eccentricity": 80.529498
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "036_R_filler_bowl",
@@ -1509,7 +1580,8 @@
       "rt_ms": 10461.9,
       "area_pixels": 588.0,
       "eccentricity": 80.529498
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "037_L_filler_towel",
@@ -1530,7 +1602,8 @@
       "rt_ms": 35033.3,
       "area_pixels": 354.0,
       "eccentricity": 42.37924
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "037_R_filler_towel",
@@ -1551,7 +1624,8 @@
       "rt_ms": 14001.8,
       "area_pixels": 354.0,
       "eccentricity": 42.37924
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "038_L_filler_art",
@@ -1572,7 +1646,8 @@
       "rt_ms": 8555.8,
       "area_pixels": 11620.0,
       "eccentricity": 136.956197
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "038_R_filler_art",
@@ -1593,7 +1668,8 @@
       "rt_ms": 6051.8,
       "area_pixels": 11620.0,
       "eccentricity": 136.956197
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "039_L_filler_ventilator",
@@ -1614,7 +1690,8 @@
       "rt_ms": 10856.4,
       "area_pixels": 5002.0,
       "eccentricity": 322.374006
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "039_R_filler_ventilator",
@@ -1635,7 +1712,8 @@
       "rt_ms": 10153.6,
       "area_pixels": 5002.0,
       "eccentricity": 322.374006
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "040_L_filler_painting",
@@ -1656,7 +1734,8 @@
       "rt_ms": 6242.3,
       "area_pixels": 6239.0,
       "eccentricity": 402.631345
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "040_R_filler_painting",
@@ -1677,7 +1756,8 @@
       "rt_ms": 8617.5,
       "area_pixels": 6239.0,
       "eccentricity": 402.631345
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "041_L_filler_fruit",
@@ -1698,7 +1778,8 @@
       "rt_ms": 10451.2,
       "area_pixels": 3272.0,
       "eccentricity": 453.167739
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "041_R_filler_fruit",
@@ -1719,7 +1800,8 @@
       "rt_ms": 7372.9,
       "area_pixels": 3272.0,
       "eccentricity": 453.167739
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "042_L_filler_tap",
@@ -1740,7 +1822,8 @@
       "rt_ms": 9716.6,
       "area_pixels": 1916.0,
       "eccentricity": 53.535035
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "042_R_filler_tap",
@@ -1761,7 +1844,8 @@
       "rt_ms": 6062.1,
       "area_pixels": 1916.0,
       "eccentricity": 53.535035
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "043_L_filler_clock",
@@ -1782,7 +1866,8 @@
       "rt_ms": 18903.1,
       "area_pixels": 1053.0,
       "eccentricity": 195.788151
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "043_R_filler_clock",
@@ -1803,7 +1888,8 @@
       "rt_ms": 15924.2,
       "area_pixels": 1053.0,
       "eccentricity": 195.788151
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "044_L_filler_light",
@@ -1824,7 +1910,8 @@
       "rt_ms": 13881.7,
       "area_pixels": 1500.0,
       "eccentricity": 208.710326
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "044_R_filler_light",
@@ -1845,7 +1932,8 @@
       "rt_ms": 15143.8,
       "area_pixels": 1500.0,
       "eccentricity": 208.710326
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "045_L_filler_musicdock",
@@ -1866,7 +1954,8 @@
       "rt_ms": 5789.2,
       "area_pixels": 4154.0,
       "eccentricity": 397.786375
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "045_R_filler_musicdock",
@@ -1887,7 +1976,8 @@
       "rt_ms": 6648.4,
       "area_pixels": 4154.0,
       "eccentricity": 397.786375
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "046_L_filler_remote",
@@ -1908,7 +1998,8 @@
       "rt_ms": 4388.4,
       "area_pixels": 388.0,
       "eccentricity": 119.883277
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "046_R_filler_remote",
@@ -1929,7 +2020,8 @@
       "rt_ms": 9663.5,
       "area_pixels": 388.0,
       "eccentricity": 119.883277
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "047_L_filler_handle",
@@ -1950,7 +2042,8 @@
       "rt_ms": 17873.5,
       "area_pixels": 742.0,
       "eccentricity": 425.338689
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "047_R_filler_handle",
@@ -1971,7 +2064,8 @@
       "rt_ms": 42730.3,
       "area_pixels": 742.0,
       "eccentricity": 425.338689
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "048_L_filler_art",
@@ -1992,7 +2086,8 @@
       "rt_ms": 10771.9,
       "area_pixels": 8927.0,
       "eccentricity": 465.249395
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "048_R_filler_art",
@@ -2013,7 +2108,8 @@
       "rt_ms": 7370.3,
       "area_pixels": 8927.0,
       "eccentricity": 465.249395
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "049_L_filler_painting",
@@ -2034,7 +2130,8 @@
       "rt_ms": 13092.7,
       "area_pixels": 3914.0,
       "eccentricity": 346.746305
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "049_R_filler_painting",
@@ -2055,7 +2152,8 @@
       "rt_ms": 14004.0,
       "area_pixels": 3914.0,
       "eccentricity": 346.746305
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "050_L_filler_book",
@@ -2076,7 +2174,8 @@
       "rt_ms": 16920.2,
       "area_pixels": 2598.0,
       "eccentricity": 459.567188
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "050_R_filler_book",
@@ -2097,7 +2196,8 @@
       "rt_ms": 15091.3,
       "area_pixels": 2598.0,
       "eccentricity": 459.567188
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "051_L_filler_owl",
@@ -2118,7 +2218,8 @@
       "rt_ms": 5025.8,
       "area_pixels": 1818.0,
       "eccentricity": 118.067777
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "051_R_filler_owl",
@@ -2139,7 +2240,8 @@
       "rt_ms": 5529.5,
       "area_pixels": 1818.0,
       "eccentricity": 118.067777
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "052_L_filler_speaker",
@@ -2160,7 +2262,8 @@
       "rt_ms": 3899.4,
       "area_pixels": 7465.0,
       "eccentricity": 281.357424
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "052_R_filler_speaker",
@@ -2181,7 +2284,8 @@
       "rt_ms": 7094.8,
       "area_pixels": 7465.0,
       "eccentricity": 281.357424
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "053_L_filler_handle",
@@ -2202,7 +2306,8 @@
       "rt_ms": 29792.9,
       "area_pixels": 1442.0,
       "eccentricity": 285.448769
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "053_R_filler_handle",
@@ -2223,7 +2328,8 @@
       "rt_ms": 10327.9,
       "area_pixels": 1442.0,
       "eccentricity": 285.448769
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "054_L_filler_firewood",
@@ -2244,7 +2350,8 @@
       "rt_ms": 5761.4,
       "area_pixels": 6681.0,
       "eccentricity": 484.648326
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "054_R_filler_firewood",
@@ -2265,7 +2372,8 @@
       "rt_ms": 3775.3,
       "area_pixels": 6681.0,
       "eccentricity": 484.648326
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "055_L_filler_carpet",
@@ -2286,7 +2394,8 @@
       "rt_ms": 14027.6,
       "area_pixels": 5019.0,
       "eccentricity": 267.301328
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "055_R_filler_carpet",
@@ -2307,7 +2416,8 @@
       "rt_ms": 17207.3,
       "area_pixels": 5019.0,
       "eccentricity": 267.301328
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "056_L_filler_comforter",
@@ -2328,7 +2438,8 @@
       "rt_ms": 4038.8,
       "area_pixels": 10018.0,
       "eccentricity": 316.241996
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "056_R_filler_comforter",
@@ -2349,7 +2460,8 @@
       "rt_ms": 8363.1,
       "area_pixels": 10018.0,
       "eccentricity": 316.241996
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "057_L_filler_bin",
@@ -2370,7 +2482,8 @@
       "rt_ms": 11102.5,
       "area_pixels": 722.0,
       "eccentricity": 177.200451
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "057_R_filler_bin",
@@ -2391,7 +2504,8 @@
       "rt_ms": 8713.8,
       "area_pixels": 722.0,
       "eccentricity": 177.200451
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "058_L_filler_clutch",
@@ -2412,7 +2526,8 @@
       "rt_ms": 6408.4,
       "area_pixels": 2375.0,
       "eccentricity": 287.255983
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "058_R_filler_clutch",
@@ -2433,7 +2548,8 @@
       "rt_ms": 6422.0,
       "area_pixels": 2375.0,
       "eccentricity": 287.255983
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "059_L_filler_car",
@@ -2454,7 +2570,8 @@
       "rt_ms": 6886.5,
       "area_pixels": 1591.0,
       "eccentricity": 203.383874
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "059_R_filler_car",
@@ -2475,7 +2592,8 @@
       "rt_ms": 15870.0,
       "area_pixels": 1591.0,
       "eccentricity": 203.383874
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "060_L_filler_pillow",
@@ -2496,7 +2614,8 @@
       "rt_ms": 23799.1,
       "area_pixels": 985.0,
       "eccentricity": 108.226614
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "060_R_filler_pillow",
@@ -2517,7 +2636,8 @@
       "rt_ms": 32181.4,
       "area_pixels": 985.0,
       "eccentricity": 108.226614
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "061_L_filler_glass",
@@ -2538,7 +2658,8 @@
       "rt_ms": 21378.1,
       "area_pixels": 1040.0,
       "eccentricity": 142.214627
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "061_R_filler_glass",
@@ -2559,7 +2680,8 @@
       "rt_ms": 17759.7,
       "area_pixels": 1040.0,
       "eccentricity": 142.214627
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "062_L_filler_flowers",
@@ -2580,7 +2702,8 @@
       "rt_ms": 10505.1,
       "area_pixels": 2493.0,
       "eccentricity": 345.684828
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "062_R_filler_flowers",
@@ -2601,7 +2724,8 @@
       "rt_ms": 24871.1,
       "area_pixels": 2493.0,
       "eccentricity": 345.684828
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "063_L_filler_laptop",
@@ -2622,7 +2746,8 @@
       "rt_ms": 12214.6,
       "area_pixels": 547.0,
       "eccentricity": 433.447805
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "063_R_filler_laptop",
@@ -2643,7 +2768,8 @@
       "rt_ms": 5329.9,
       "area_pixels": 547.0,
       "eccentricity": 433.447805
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "064_L_filler_bottles",
@@ -2664,7 +2790,8 @@
       "rt_ms": 6445.9,
       "area_pixels": 2244.0,
       "eccentricity": 338.280948
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "064_R_filler_bottles",
@@ -2685,7 +2812,8 @@
       "rt_ms": 10091.9,
       "area_pixels": 2244.0,
       "eccentricity": 338.280948
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "065_L_filler_cd",
@@ -2706,7 +2834,8 @@
       "rt_ms": 26913.8,
       "area_pixels": 1272.0,
       "eccentricity": 250.35375
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "065_R_filler_cd",
@@ -2727,7 +2856,8 @@
       "rt_ms": 19850.9,
       "area_pixels": 1272.0,
       "eccentricity": 250.35375
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "066_L_filler_vase",
@@ -2748,7 +2878,8 @@
       "rt_ms": 9949.5,
       "area_pixels": 1530.0,
       "eccentricity": 418.779178
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "066_R_filler_vase",
@@ -2769,7 +2900,8 @@
       "rt_ms": 8498.7,
       "area_pixels": 1530.0,
       "eccentricity": 418.779178
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "067_L_filler_painting",
@@ -2790,7 +2922,8 @@
       "rt_ms": 10782.5,
       "area_pixels": 3353.0,
       "eccentricity": 472.239346
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "067_R_filler_painting",
@@ -2811,7 +2944,8 @@
       "rt_ms": 4344.7,
       "area_pixels": 3353.0,
       "eccentricity": 472.239346
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "068_L_filler_faucet",
@@ -2832,7 +2966,8 @@
       "rt_ms": 9245.3,
       "area_pixels": 525.0,
       "eccentricity": 106.667708
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "068_R_filler_faucet",
@@ -2853,7 +2988,8 @@
       "rt_ms": 30604.9,
       "area_pixels": 525.0,
       "eccentricity": 106.667708
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "069_L_filler_things",
@@ -2874,7 +3010,8 @@
       "rt_ms": 6799.0,
       "area_pixels": 2354.0,
       "eccentricity": 458.481188
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "069_R_filler_things",
@@ -2895,7 +3032,8 @@
       "rt_ms": 11141.9,
       "area_pixels": 2354.0,
       "eccentricity": 458.481188
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "070_L_filler_lamp",
@@ -2916,7 +3054,8 @@
       "rt_ms": 6760.0,
       "area_pixels": 7577.0,
       "eccentricity": 439.491752
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "070_R_filler_lamp",
@@ -2937,7 +3076,8 @@
       "rt_ms": 6808.1,
       "area_pixels": 7577.0,
       "eccentricity": 439.491752
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "071_L_filler_art",
@@ -2958,7 +3098,8 @@
       "rt_ms": 14238.3,
       "area_pixels": 3281.0,
       "eccentricity": 262.76225
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "071_R_filler_art",
@@ -2979,7 +3120,8 @@
       "rt_ms": 8194.0,
       "area_pixels": 3281.0,
       "eccentricity": 262.76225
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "072_L_filler_handle",
@@ -3000,7 +3142,8 @@
       "rt_ms": 19229.5,
       "area_pixels": 1563.0,
       "eccentricity": 471.059444
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "072_R_filler_handle",
@@ -3021,7 +3164,8 @@
       "rt_ms": 28079.1,
       "area_pixels": 1563.0,
       "eccentricity": 471.059444
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "073_L_filler_coffeemug",
@@ -3042,7 +3186,8 @@
       "rt_ms": 16509.0,
       "area_pixels": 605.0,
       "eccentricity": 451.05432
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "073_R_filler_coffeemug",
@@ -3063,7 +3208,8 @@
       "rt_ms": 14568.2,
       "area_pixels": 605.0,
       "eccentricity": 451.05432
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "074_L_filler_book",
@@ -3084,7 +3230,8 @@
       "rt_ms": 12522.9,
       "area_pixels": 2459.0,
       "eccentricity": 168.344884
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "074_R_filler_book",
@@ -3105,7 +3252,8 @@
       "rt_ms": 12819.3,
       "area_pixels": 2459.0,
       "eccentricity": 168.344884
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "075_L_filler_light",
@@ -3126,7 +3274,8 @@
       "rt_ms": 28534.1,
       "area_pixels": 1474.0,
       "eccentricity": 423.604769
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "075_R_filler_light",
@@ -3147,7 +3296,8 @@
       "rt_ms": 25838.9,
       "area_pixels": 1474.0,
       "eccentricity": 423.604769
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "076_L_filler_hook",
@@ -3168,7 +3318,8 @@
       "rt_ms": 19404.2,
       "area_pixels": 2750.0,
       "eccentricity": 454.814248
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "076_R_filler_hook",
@@ -3189,7 +3340,8 @@
       "rt_ms": 14958.3,
       "area_pixels": 2750.0,
       "eccentricity": 454.814248
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "077_L_filler_footrest",
@@ -3210,7 +3362,8 @@
       "rt_ms": 28718.4,
       "area_pixels": 589.0,
       "eccentricity": 169.002959
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "077_R_filler_footrest",
@@ -3231,7 +3384,8 @@
       "rt_ms": 15152.4,
       "area_pixels": 589.0,
       "eccentricity": 169.002959
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "078_L_filler_faucet",
@@ -3252,7 +3406,8 @@
       "rt_ms": 17636.6,
       "area_pixels": 2154.0,
       "eccentricity": 215.647861
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "078_R_filler_faucet",
@@ -3273,7 +3428,8 @@
       "rt_ms": 17511.5,
       "area_pixels": 2154.0,
       "eccentricity": 215.647861
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "079_L_filler_bowl",
@@ -3294,7 +3450,8 @@
       "rt_ms": 20710.2,
       "area_pixels": 1037.0,
       "eccentricity": 245.521893
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "079_R_filler_bowl",
@@ -3315,7 +3472,8 @@
       "rt_ms": 19458.1,
       "area_pixels": 1037.0,
       "eccentricity": 245.521893
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "080_L_filler_plant",
@@ -3336,7 +3494,8 @@
       "rt_ms": 22636.5,
       "area_pixels": 2956.0,
       "eccentricity": 47.381431
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "080_R_filler_plant",
@@ -3357,7 +3516,8 @@
       "rt_ms": 28596.6,
       "area_pixels": 2956.0,
       "eccentricity": 47.381431
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "081_L_filler_football",
@@ -3378,7 +3538,8 @@
       "rt_ms": 18884.7,
       "area_pixels": 858.0,
       "eccentricity": 165.939748
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "081_R_filler_football",
@@ -3399,7 +3560,8 @@
       "rt_ms": 12353.6,
       "area_pixels": 858.0,
       "eccentricity": 165.939748
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "082_L_filler_bowl",
@@ -3420,7 +3582,8 @@
       "rt_ms": 7586.3,
       "area_pixels": 4284.0,
       "eccentricity": 474.341649
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "082_R_filler_bowl",
@@ -3441,7 +3604,8 @@
       "rt_ms": 19676.1,
       "area_pixels": 4284.0,
       "eccentricity": 474.341649
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "083_L_filler_knob",
@@ -3462,7 +3626,8 @@
       "rt_ms": 22362.4,
       "area_pixels": 478.0,
       "eccentricity": 436.513459
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "083_R_filler_knob",
@@ -3483,7 +3648,8 @@
       "rt_ms": 44911.0,
       "area_pixels": 478.0,
       "eccentricity": 436.513459
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "084_L_filler_light",
@@ -3504,7 +3670,8 @@
       "rt_ms": 13148.1,
       "area_pixels": 2406.0,
       "eccentricity": 332.746149
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "084_R_filler_light",
@@ -3525,7 +3692,8 @@
       "rt_ms": 11662.8,
       "area_pixels": 2344.0,
       "eccentricity": 332.290536
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "085_L_mirror_switchboard",
@@ -3546,7 +3714,8 @@
       "rt_ms": 27374.8,
       "area_pixels": 915.0,
       "eccentricity": 230.932891
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "085_R_mirror_switchboard",
@@ -3567,7 +3736,8 @@
       "rt_ms": 20748.6,
       "area_pixels": 915.0,
       "eccentricity": 230.932891
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "086_L_mirror_book",
@@ -3588,7 +3758,8 @@
       "rt_ms": 30350.7,
       "area_pixels": 924.0,
       "eccentricity": 155.080624
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "086_R_mirror_book",
@@ -3609,7 +3780,8 @@
       "rt_ms": 22570.4,
       "area_pixels": 924.0,
       "eccentricity": 155.080624
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "087_L_mirror_towelhandle",
@@ -3630,7 +3802,8 @@
       "rt_ms": 8211.2,
       "area_pixels": 4819.0,
       "eccentricity": 456.232397
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "087_R_mirror_towelhandle",
@@ -3651,7 +3824,8 @@
       "rt_ms": 7536.3,
       "area_pixels": 4819.0,
       "eccentricity": 456.232397
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "088_L_mirror_clock",
@@ -3672,7 +3846,8 @@
       "rt_ms": 16283.9,
       "area_pixels": 1010.0,
       "eccentricity": 295.061011
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "088_R_mirror_clock",
@@ -3693,7 +3868,8 @@
       "rt_ms": 25766.6,
       "area_pixels": 1010.0,
       "eccentricity": 295.061011
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "089_L_mirror_poster",
@@ -3714,7 +3890,8 @@
       "rt_ms": 18119.2,
       "area_pixels": 4753.0,
       "eccentricity": 206.649462
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "089_R_mirror_poster",
@@ -3735,7 +3912,8 @@
       "rt_ms": 13877.9,
       "area_pixels": 4753.0,
       "eccentricity": 206.649462
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "090_L_mirror_lamp",
@@ -3756,7 +3934,8 @@
       "rt_ms": 24695.4,
       "area_pixels": 958.0,
       "eccentricity": 179.847157
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "090_R_mirror_lamp",
@@ -3777,7 +3956,8 @@
       "rt_ms": 19327.8,
       "area_pixels": 958.0,
       "eccentricity": 179.847157
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "091_L_mirror_airfreshener",
@@ -3798,7 +3978,8 @@
       "rt_ms": 13572.4,
       "area_pixels": 594.0,
       "eccentricity": 269.091063
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "091_R_mirror_airfreshener",
@@ -3819,7 +4000,8 @@
       "rt_ms": 20031.9,
       "area_pixels": 594.0,
       "eccentricity": 269.091063
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "092_L_mirror_candles",
@@ -3840,7 +4022,8 @@
       "rt_ms": 19793.2,
       "area_pixels": 1877.0,
       "eccentricity": 579.452328
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "092_R_mirror_candles",
@@ -3861,7 +4044,8 @@
       "rt_ms": 10243.4,
       "area_pixels": 1877.0,
       "eccentricity": 579.452328
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "093_L_mirror_switch",
@@ -3882,7 +4066,8 @@
       "rt_ms": 6447.3,
       "area_pixels": 878.0,
       "eccentricity": 358.825863
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "093_R_mirror_switch",
@@ -3903,7 +4088,8 @@
       "rt_ms": 12542.4,
       "area_pixels": 878.0,
       "eccentricity": 358.825863
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "094_L_mirror_ball",
@@ -3924,7 +4110,8 @@
       "rt_ms": 32878.6,
       "area_pixels": 248.0,
       "eccentricity": 289.927577
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "094_R_mirror_ball",
@@ -3945,7 +4132,8 @@
       "rt_ms": 15549.8,
       "area_pixels": 248.0,
       "eccentricity": 289.927577
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "095_L_mirror_candle",
@@ -3966,7 +4154,8 @@
       "rt_ms": 11202.6,
       "area_pixels": 543.0,
       "eccentricity": 208.655218
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "095_R_mirror_candle",
@@ -3987,7 +4176,8 @@
       "rt_ms": 4026.8,
       "area_pixels": 543.0,
       "eccentricity": 208.655218
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "096_L_mirror_painting",
@@ -4008,7 +4198,8 @@
       "rt_ms": 14847.5,
       "area_pixels": 1503.0,
       "eccentricity": 415.927878
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "096_R_mirror_painting",
@@ -4029,7 +4220,8 @@
       "rt_ms": 14685.8,
       "area_pixels": 1503.0,
       "eccentricity": 415.927878
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "097_L_mirror_light",
@@ -4050,7 +4242,8 @@
       "rt_ms": 14775.2,
       "area_pixels": 1159.0,
       "eccentricity": 127.01181
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "097_R_mirror_light",
@@ -4071,7 +4264,8 @@
       "rt_ms": 13699.3,
       "area_pixels": 1159.0,
       "eccentricity": 127.01181
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "098_L_mirror_slippers",
@@ -4092,7 +4286,8 @@
       "rt_ms": 1804.3,
       "area_pixels": 1262.0,
       "eccentricity": 217.816436
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "098_R_mirror_slippers",
@@ -4113,7 +4308,8 @@
       "rt_ms": 7011.4,
       "area_pixels": 1262.0,
       "eccentricity": 217.816436
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "099_L_mirror_sconce",
@@ -4134,7 +4330,8 @@
       "rt_ms": 4411.1,
       "area_pixels": 3718.0,
       "eccentricity": 246.416314
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "099_R_mirror_sconce",
@@ -4155,7 +4352,8 @@
       "rt_ms": 3281.9,
       "area_pixels": 3718.0,
       "eccentricity": 246.416314
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0100_L_mirror_mirror",
@@ -4176,7 +4374,8 @@
       "rt_ms": 6300.3,
       "area_pixels": 8725.0,
       "eccentricity": 60.827625
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0100_R_mirror_mirror",
@@ -4197,7 +4396,8 @@
       "rt_ms": 4296.6,
       "area_pixels": 8725.0,
       "eccentricity": 60.827625
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0101_L_mirror_cup",
@@ -4218,7 +4418,8 @@
       "rt_ms": 18396.1,
       "area_pixels": 1190.0,
       "eccentricity": 169.011834
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0101_R_mirror_cup",
@@ -4239,7 +4440,8 @@
       "rt_ms": 37205.9,
       "area_pixels": 1190.0,
       "eccentricity": 169.011834
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0102_L_mirror_shoppingbag",
@@ -4260,7 +4462,8 @@
       "rt_ms": 4430.3,
       "area_pixels": 5568.0,
       "eccentricity": 274.361076
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0102_R_mirror_shoppingbag",
@@ -4281,7 +4484,8 @@
       "rt_ms": 19109.1,
       "area_pixels": 5568.0,
       "eccentricity": 274.361076
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0103_L_mirror_hook",
@@ -4302,7 +4506,8 @@
       "rt_ms": 41067.2,
       "area_pixels": 1567.0,
       "eccentricity": 530.969867
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0103_R_mirror_hook",
@@ -4323,7 +4528,8 @@
       "rt_ms": 17049.1,
       "area_pixels": 1567.0,
       "eccentricity": 530.969867
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0104_L_mirror_bottle",
@@ -4344,7 +4550,8 @@
       "rt_ms": 16601.1,
       "area_pixels": 1733.0,
       "eccentricity": 50.695167
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0104_R_mirror_bottle",
@@ -4365,7 +4572,8 @@
       "rt_ms": 11473.8,
       "area_pixels": 1733.0,
       "eccentricity": 50.695167
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0105_L_mirror_hat",
@@ -4386,7 +4594,8 @@
       "rt_ms": 22509.4,
       "area_pixels": 4464.0,
       "eccentricity": 435.380294
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0105_R_mirror_hat",
@@ -4407,7 +4616,8 @@
       "rt_ms": 11202.6,
       "area_pixels": 4464.0,
       "eccentricity": 435.380294
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0106_L_mirror_toweldispenser",
@@ -4428,7 +4638,8 @@
       "rt_ms": 24893.5,
       "area_pixels": 2156.0,
       "eccentricity": 205.800875
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0106_R_mirror_toweldispenser",
@@ -4449,7 +4660,8 @@
       "rt_ms": 23912.0,
       "area_pixels": 2156.0,
       "eccentricity": 205.800875
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0107_L_mirror_shirts",
@@ -4470,7 +4682,8 @@
       "rt_ms": 12149.7,
       "area_pixels": 2779.0,
       "eccentricity": 299.202273
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0107_R_mirror_shirts",
@@ -4491,7 +4704,8 @@
       "rt_ms": 11291.0,
       "area_pixels": 2779.0,
       "eccentricity": 299.202273
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0108_L_mirror_boa",
@@ -4512,7 +4726,8 @@
       "rt_ms": 8619.6,
       "area_pixels": 1200.0,
       "eccentricity": 59.135438
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0108_R_mirror_boa",
@@ -4533,7 +4748,8 @@
       "rt_ms": 5503.4,
       "area_pixels": 1200.0,
       "eccentricity": 59.135438
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0109_L_window_pillow",
@@ -4554,7 +4770,8 @@
       "rt_ms": 15071.0,
       "area_pixels": 1238.0,
       "eccentricity": 117.991525
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0109_R_window_pillow",
@@ -4575,7 +4792,8 @@
       "rt_ms": 10032.5,
       "area_pixels": 1238.0,
       "eccentricity": 117.991525
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0110_L_window_plant",
@@ -4596,7 +4814,8 @@
       "rt_ms": 12883.9,
       "area_pixels": 4637.0,
       "eccentricity": 273.600073
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0110_R_window_plant",
@@ -4617,7 +4836,8 @@
       "rt_ms": 6040.4,
       "area_pixels": 4637.0,
       "eccentricity": 273.600073
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0111_L_window_pot",
@@ -4638,7 +4858,8 @@
       "rt_ms": 14909.5,
       "area_pixels": 1892.0,
       "eccentricity": 288.586209
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0111_R_window_pot",
@@ -4659,7 +4880,8 @@
       "rt_ms": 7388.0,
       "area_pixels": 1892.0,
       "eccentricity": 288.586209
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0112_L_window_basket",
@@ -4680,7 +4902,8 @@
       "rt_ms": 9539.7,
       "area_pixels": 3457.0,
       "eccentricity": 480.692209
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0112_R_window_basket",
@@ -4701,7 +4924,8 @@
       "rt_ms": 4612.7,
       "area_pixels": 3457.0,
       "eccentricity": 480.692209
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0113_L_window_plant",
@@ -4722,7 +4946,8 @@
       "rt_ms": 20256.5,
       "area_pixels": 1580.0,
       "eccentricity": 47.413078
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0113_R_window_plant",
@@ -4743,7 +4968,8 @@
       "rt_ms": 30425.2,
       "area_pixels": 1580.0,
       "eccentricity": 47.413078
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0114_L_window_bird",
@@ -4764,7 +4990,8 @@
       "rt_ms": 11856.3,
       "area_pixels": 1087.0,
       "eccentricity": 173.692257
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0114_R_window_bird",
@@ -4785,7 +5012,8 @@
       "rt_ms": 11670.0,
       "area_pixels": 1087.0,
       "eccentricity": 173.692257
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0115_L_window_pot",
@@ -4806,7 +5034,8 @@
       "rt_ms": 21106.9,
       "area_pixels": 2081.0,
       "eccentricity": 325.993865
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0115_R_window_pot",
@@ -4827,7 +5056,8 @@
       "rt_ms": 27130.6,
       "area_pixels": 2081.0,
       "eccentricity": 325.993865
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0116_L_window_basket",
@@ -4848,7 +5078,8 @@
       "rt_ms": 5058.4,
       "area_pixels": 2637.0,
       "eccentricity": 423.532761
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0116_R_window_basket",
@@ -4869,7 +5100,8 @@
       "rt_ms": 6296.6,
       "area_pixels": 2637.0,
       "eccentricity": 423.532761
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0117_L_window_sized",
@@ -4890,7 +5122,8 @@
       "rt_ms": 8824.7,
       "area_pixels": 7959.0,
       "eccentricity": 406.07881
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0117_R_window_sized",
@@ -4911,7 +5144,8 @@
       "rt_ms": 2759.5,
       "area_pixels": 7959.0,
       "eccentricity": 406.07881
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0118_L_window_shoes",
@@ -4932,7 +5166,8 @@
       "rt_ms": 8369.9,
       "area_pixels": 1060.0,
       "eccentricity": 185.064853
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0118_R_window_shoes",
@@ -4953,7 +5188,8 @@
       "rt_ms": 12017.8,
       "area_pixels": 1060.0,
       "eccentricity": 185.064853
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0119_L_window_painting",
@@ -4974,7 +5210,8 @@
       "rt_ms": 14083.2,
       "area_pixels": 1972.0,
       "eccentricity": 120.149906
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0119_R_window_painting",
@@ -4995,7 +5232,8 @@
       "rt_ms": 24191.7,
       "area_pixels": 1972.0,
       "eccentricity": 120.149906
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0120_L_window_art",
@@ -5016,7 +5254,8 @@
       "rt_ms": 4376.5,
       "area_pixels": 1327.0,
       "eccentricity": 235.372046
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0120_R_window_art",
@@ -5037,7 +5276,8 @@
       "rt_ms": 4006.7,
       "area_pixels": 1327.0,
       "eccentricity": 235.372046
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0121_L_window_car",
@@ -5058,7 +5298,8 @@
       "rt_ms": 5999.3,
       "area_pixels": 1152.0,
       "eccentricity": 465.812194
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0121_R_window_car",
@@ -5079,7 +5320,8 @@
       "rt_ms": 9491.5,
       "area_pixels": 1152.0,
       "eccentricity": 465.812194
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0122_L_window_chair",
@@ -5100,7 +5342,8 @@
       "rt_ms": 11632.7,
       "area_pixels": 2232.0,
       "eccentricity": 169.779268
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0122_R_window_chair",
@@ -5121,7 +5364,8 @@
       "rt_ms": 16514.9,
       "area_pixels": 2232.0,
       "eccentricity": 169.779268
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0123_L_window_pot",
@@ -5142,7 +5386,8 @@
       "rt_ms": 17676.6,
       "area_pixels": 1983.0,
       "eccentricity": 522.388744
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0123_R_window_pot",
@@ -5163,7 +5408,8 @@
       "rt_ms": 21922.2,
       "area_pixels": 1983.0,
       "eccentricity": 522.388744
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0124_L_window_vase",
@@ -5184,7 +5430,8 @@
       "rt_ms": 4666.1,
       "area_pixels": 4622.0,
       "eccentricity": 301.219189
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0124_R_window_vase",
@@ -5205,7 +5452,8 @@
       "rt_ms": 1670.6,
       "area_pixels": 4622.0,
       "eccentricity": 301.219189
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0125_L_window_sofa",
@@ -5226,7 +5474,8 @@
       "rt_ms": 10545.9,
       "area_pixels": 2512.0,
       "eccentricity": 401.103478
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0125_R_window_sofa",
@@ -5247,7 +5496,8 @@
       "rt_ms": 18453.8,
       "area_pixels": 2512.0,
       "eccentricity": 401.103478
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "0126_L_window_candles",
@@ -5268,7 +5518,8 @@
       "rt_ms": 5482.3,
       "area_pixels": 2668.0,
       "eccentricity": 477.126818
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0126_R_window_candles",
@@ -5289,7 +5540,8 @@
       "rt_ms": 6658.6,
       "area_pixels": 2668.0,
       "eccentricity": 477.126818
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0127_L_window_light",
@@ -5310,7 +5562,8 @@
       "rt_ms": 7173.2,
       "area_pixels": 1426.0,
       "eccentricity": 210.090457
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0127_R_window_light",
@@ -5331,7 +5584,8 @@
       "rt_ms": 7977.6,
       "area_pixels": 1426.0,
       "eccentricity": 210.090457
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0128_L_window_pot",
@@ -5352,7 +5606,8 @@
       "rt_ms": 7738.7,
       "area_pixels": 5197.0,
       "eccentricity": 269.668315
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "0128_R_window_pot",
@@ -5373,7 +5628,8 @@
       "rt_ms": 5210.1,
       "area_pixels": 5197.0,
       "eccentricity": 269.668315
-    }
+    },
+    "hud_safe": true
   },
   {
     "id": "01_P_practice_plant",
@@ -5394,7 +5650,8 @@
       "rt_ms": null,
       "area_pixels": null,
       "eccentricity": null
-    }
+    },
+    "hud_safe": false
   },
   {
     "id": "02_P_practice_painting",
@@ -5415,6 +5672,7 @@
       "rt_ms": null,
       "area_pixels": null,
       "eccentricity": null
-    }
+    },
+    "hud_safe": false
   }
 ]

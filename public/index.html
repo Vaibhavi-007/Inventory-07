@@ -44,8 +44,8 @@
                 <span class="param-value" id="val-n">10</span>
               </div>
               <div class="slider-row">
-                <input type="range" id="slider-n" min="1" max="128" value="10" class="range-slider">
-                <input type="number" id="input-n" min="1" max="128" value="10" class="number-input">
+                <input type="range" id="slider-n" min="1" max="50" value="10" class="range-slider">
+                <input type="number" id="input-n" min="1" max="50" value="10" class="number-input">
               </div>
               <div class="preset-chips" id="presets-n">
                 <button type="button" class="chip" data-val="5">5</button>
@@ -53,10 +53,8 @@
                 <button type="button" class="chip" data-val="20">20</button>
                 <button type="button" class="chip" data-val="30">30</button>
                 <button type="button" class="chip" data-val="50">50</button>
-                <button type="button" class="chip" data-val="64">64</button>
-                <button type="button" class="chip" data-val="100">100</button>
               </div>
-              <p class="helper-text">First <span id="val-hint-n">10</span> samples: Module A (Flicker only) • Next <span id="val-hint-n2">10</span> samples: Module B (Speed & Flicker). Total: <strong id="val-total-n">20</strong> trials (256 unique pairs in dataset).</p>
+              <p class="helper-text">1st <span id="val-hint-n">10</span>: Module 1 (Flicker) • 2nd <span id="val-hint-n2">10</span>: Module 2 (Cluster Strip) • 3rd <span id="val-hint-n3">10</span>: Module 3 (Heads-Up Display HUD). Total: <strong id="val-total-n">30</strong> trials (disjoint stimuli across all modules).</p>
             </div>
 
             <!-- Parameter: Time in ms before each interval 't' -->
@@ -291,9 +289,12 @@
 
             <!-- Target Highlight Mask Overlay (for feedback) -->
             <canvas id="feedback-overlay" width="1024" height="768" class="feedback-overlay"></canvas>
+
+            <!-- Floating Heads-Up Display (HUD) Pill Capsule (Module 3 - 4th hypothetical row) -->
+            <div id="stage-hud-overlay" class="stage-hud-overlay" aria-hidden="true"></div>
           </div>
 
-          <!-- Automotive Cluster Dashboard Bar (Displayed cleanly BELOW the image, no overlapping!) -->
+          <!-- Bottom 5th Portion: Automotive Cluster Dashboard Bar (Module 2) or Solid Black Strip (Module 3) -->
           <div id="car-dashboard-overlay" class="car-dashboard-overlay" aria-hidden="true"></div>
         </div>
       </main>
@@ -328,17 +329,17 @@
         </div>
       </div>
 
-      <!-- Module Transition Overlay (Between Module A and Module B) -->
+      <!-- Module Transition Overlay (Between Modules) -->
       <div id="module-transition-overlay" class="module-transition-overlay" aria-hidden="true">
         <div class="module-transition-card">
-          <div class="module-transition-badge">MODULE A COMPLETED</div>
-          <h2 class="module-transition-title">Starting Module B: Speed &amp; Flicker Test</h2>
-          <p class="module-transition-desc">
+          <div class="module-transition-badge" id="module-transition-badge">MODULE 1 COMPLETED</div>
+          <h2 class="module-transition-title" id="module-transition-title">Starting Module 2: Speed &amp; Cluster Test</h2>
+          <p class="module-transition-desc" id="module-transition-desc">
             In this module, the <strong>automotive instrument cluster</strong> will be shown at the bottom of each image.<br>
-            Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall either the speed or the warning symbol shown on the meter.
+            Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall either the speed, warning symbol, or engine RPM shown on the meter.
           </p>
           <button id="btn-start-module-b" class="btn-primary">
-            <span>Begin Module B</span>
+            <span id="btn-start-module-text">Begin Module 2</span>
             <span class="kbd-hint">Spacebar</span>
           </button>
         </div>
@@ -396,7 +397,7 @@
           <div class="glass-card kpi-card">
             <div class="kpi-header">
               <span class="kpi-icon">👁️</span>
-              <span class="kpi-label">Module A Accuracy</span>
+              <span class="kpi-label">Module 1 (Flicker)</span>
             </div>
             <div class="kpi-val" id="res-module-a-acc">0%</div>
             <div class="kpi-sub" id="res-module-a-sub">Flicker only</div>
@@ -405,10 +406,19 @@
           <div class="glass-card kpi-card">
             <div class="kpi-header">
               <span class="kpi-icon">🚗</span>
-              <span class="kpi-label">Module B Detection</span>
+              <span class="kpi-label">Module 2 (Cluster)</span>
             </div>
             <div class="kpi-val" id="res-module-b-acc">0%</div>
-            <div class="kpi-sub" id="res-module-b-sub">Speed + Flicker</div>
+            <div class="kpi-sub" id="res-module-b-sub">Speed + Cluster</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">🪟</span>
+              <span class="kpi-label">Module 3 (HUD)</span>
+            </div>
+            <div class="kpi-val" id="res-module-c-acc">0%</div>
+            <div class="kpi-sub" id="res-module-c-sub">Heads-Up Display</div>
           </div>
 
           <div class="glass-card kpi-card">
@@ -427,6 +437,15 @@
             </div>
             <div class="kpi-val" id="res-symbol-accuracy">--%</div>
             <div class="kpi-sub" id="res-symbol-correct-count">0 / 0 correct</div>
+          </div>
+
+          <div class="glass-card kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-icon">⚙️</span>
+              <span class="kpi-label">RPM Recall Accuracy</span>
+            </div>
+            <div class="kpi-val" id="res-rpm-accuracy">--%</div>
+            <div class="kpi-sub" id="res-rpm-correct-count">0 / 0 correct</div>
           </div>
 
           <div class="glass-card kpi-card">
@@ -461,11 +480,11 @@
         <div class="glass-card field-comparison-card">
           <div class="card-title">
             <span class="icon">⚖️</span>
-            <h3>Module Comparison: Flicker Only (A) vs. Speed &amp; Flicker (B)</h3>
+            <h3>Module Comparison: Flicker (1) vs. Cluster Strip (2) vs. Heads-Up Display HUD (3)</h3>
           </div>
           <div class="field-stats-row">
             <div class="field-stat-box">
-              <div class="field-title">Module A: Flicker Test Only</div>
+              <div class="field-title">Module 1: Flicker Test Only</div>
               <div class="field-metrics">
                 <div>Detection Accuracy: <strong id="res-mod-a-acc-detail">--%</strong></div>
                 <div>Mean Response Time: <strong id="res-mod-a-rt-detail">-- ms</strong></div>
@@ -473,13 +492,21 @@
               </div>
             </div>
             <div class="field-stat-box">
-              <div class="field-title">Module B: Speed &amp; Flicker Test</div>
+              <div class="field-title">Module 2: Speed &amp; Cluster Strip</div>
               <div class="field-metrics">
                 <div>Detection Accuracy: <strong id="res-mod-b-acc-detail">--%</strong></div>
                 <div>Mean Response Time: <strong id="res-mod-b-rt-detail">-- ms</strong></div>
-                <div>Speed Recall (MCQ): <strong id="res-mod-b-speed-detail">--%</strong></div>
-                <div>Symbol Recall (MCQ): <strong id="res-mod-b-symbol-detail">--%</strong></div>
+                <div>Recall Accuracy (MCQ): <strong id="res-mod-b-speed-detail">--%</strong></div>
                 <div>Samples: <span id="res-mod-b-count">0</span></div>
+              </div>
+            </div>
+            <div class="field-stat-box">
+              <div class="field-title">Module 3: Heads-Up Display (HUD)</div>
+              <div class="field-metrics">
+                <div>Detection Accuracy: <strong id="res-mod-c-acc-detail">--%</strong></div>
+                <div>Mean Response Time: <strong id="res-mod-c-rt-detail">-- ms</strong></div>
+                <div>Recall Accuracy (MCQ): <strong id="res-mod-c-recall-detail">--%</strong></div>
+                <div>Samples: <span id="res-mod-c-count">0</span></div>
               </div>
             </div>
           </div>
@@ -587,6 +614,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=20"></script>
+  <script src="/public/app.js?v=21"></script>
 </body>
 </html>

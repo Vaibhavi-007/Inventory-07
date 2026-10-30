@@ -157,6 +157,9 @@ const server = http.createServer((req, res) => {
     if (side !== 'all') {
       filtered = filtered.filter(p => p.side === side);
     }
+    if (parsedUrl.query.hud_safe === 'true') {
+      filtered = filtered.filter(p => p.hud_safe === true);
+    }
 
     if (shuffle) {
       filtered = shuffleArray(filtered);
@@ -223,6 +226,7 @@ const server = http.createServer((req, res) => {
           'response_time_sec',
           'speed_shown_kmh',
           'symbol_shown',
+          'rpm_shown',
           'probe_type',
           'speed_recall_probed',
           'speed_recalled_kmh',
@@ -231,6 +235,10 @@ const server = http.createServer((req, res) => {
           'symbol_recall_probed',
           'symbol_recalled',
           'symbol_recall_accurate',
+          'rpm_recall_probed',
+          'rpm_recalled',
+          'rpm_recall_accurate',
+          'rpm_error',
           'recall_accurate',
           'click_x',
           'click_y',
@@ -252,14 +260,17 @@ const server = http.createServer((req, res) => {
         const params = payload.parameters || {};
 
         trials.forEach((t, idx) => {
-          const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+          const moduleLabel = t.module_name || (t.module === 'c' ? 'Module C (Heads-Up Display HUD)' : (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'));
           const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
           const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
 
           const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
           const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
 
-          const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
+          const rpmRaw = t.rpm_recall_actual != null ? t.rpm_recall_actual : (t.dashboardData?.rpm != null ? t.dashboardData.rpm : '');
+          const rpmShown = (rpmRaw !== '' && !isNaN(Number(rpmRaw))) ? Number(rpmRaw).toFixed(1) : (rpmRaw ? String(rpmRaw) : '');
+
+          const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : (t.rpm_recall_asked ? 'rpm' : '')));
           const speedProbed = t.speed_recall_asked ? 1 : 0;
           let speedRecalled = '';
           if (t.speed_recall_asked && t.speed_recall_response != null) {
@@ -276,7 +287,19 @@ const server = http.createServer((req, res) => {
           const symbolProbed = t.symbol_recall_asked ? 1 : 0;
           const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
           const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
-          const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+
+          const rpmProbed = t.rpm_recall_asked ? 1 : 0;
+          let rpmRecalled = '';
+          if (t.rpm_recall_asked && t.rpm_recall_response != null) {
+            rpmRecalled = !isNaN(Number(t.rpm_recall_response)) ? Number(t.rpm_recall_response).toFixed(1) : String(t.rpm_recall_response);
+          }
+          const rpmAccurate = t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '';
+          let rpmError = '';
+          if (t.rpm_recall_asked && t.rpm_recall_response != null && !isNaN(Number(t.rpm_recall_response)) && rpmShown !== '' && !isNaN(Number(rpmShown))) {
+            rpmError = Number(Math.abs(Number(t.rpm_recall_response) - Number(rpmShown)).toFixed(1));
+          }
+
+          const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
           const row = [
             t.trial_index || (idx + 1),
@@ -291,6 +314,7 @@ const server = http.createServer((req, res) => {
             t.response_time_ms != null ? (Number(t.response_time_ms) / 1000).toFixed(3) : '',
             speedShown ? `"${speedShown}"` : '',
             symbolShown ? `"${symbolShown}"` : '',
+            rpmShown ? `"${rpmShown}"` : '',
             probeType ? `"${probeType}"` : '',
             speedProbed,
             speedRecalled ? `"${speedRecalled}"` : '',
@@ -299,6 +323,10 @@ const server = http.createServer((req, res) => {
             symbolProbed,
             symbolRecalled ? `"${symbolRecalled}"` : '',
             symbolAccurate,
+            rpmProbed,
+            rpmRecalled ? `"${rpmRecalled}"` : '',
+            rpmAccurate,
+            rpmError,
             recallAccurate,
             t.click_x != null ? t.click_x : '',
             t.click_y != null ? t.click_y : '',
@@ -324,14 +352,17 @@ const server = http.createServer((req, res) => {
         const xlsxPath = path.join(RESULTS_DIR, xlsxFilename);
         try {
           const xlsxRows = trials.map((t, idx) => {
-            const moduleLabel = t.module_name || (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)');
+            const moduleLabel = t.module_name || (t.module === 'c' ? 'Module C (Heads-Up Display HUD)' : (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'));
             const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
             const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
 
             const symbolObj = t.dashboardData?.symbol || t.dashboardData?.symbolName || t.symbol_recall_actual;
             const symbolShown = (typeof symbolObj === 'object' && symbolObj?.name) ? symbolObj.name : (typeof symbolObj === 'string' ? symbolObj : '');
 
-            const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : ''));
+            const rpmRaw = t.rpm_recall_actual != null ? t.rpm_recall_actual : (t.dashboardData?.rpm != null ? t.dashboardData.rpm : '');
+            const rpmShown = (rpmRaw !== '' && !isNaN(Number(rpmRaw))) ? Number(rpmRaw).toFixed(1) : (rpmRaw ? String(rpmRaw) : '');
+
+            const probeType = t.probe_type || (t.speed_recall_asked ? 'speed' : (t.symbol_recall_asked ? 'symbol' : (t.rpm_recall_asked ? 'rpm' : '')));
             const speedProbed = t.speed_recall_asked ? 1 : 0;
             let speedRecalled = '';
             if (t.speed_recall_asked && t.speed_recall_response != null) {
@@ -348,7 +379,19 @@ const server = http.createServer((req, res) => {
             const symbolProbed = t.symbol_recall_asked ? 1 : 0;
             const symbolRecalled = (t.symbol_recall_asked && t.symbol_recall_response != null) ? String(t.symbol_recall_response) : '';
             const symbolAccurate = t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '';
-            const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+
+            const rpmProbed = t.rpm_recall_asked ? 1 : 0;
+            let rpmRecalled = '';
+            if (t.rpm_recall_asked && t.rpm_recall_response != null) {
+              rpmRecalled = !isNaN(Number(t.rpm_recall_response)) ? Number(t.rpm_recall_response).toFixed(1) : String(t.rpm_recall_response);
+            }
+            const rpmAccurate = t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '';
+            let rpmError = '';
+            if (t.rpm_recall_asked && t.rpm_recall_response != null && !isNaN(Number(t.rpm_recall_response)) && rpmShown !== '' && !isNaN(Number(rpmShown))) {
+              rpmError = Number(Math.abs(Number(t.rpm_recall_response) - Number(rpmShown)).toFixed(1));
+            }
+
+            const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
             return [
               t.trial_index || (idx + 1),
@@ -363,6 +406,7 @@ const server = http.createServer((req, res) => {
               t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
               speedShown || '',
               symbolShown || '',
+              rpmShown || '',
               probeType || '',
               speedProbed,
               speedRecalled || '',
@@ -371,6 +415,10 @@ const server = http.createServer((req, res) => {
               symbolProbed,
               symbolRecalled || '',
               symbolAccurate !== '' ? Number(symbolAccurate) : '',
+              rpmProbed,
+              rpmRecalled || '',
+              rpmAccurate !== '' ? Number(rpmAccurate) : '',
+              rpmError !== '' ? Number(rpmError) : '',
               recallAccurate !== '' ? Number(recallAccurate) : '',
               t.click_x != null ? t.click_x : '',
               t.click_y != null ? t.click_y : '',
