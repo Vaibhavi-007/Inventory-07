@@ -212,9 +212,15 @@ const server = http.createServer((req, res) => {
         // Save JSON
         fs.writeFileSync(jsonPath, JSON.stringify(payload, null, 2), 'utf-8');
 
+        // Extract participant information
+        const participantName = payload.participant?.name || payload.participant_name || 'Anonymous';
+        const participantGender = payload.participant?.gender || payload.participant_gender || 'Not specified';
+
         // Convert trials to CSV
         const headers = [
           'trial_number',
+          'participant_name',
+          'participant_gender',
           'module',
           'pair_id',
           'trial_str',
@@ -303,6 +309,8 @@ const server = http.createServer((req, res) => {
 
           const row = [
             t.trial_index || (idx + 1),
+            `"${participantName.replace(/"/g, '""')}"`,
+            `"${participantGender.replace(/"/g, '""')}"`,
             `"${moduleLabel}"`,
             `"${t.id || ''}"`,
             `"${t.trial_str || ''}"`,
@@ -356,6 +364,8 @@ const server = http.createServer((req, res) => {
           // --- Sheet 1: Executive Summary & Module Performance ---
           const summaryHeaders = ['Metric', 'Value', 'Details'];
           const summaryRows = [
+            ['Participant Name', participantName, 'Subject identifier'],
+            ['Participant Gender', participantGender, 'Subject gender'],
             ['Session ID', sessionId, 'Unique session identifier'],
             ['Session Timestamp', payload.timestamp || new Date().toISOString(), 'Recorded test timestamp'],
             ['Trials per Module (n)', params.n || '', 'Configured samples per module'],
@@ -473,21 +483,21 @@ const server = http.createServer((req, res) => {
 
           // --- Sheet 2: Module 1 (Flicker Only) ---
           const mod1Headers = [
-            'Trial #', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y',
             'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image'
           ];
           const mod1Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1'))
             .map(t => [
-              t.trialIndex, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
               t.accurate, t.rtMs, t.rtSec, t.clickX, t.clickY, t.targetX, t.targetY,
               t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg
             ]);
 
           // --- Sheet 3: Module 2 (Speed & Cluster Strip) ---
           const mod2Headers = [
-            'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
@@ -496,7 +506,7 @@ const server = http.createServer((req, res) => {
           const mod2Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2'))
             .map(t => [
-              t.trialIndex, t.moduleLabel, t.id, t.side, t.objectName,
+              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
@@ -505,7 +515,7 @@ const server = http.createServer((req, res) => {
 
           // --- Sheet 4: Module 3 (Heads-Up Display HUD) ---
           const mod3Headers = [
-            'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
@@ -514,7 +524,7 @@ const server = http.createServer((req, res) => {
           const mod3Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3'))
             .map(t => [
-              t.trialIndex, t.moduleLabel, t.id, t.side, t.objectName,
+              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
@@ -524,7 +534,7 @@ const server = http.createServer((req, res) => {
           // --- Sheet 5: All Trials (Master Unified Data) ---
           const allHeaders = headers;
           const allRows = parsedTrials.map(t => [
-            t.trialIndex, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+            t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
             t.accurate, t.rtMs, t.rtSec, t.speedShown, t.symbolShown, t.rpmShown,
             t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
             t.symbolProbed, t.symbolRecalled, t.symbolAccurate,

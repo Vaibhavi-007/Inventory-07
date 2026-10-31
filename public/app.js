@@ -98,6 +98,12 @@
     maskCanvas: null,
     maskCtx: null,
 
+    // Participant state
+    participant: {
+      name: '',
+      gender: ''
+    },
+
     // Speed recall probe state
     speedRecallTrials: new Set(),    // indices of trials AFTER which we ask speed recall
     speedRecallPending: false,       // true when speed recall prompt is showing
@@ -115,6 +121,18 @@
     screenLanding: document.getElementById('screen-landing'),
     screenExperiment: document.getElementById('screen-experiment'),
     screenResults: document.getElementById('screen-results'),
+
+    // Participant details
+    inputParticipantName: document.getElementById('input-participant-name'),
+    selectParticipantGender: document.getElementById('select-participant-gender'),
+    nameError: document.getElementById('name-error'),
+    genderError: document.getElementById('gender-error'),
+    hudParticipantBadge: document.getElementById('hud-participant-badge'),
+    hudParticipantName: document.getElementById('hud-participant-name'),
+    resParticipantName: document.getElementById('res-participant-name'),
+    resParticipantGender: document.getElementById('res-participant-gender'),
+    resSessionIdDisplay: document.getElementById('res-session-id-display'),
+    resSessionDateDisplay: document.getElementById('res-session-date-display'),
 
     // Landing inputs
     sliderN: document.getElementById('slider-n'),
@@ -466,6 +484,25 @@
     dom.chkFeedback.addEventListener('change', e => state.config.feedback = e.target.checked);
     dom.chkSound.addEventListener('change', e => state.config.sound = e.target.checked);
 
+    // Participant inputs validation clear on interaction
+    if (dom.inputParticipantName) {
+      dom.inputParticipantName.addEventListener('input', () => {
+        if (dom.inputParticipantName.value.trim()) {
+          dom.inputParticipantName.classList.remove('input-error');
+          if (dom.nameError) dom.nameError.style.display = 'none';
+        }
+      });
+    }
+
+    if (dom.selectParticipantGender) {
+      dom.selectParticipantGender.addEventListener('change', () => {
+        if (dom.selectParticipantGender.value) {
+          dom.selectParticipantGender.classList.remove('input-error');
+          if (dom.genderError) dom.genderError.style.display = 'none';
+        }
+      });
+    }
+
     // Radio modes
     document.querySelectorAll('input[name="param-mode"]').forEach(radio => {
       radio.addEventListener('change', e => {
@@ -646,6 +683,47 @@
 
   // --- Experiment Execution ---
   async function startExperiment() {
+    // Validate required participant name and gender
+    const nameVal = dom.inputParticipantName?.value?.trim() || '';
+    const genderVal = dom.selectParticipantGender?.value || '';
+
+    let hasValidationError = false;
+    if (!nameVal) {
+      if (dom.inputParticipantName) dom.inputParticipantName.classList.add('input-error');
+      if (dom.nameError) dom.nameError.style.display = 'block';
+      hasValidationError = true;
+    } else {
+      if (dom.inputParticipantName) dom.inputParticipantName.classList.remove('input-error');
+      if (dom.nameError) dom.nameError.style.display = 'none';
+    }
+
+    if (!genderVal) {
+      if (dom.selectParticipantGender) dom.selectParticipantGender.classList.add('input-error');
+      if (dom.genderError) dom.genderError.style.display = 'block';
+      hasValidationError = true;
+    } else {
+      if (dom.selectParticipantGender) dom.selectParticipantGender.classList.remove('input-error');
+      if (dom.genderError) dom.genderError.style.display = 'none';
+    }
+
+    if (hasValidationError) {
+      if (!nameVal && dom.inputParticipantName) {
+        dom.inputParticipantName.focus();
+      } else if (!genderVal && dom.selectParticipantGender) {
+        dom.selectParticipantGender.focus();
+      }
+      return;
+    }
+
+    state.participant = {
+      name: nameVal,
+      gender: genderVal
+    };
+
+    if (dom.hudParticipantName) {
+      dom.hudParticipantName.textContent = nameVal;
+    }
+
     dom.btnStart.disabled = true;
     dom.btnStart.textContent = 'Loading Stimuli...';
 
@@ -2359,6 +2437,11 @@
     if (dom.resRightRt) dom.resRightRt.textContent = rightStats.rt;
     if (dom.resRightCount) dom.resRightCount.textContent = rightStats.count;
 
+    if (dom.resParticipantName) dom.resParticipantName.textContent = state.participant?.name || 'Anonymous';
+    if (dom.resParticipantGender) dom.resParticipantGender.textContent = state.participant?.gender || 'Not specified';
+    if (dom.resSessionIdDisplay) dom.resSessionIdDisplay.textContent = state.sessionId || '--';
+    if (dom.resSessionDateDisplay) dom.resSessionDateDisplay.textContent = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
     if (dom.resTotalBadge) dom.resTotalBadge.textContent = `${total} Trials`;
 
     // Populate Table (15 Columns aligned with index.html thead)
@@ -2491,6 +2574,9 @@
     const payload = {
       session_id: state.sessionId,
       timestamp: new Date().toISOString(),
+      participant: state.participant || { name: 'Anonymous', gender: 'Not specified' },
+      participant_name: state.participant?.name || 'Anonymous',
+      participant_gender: state.participant?.gender || 'Not specified',
       parameters: {
         n: state.config.n,
         total_trials: total,
@@ -2554,6 +2640,22 @@
 
   function bindResultsControls() {
     dom.btnNewExperiment.addEventListener('click', () => {
+      // Reset participant fields
+      if (dom.inputParticipantName) {
+        dom.inputParticipantName.value = '';
+        dom.inputParticipantName.classList.remove('input-error');
+      }
+      if (dom.selectParticipantGender) {
+        dom.selectParticipantGender.selectedIndex = 0;
+        dom.selectParticipantGender.classList.remove('input-error');
+      }
+      if (dom.nameError) dom.nameError.style.display = 'none';
+      if (dom.genderError) dom.genderError.style.display = 'none';
+
+      // Reset participant state
+      state.participant = { name: '', gender: '' };
+      if (dom.hudParticipantName) dom.hudParticipantName.textContent = '--';
+
       showScreen('landing');
     });
 
@@ -2690,6 +2792,8 @@
 
     const headers = [
       'trial_index',
+      'participant_name',
+      'participant_gender',
       'module',
       'id',
       'object_name',
@@ -2726,6 +2830,9 @@
       'image_duration_ms'
     ];
 
+    const pName = (state.participant?.name || 'Anonymous').replace(/"/g, '""');
+    const pGender = (state.participant?.gender || 'Not specified').replace(/"/g, '""');
+
     const rows = [headers.join(',')];
     trials.forEach(t => {
       let modLabel = 'Module A (Flicker)';
@@ -2757,6 +2864,8 @@
 
       rows.push([
         t.trial_index,
+        `"${pName}"`,
+        `"${pGender}"`,
         `"${modLabel}"`,
         `"${t.id}"`,
         `"${t.object_name}"`,
@@ -2843,6 +2952,9 @@
     // Sheet 1: Executive Summary
     xml += ' <Worksheet ss:Name="Executive Summary">\n  <Table>\n' +
       '   <Row><Cell><Data ss:Type="String">Metric</Data></Cell><Cell><Data ss:Type="String">Value</Data></Cell></Row>\n' +
+      `   <Row><Cell><Data ss:Type="String">Participant Name</Data></Cell><Cell><Data ss:Type="String">${state.participant?.name || 'Anonymous'}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Participant Gender</Data></Cell><Cell><Data ss:Type="String">${state.participant?.gender || 'Not specified'}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Session ID</Data></Cell><Cell><Data ss:Type="String">${state.sessionId || ''}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Total Trials</Data></Cell><Cell><Data ss:Type="Number">${trials.length}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Overall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resAccuracy ? dom.resAccuracy.textContent : ''}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Mean Response Time</Data></Cell><Cell><Data ss:Type="String">${dom.resMeanRt ? dom.resMeanRt.textContent : ''}</Data></Cell></Row>\n` +
@@ -2856,12 +2968,13 @@
 
     // Sheet 2: Module 1 (Flicker)
     xml += buildWorksheetXml('Module 1 - Flicker', [
-      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
+      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
       'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
     ], t => {
       if (t.module !== 'a') return null;
       return [
-        t.trial_index, 'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
+        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
         t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
@@ -2871,7 +2984,7 @@
 
     // Sheet 3: Module 2 (Cluster Strip)
     xml += buildWorksheetXml('Module 2 - Cluster', [
-      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
@@ -2882,7 +2995,8 @@
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, 'Module 2 (Cluster)', t.id, t.side || '', t.object_name,
+        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        'Module 2 (Cluster)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
         t.speed_recall_response != null ? t.speed_recall_response : '', t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '',
@@ -2895,7 +3009,7 @@
 
     // Sheet 4: Module 3 (HUD)
     xml += buildWorksheetXml('Module 3 - HUD', [
-      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
@@ -2906,7 +3020,8 @@
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, 'Module 3 (HUD)', t.id, t.side || '', t.object_name,
+        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        'Module 3 (HUD)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
         t.speed_recall_response != null ? t.speed_recall_response : '', t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '',
@@ -2919,7 +3034,7 @@
 
     // Sheet 5: All Trials
     xml += buildWorksheetXml('All Trials', [
-      'trial_index', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
+      'trial_index', 'participant_name', 'participant_gender', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
       'response_time_ms', 'speed_shown_kmh', 'symbol_shown', 'rpm_shown', 'probe_type',
       'speed_recall_probed', 'speed_recalled_kmh', 'speed_recall_accurate', 'speed_error_kmh',
       'symbol_recall_probed', 'symbol_recalled', 'symbol_recall_accurate',
@@ -2956,7 +3071,8 @@
       const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       return [
-        t.trial_index, modLabel, t.id, t.object_name, t.side || '', t.category || '',
+        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        modLabel, t.id, t.object_name, t.side || '', t.category || '',
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, probeType,
         speedProbed, speedRecalled, speedAccurate, speedError,
@@ -2981,6 +3097,9 @@
     const payload = {
       session_id: state.sessionId,
       timestamp: new Date().toISOString(),
+      participant: state.participant || { name: 'Anonymous', gender: 'Not specified' },
+      participant_name: state.participant?.name || 'Anonymous',
+      participant_gender: state.participant?.gender || 'Not specified',
       parameters: state.config,
       trials: state.trialResults
     };

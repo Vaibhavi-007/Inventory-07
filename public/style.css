@@ -236,6 +236,108 @@ html, body {
   }
 }
 
+/* Participant Information Card (Required) */
+.participant-config-card {
+  background: rgba(226, 35, 26, 0.06);
+  border: 1px solid rgba(226, 35, 26, 0.28);
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.participant-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.participant-card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+}
+
+.badge-required {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.participant-fields-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 1.2rem;
+}
+
+@media (max-width: 640px) {
+  .participant-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.text-input, .select-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: #111827;
+  border: 1.5px solid #374151;
+  border-radius: 8px;
+  color: #f9fafb;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+
+.text-input::placeholder {
+  color: #6b7280;
+}
+
+.text-input:focus, .select-input:focus {
+  border-color: #e2231a;
+  box-shadow: 0 0 0 3px rgba(226, 35, 26, 0.25);
+  background: #1f2937;
+}
+
+.text-input.input-error, .select-input.input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3) !important;
+}
+
+.select-input option {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+.required-star {
+  color: #ef4444;
+  margin-left: 0.2rem;
+}
+
+.field-error {
+  display: none;
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
 /* Form Styles */
 .form-group {
   margin-bottom: 1.6rem;
@@ -655,6 +757,33 @@ kbd {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+}
+
+.hud-participant-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: 0.01em;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-participant-icon {
+  font-size: 0.95rem;
+}
+
+.hud-participant-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trial-counter {
@@ -1536,6 +1665,91 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+}
+
+/* Participant Results Banner */
+.participant-results-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  background: linear-gradient(135deg, rgba(226, 35, 26, 0.09) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(226, 35, 26, 0.28);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.participant-results-info {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.participant-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(226, 35, 26, 0.18);
+  border: 1.5px solid rgba(226, 35, 26, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.participant-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.participant-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.participant-results-info h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.participant-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.participant-meta strong {
+  color: #cbd5e1;
+}
+
+.meta-dot {
+  color: #475569;
+}
+
+.participant-results-badge {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.5rem 1.1rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
 }
 
 /* KPI Cards */
