@@ -1097,9 +1097,8 @@
           <text x="248" y="70" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#a1a1aa" text-anchor="middle">x1000 RPM</text>
         </g>
 
-        <!-- Cluster 3: Automotive Warning Symbol with circular glow -->
+        <!-- Cluster 3: Automotive Warning Symbol -->
         <g class="hud-cluster-warning">
-          <circle cx="430" cy="49" r="26" fill="rgba(255, 42, 42, 0.08)" />
           <image href="${symbolPath}" xlink:href="${symbolPath}" x="408" y="27" width="44" height="44" preserveAspectRatio="xMidYMid meet" />
         </g>
 
