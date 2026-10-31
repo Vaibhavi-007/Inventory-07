@@ -2230,11 +2230,11 @@
       }
     }
 
-    dom.resMeanRt.textContent = `${meanRt} ms`;
-    dom.resMeanRtSec.textContent = `${(meanRt / 1000).toFixed(2)} seconds`;
-    dom.resMedianRt.textContent = `${medianRt} ms`;
-    dom.resFastestRt.textContent = fastestRt ? `${fastestRt} ms` : '--';
-    dom.resFastestItem.textContent = fastestItem;
+    if (dom.resMeanRt) dom.resMeanRt.textContent = `${meanRt} ms`;
+    if (dom.resMeanRtSec) dom.resMeanRtSec.textContent = `${(meanRt / 1000).toFixed(2)} seconds`;
+    if (dom.resMedianRt) dom.resMedianRt.textContent = `${medianRt} ms`;
+    if (dom.resFastestRt) dom.resFastestRt.textContent = fastestRt ? `${fastestRt} ms` : '--';
+    if (dom.resFastestItem) dom.resFastestItem.textContent = fastestItem;
 
     // Module Comparison Breakdown Cards
     if (dom.resModAAccDetail) dom.resModAAccDetail.textContent = `${modAAccPct}%`;
@@ -2284,139 +2284,141 @@
         : '0 trials';
     }
 
-    dom.resLeftAcc.textContent = leftStats.acc;
-    dom.resLeftRt.textContent = leftStats.rt;
-    dom.resLeftCount.textContent = leftStats.count;
+    if (dom.resLeftAcc) dom.resLeftAcc.textContent = leftStats.acc;
+    if (dom.resLeftRt) dom.resLeftRt.textContent = leftStats.rt;
+    if (dom.resLeftCount) dom.resLeftCount.textContent = leftStats.count;
 
-    dom.resRightAcc.textContent = rightStats.acc;
-    dom.resRightRt.textContent = rightStats.rt;
-    dom.resRightCount.textContent = rightStats.count;
+    if (dom.resRightAcc) dom.resRightAcc.textContent = rightStats.acc;
+    if (dom.resRightRt) dom.resRightRt.textContent = rightStats.rt;
+    if (dom.resRightCount) dom.resRightCount.textContent = rightStats.count;
 
-    dom.resTotalBadge.textContent = `${total} Trials`;
+    if (dom.resTotalBadge) dom.resTotalBadge.textContent = `${total} Trials`;
 
     // Populate Table (15 Columns aligned with index.html thead)
-    dom.trialsTbody.innerHTML = '';
-    results.forEach((r, idx) => {
-      const tr = document.createElement('tr');
+    if (dom.trialsTbody) {
+      dom.trialsTbody.innerHTML = '';
+      results.forEach((r, idx) => {
+        const tr = document.createElement('tr');
 
-      const outcomeBadge = r.accurate
-        ? `<span class="pill-hit">✓ Correct</span>`
-        : (r.skipped ? `<span class="pill-miss">⏭ Skipped</span>` : `<span class="pill-miss">✗ Missed</span>`);
+        const outcomeBadge = r.accurate
+          ? `<span class="pill-hit">✓ Correct</span>`
+          : (r.skipped ? `<span class="pill-miss">⏭ Skipped</span>` : `<span class="pill-miss">✗ Missed</span>`);
 
-      let moduleBadge = `<span class="badge badge-module-a">Module 1</span>`;
-      if (r.module === 'c') {
-        moduleBadge = `<span class="badge badge-module-c">Module 3</span>`;
-      } else if (r.module === 'b') {
-        moduleBadge = `<span class="badge badge-module-b">Module 2</span>`;
-      }
-
-      const rtText = r.response_time_ms != null ? `${Math.round(r.response_time_ms)} ms` : '--';
-      const benchRt = r.benchmark?.rt_ms ? `${Math.round(r.benchmark.rt_ms)} ms` : '--';
-      const coords = r.click_x != null ? `(${r.click_x}, ${r.click_y})` : '--';
-      const dist = r.distance_px != null ? `${Math.round(r.distance_px)} px` : '--';
-
-      const hasCluster = r.module === 'b' || r.module === 'c';
-
-      // Speed Shown
-      const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? formatSpeed(r.dashboardData.speed) : null);
-      const speedShownText = (hasCluster && speedShownVal != null) ? `${speedShownVal} km/h` : '—';
-
-      // Symbol Shown
-      let symbolShownText = '—';
-      if (hasCluster) {
-        const symObj = r.dashboardData?.symbol || (r.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === r.dashboardData.symbolId) : null);
-        if (symObj) {
-          symbolShownText = `<span class="table-symbol-icon"><img src="${symObj.path}" alt="${symObj.name}"> ${symObj.name}</span>`;
-        } else if (r.dashboardData?.symbolName) {
-          symbolShownText = `<span>${r.dashboardData.symbolName}</span>`;
+        let moduleBadge = `<span class="badge badge-module-a">Module 1</span>`;
+        if (r.module === 'c') {
+          moduleBadge = `<span class="badge badge-module-c">Module 3</span>`;
+        } else if (r.module === 'b') {
+          moduleBadge = `<span class="badge badge-module-b">Module 2</span>`;
         }
-      }
 
-      // Recall Probe Type
-      let probeBadge = '<span style="color: var(--text-dim);">—</span>';
-      if (r.probe_type === 'speed' || r.speed_recall_asked) {
-        probeBadge = '<span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏎️ Speed</span>';
-      } else if (r.probe_type === 'symbol' || r.symbol_recall_asked) {
-        probeBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⚠️ Symbol</span>';
-      } else if (r.probe_type === 'rpm' || r.rpm_recall_asked) {
-        probeBadge = '<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">⚙️ RPM</span>';
-      }
+        const rtText = r.response_time_ms != null ? `${Math.round(r.response_time_ms)} ms` : '--';
+        const benchRt = r.benchmark?.rt_ms ? `${Math.round(r.benchmark.rt_ms)} ms` : '--';
+        const coords = r.click_x != null ? `(${r.click_x}, ${r.click_y})` : '--';
+        const dist = r.distance_px != null ? `${Math.round(r.distance_px)} px` : '--';
 
-      // Recall Response
-      let recallResponseText = '<span style="color: var(--text-dim);">—</span>';
-      if (r.speed_recall_asked) {
-        if (r.speed_recall_response != null) {
-          recallResponseText = r.speed_recall_response === 'IDK'
-            ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
-            : `<strong>${r.speed_recall_response} km/h</strong>`;
-        } else {
-          recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
-        }
-      } else if (r.symbol_recall_asked) {
-        if (r.symbol_recall_response != null) {
-          if (r.symbol_recall_response === 'IDK') {
-            recallResponseText = `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`;
-          } else {
-            const matchingSym = SYMBOLS.find(s => s.name === r.symbol_recall_response || s.id === r.symbol_recall_response);
-            const iconHtml = matchingSym ? `<img src="${matchingSym.path}" class="table-symbol-icon-inline" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;">` : '';
-            recallResponseText = `<strong>${iconHtml}${r.symbol_recall_response}</strong>`;
+        const hasCluster = r.module === 'b' || r.module === 'c';
+
+        // Speed Shown
+        const speedShownVal = r.speed_recall_actual != null ? r.speed_recall_actual : (r.dashboardData?.speed != null ? formatSpeed(r.dashboardData.speed) : null);
+        const speedShownText = (hasCluster && speedShownVal != null) ? `${speedShownVal} km/h` : '—';
+
+        // Symbol Shown
+        let symbolShownText = '—';
+        if (hasCluster) {
+          const symObj = r.dashboardData?.symbol || (r.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === r.dashboardData.symbolId) : null);
+          if (symObj) {
+            symbolShownText = `<span class="table-symbol-icon"><img src="${symObj.path}" alt="${symObj.name}"> ${symObj.name}</span>`;
+          } else if (r.dashboardData?.symbolName) {
+            symbolShownText = `<span>${r.dashboardData.symbolName}</span>`;
           }
-        } else {
-          recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
         }
-      } else if (r.rpm_recall_asked) {
-        if (r.rpm_recall_response != null) {
-          recallResponseText = r.rpm_recall_response === 'IDK'
-            ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
-            : `<strong>${r.rpm_recall_response}k RPM</strong>`;
-        } else {
-          recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
-        }
-      }
 
-      // Recall Accuracy Badge
-      let recallAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
-      if (r.speed_recall_asked) {
-        if (r.speed_recall_accurate) {
-          recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
-        } else {
-          const errDiff = r.speed_error_kmh != null ? ` (±${r.speed_error_kmh})` : '';
-          recallAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+        // Recall Probe Type
+        let probeBadge = '<span style="color: var(--text-dim);">—</span>';
+        if (r.probe_type === 'speed' || r.speed_recall_asked) {
+          probeBadge = '<span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏎️ Speed</span>';
+        } else if (r.probe_type === 'symbol' || r.symbol_recall_asked) {
+          probeBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⚠️ Symbol</span>';
+        } else if (r.probe_type === 'rpm' || r.rpm_recall_asked) {
+          probeBadge = '<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">⚙️ RPM</span>';
         }
-      } else if (r.symbol_recall_asked) {
-        if (r.symbol_recall_accurate) {
-          recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
-        } else {
-          recallAccuracyBadge = '<span class="pill-miss">✗ Incorrect</span>';
-        }
-      } else if (r.rpm_recall_asked) {
-        if (r.rpm_recall_accurate) {
-          recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
-        } else {
-          const errDiff = r.rpm_error != null ? ` (±${r.rpm_error})` : '';
-          recallAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
-        }
-      }
 
-      tr.innerHTML = `
-        <td><strong>#${idx + 1}</strong></td>
-        <td>${moduleBadge}</td>
-        <td><code>${r.object_name}</code></td>
-        <td><span class="badge">${r.side || 'P'}</span></td>
-        <td>${outcomeBadge}</td>
-        <td><strong>${rtText}</strong></td>
-        <td>${speedShownText}</td>
-        <td>${symbolShownText}</td>
-        <td>${probeBadge}</td>
-        <td>${recallResponseText}</td>
-        <td>${recallAccuracyBadge}</td>
-        <td style="color: var(--text-dim);">${benchRt}</td>
-        <td style="font-family: var(--font-mono); font-size: 0.85em;">${coords}</td>
-        <td style="font-family: var(--font-mono);">${dist}</td>
-        <td><button class="btn-inspect" data-idx="${idx}">Inspect</button></td>
-      `;
-      dom.trialsTbody.appendChild(tr);
-    });
+        // Recall Response
+        let recallResponseText = '<span style="color: var(--text-dim);">—</span>';
+        if (r.speed_recall_asked) {
+          if (r.speed_recall_response != null) {
+            recallResponseText = r.speed_recall_response === 'IDK'
+              ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
+              : `<strong>${r.speed_recall_response} km/h</strong>`;
+          } else {
+            recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+          }
+        } else if (r.symbol_recall_asked) {
+          if (r.symbol_recall_response != null) {
+            if (r.symbol_recall_response === 'IDK') {
+              recallResponseText = `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`;
+            } else {
+              const matchingSym = SYMBOLS.find(s => s.name === r.symbol_recall_response || s.id === r.symbol_recall_response);
+              const iconHtml = matchingSym ? `<img src="${matchingSym.path}" class="table-symbol-icon-inline" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;">` : '';
+              recallResponseText = `<strong>${iconHtml}${r.symbol_recall_response}</strong>`;
+            }
+          } else {
+            recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+          }
+        } else if (r.rpm_recall_asked) {
+          if (r.rpm_recall_response != null) {
+            recallResponseText = r.rpm_recall_response === 'IDK'
+              ? `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`
+              : `<strong>${r.rpm_recall_response}k RPM</strong>`;
+          } else {
+            recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
+          }
+        }
+
+        // Recall Accuracy Badge
+        let recallAccuracyBadge = '<span style="color: var(--text-dim);">—</span>';
+        if (r.speed_recall_asked) {
+          if (r.speed_recall_accurate) {
+            recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+          } else {
+            const errDiff = r.speed_error_kmh != null ? ` (±${r.speed_error_kmh})` : '';
+            recallAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+          }
+        } else if (r.symbol_recall_asked) {
+          if (r.symbol_recall_accurate) {
+            recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+          } else {
+            recallAccuracyBadge = '<span class="pill-miss">✗ Incorrect</span>';
+          }
+        } else if (r.rpm_recall_asked) {
+          if (r.rpm_recall_accurate) {
+            recallAccuracyBadge = '<span class="pill-hit">✓ Correct</span>';
+          } else {
+            const errDiff = r.rpm_error != null ? ` (±${r.rpm_error})` : '';
+            recallAccuracyBadge = `<span class="pill-miss">✗ Error${errDiff}</span>`;
+          }
+        }
+
+        tr.innerHTML = `
+          <td><strong>#${idx + 1}</strong></td>
+          <td>${moduleBadge}</td>
+          <td><code>${r.object_name}</code></td>
+          <td><span class="badge">${r.side || 'P'}</span></td>
+          <td>${outcomeBadge}</td>
+          <td><strong>${rtText}</strong></td>
+          <td>${speedShownText}</td>
+          <td>${symbolShownText}</td>
+          <td>${probeBadge}</td>
+          <td>${recallResponseText}</td>
+          <td>${recallAccuracyBadge}</td>
+          <td style="color: var(--text-dim);">${benchRt}</td>
+          <td style="font-family: var(--font-mono); font-size: 0.85em;">${coords}</td>
+          <td style="font-family: var(--font-mono);">${dist}</td>
+          <td><button class="btn-inspect" data-idx="${idx}">Inspect</button></td>
+        `;
+        dom.trialsTbody.appendChild(tr);
+      });
+    }
 
     // Save session payload to server
     const payload = {
@@ -2739,8 +2741,117 @@
     const trials = state.trialResults;
     if (!trials.length) return;
 
-    // Client-side Excel SpreadsheetML XML fallback
-    const headers = [
+    // Helper to generate a worksheet XML table in SpreadsheetML
+    function buildWorksheetXml(sheetName, headers, rowGenerator) {
+      let sheetXml = ` <Worksheet ss:Name="${sheetName}">\n  <Table>\n   <Row>\n`;
+      headers.forEach(h => {
+        sheetXml += `    <Cell><Data ss:Type="String">${h}</Data></Cell>\n`;
+      });
+      sheetXml += '   </Row>\n';
+
+      trials.forEach((t, idx) => {
+        const rowCells = rowGenerator(t, idx);
+        if (!rowCells) return;
+        sheetXml += '   <Row>\n';
+        rowCells.forEach(cell => {
+          const type = (typeof cell === 'number') ? 'Number' : 'String';
+          const val = (cell === null || cell === undefined) ? '' : cell;
+          sheetXml += `    <Cell><Data ss:Type="${type}">${val}</Data></Cell>\n`;
+        });
+        sheetXml += '   </Row>\n';
+      });
+
+      sheetXml += '  </Table>\n </Worksheet>\n';
+      return sheetXml;
+    }
+
+    let xml = '<?xml version="1.0"?>\n' +
+      '<?mso-application progid="Excel.Sheet"?>\n' +
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n' +
+      ' xmlns:o="urn:schemas-microsoft-com:office:office"\n' +
+      ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n' +
+      ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n' +
+      ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+
+    // Sheet 1: Executive Summary
+    xml += ' <Worksheet ss:Name="Executive Summary">\n  <Table>\n' +
+      '   <Row><Cell><Data ss:Type="String">Metric</Data></Cell><Cell><Data ss:Type="String">Value</Data></Cell></Row>\n' +
+      `   <Row><Cell><Data ss:Type="String">Total Trials</Data></Cell><Cell><Data ss:Type="Number">${trials.length}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Overall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resAccuracy ? dom.resAccuracy.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Mean Response Time</Data></Cell><Cell><Data ss:Type="String">${dom.resMeanRt ? dom.resMeanRt.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Module 1 Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resModuleAAcc ? dom.resModuleAAcc.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Module 2 Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resModuleBAcc ? dom.resModuleBAcc.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Module 3 Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resModuleCAcc ? dom.resModuleCAcc.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Speed Recall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resSpeedAccuracy ? dom.resSpeedAccuracy.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Symbol Recall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resSymbolAccuracy ? dom.resSymbolAccuracy.textContent : ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">RPM Recall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resRpmAccuracy ? dom.resRpmAccuracy.textContent : ''}</Data></Cell></Row>\n` +
+      '  </Table>\n </Worksheet>\n';
+
+    // Sheet 2: Module 1 (Flicker)
+    xml += buildWorksheetXml('Module 1 - Flicker', [
+      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
+      'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+    ], t => {
+      if (t.module !== 'a') return null;
+      return [
+        t.trial_index, 'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
+        t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+        t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
+        t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+      ];
+    });
+
+    // Sheet 3: Module 2 (Cluster Strip)
+    xml += buildWorksheetXml('Module 2 - Cluster', [
+      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Accurate', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
+      'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
+      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
+    ], t => {
+      if (t.module !== 'b') return null;
+      const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
+      const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
+      const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
+      const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
+      return [
+        t.trial_index, 'Module 2 (Cluster)', t.id, t.side || '', t.object_name,
+        t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+        speedShown, symbolShown, rpmShown, t.probe_type || '',
+        t.speed_recall_response != null ? t.speed_recall_response : '', t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '',
+        t.symbol_recall_response != null ? t.symbol_recall_response : '', t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '',
+        t.rpm_recall_response != null ? t.rpm_recall_response : '', t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '',
+        (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '',
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+      ];
+    });
+
+    // Sheet 4: Module 3 (HUD)
+    xml += buildWorksheetXml('Module 3 - HUD', [
+      'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Accurate', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
+      'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
+      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
+    ], t => {
+      if (t.module !== 'c') return null;
+      const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
+      const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
+      const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
+      const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
+      return [
+        t.trial_index, 'Module 3 (HUD)', t.id, t.side || '', t.object_name,
+        t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+        speedShown, symbolShown, rpmShown, t.probe_type || '',
+        t.speed_recall_response != null ? t.speed_recall_response : '', t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '',
+        t.symbol_recall_response != null ? t.symbol_recall_response : '', t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '',
+        t.rpm_recall_response != null ? t.rpm_recall_response : '', t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '',
+        (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '',
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+      ];
+    });
+
+    // Sheet 5: All Trials
+    xml += buildWorksheetXml('All Trials', [
       'trial_index', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
       'response_time_ms', 'speed_shown_kmh', 'symbol_shown', 'rpm_shown', 'probe_type',
       'speed_recall_probed', 'speed_recalled_kmh', 'speed_recall_accurate', 'speed_error_kmh',
@@ -2749,25 +2860,7 @@
       'recall_accurate', 'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
       'interval_t_ms', 'image_duration_ms'
-    ];
-
-    let xml = '<?xml version="1.0"?>\n' +
-      '<?mso-application progid="Excel.Sheet"?>\n' +
-      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n' +
-      ' xmlns:o="urn:schemas-microsoft-com:office:office"\n' +
-      ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n' +
-      ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n' +
-      ' xmlns:html="http://www.w3.org/TR/REC-html40">\n' +
-      ' <Worksheet ss:Name="Trial Results">\n' +
-      '  <Table>\n' +
-      '   <Row>\n';
-
-    headers.forEach(h => {
-      xml += `    <Cell><Data ss:Type="String">${h}</Data></Cell>\n`;
-    });
-    xml += '   </Row>\n';
-
-    trials.forEach(t => {
+    ], t => {
       let modLabel = 'Module A (Flicker)';
       if (t.module === 'c') modLabel = 'Module C (Heads-Up Display HUD)';
       else if (t.module === 'b') modLabel = 'Module B (Speed & Flicker)';
@@ -2795,46 +2888,27 @@
 
       const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
-      xml += '   <Row>\n' +
-        `    <Cell><Data ss:Type="Number">${t.trial_index}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${modLabel}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.id}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.object_name}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.side || ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.category || ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${t.accurate ? 1 : 0}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.response_time_ms != null ? 'Number' : 'String'}">${t.response_time_ms != null ? t.response_time_ms.toFixed(1) : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${speedShown}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${symbolShown}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${rpmShown}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${probeType}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${speedProbed}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${speedRecalled}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedAccurate !== '' ? 'Number' : 'String'}">${speedAccurate}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${speedError !== '' ? 'Number' : 'String'}">${speedError}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${symbolProbed}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${symbolRecalled}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${symbolAccurate !== '' ? 'Number' : 'String'}">${symbolAccurate}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${rpmProbed}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${rpmRecalled}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${rpmAccurate !== '' ? 'Number' : 'String'}">${rpmAccurate}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${rpmError !== '' ? 'Number' : 'String'}">${rpmError}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${recallAccurate !== '' ? 'Number' : 'String'}">${recallAccurate}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.click_x != null ? 'Number' : 'String'}">${t.click_x != null ? t.click_x : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.click_y != null ? 'Number' : 'String'}">${t.click_y != null ? t.click_y : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.target_x != null ? 'Number' : 'String'}">${t.target_x != null ? t.target_x : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.target_y != null ? 'Number' : 'String'}">${t.target_y != null ? t.target_y : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="${t.distance_px != null ? 'Number' : 'String'}">${t.distance_px != null ? t.distance_px.toFixed(1) : ''}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${t.skipped ? 1 : 0}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.present_image}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.absent_image}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="String">${t.mask_image}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${state.config.t}</Data></Cell>\n` +
-        `    <Cell><Data ss:Type="Number">${state.config.imgDuration}</Data></Cell>\n` +
-        '   </Row>\n';
+      return [
+        t.trial_index, modLabel, t.id, t.object_name, t.side || '', t.category || '',
+        t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+        speedShown, symbolShown, rpmShown, probeType,
+        speedProbed, speedRecalled, speedAccurate, speedError,
+        symbolProbed, symbolRecalled, symbolAccurate,
+        rpmProbed, rpmRecalled, rpmAccurate, rpmError,
+        recallAccurate, t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
+        t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0,
+        t.present_image, t.absent_image, t.mask_image,
+        state.config.t, state.config.imgDuration
+      ];
     });
 
-    xml += '  </Table>\n </Worksheet>\n</Workbook>';
+    xml += '</Workbook>';
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.xls`);
+  }
 
     const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

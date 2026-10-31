@@ -363,6 +363,20 @@ fs.writeFileSync(testXlsxPath, xlsxBuf);
 assert(fs.existsSync(testXlsxPath) && fs.statSync(testXlsxPath).size > 100, 'Saved XLSX must exist and be populated');
 fs.unlinkSync(testXlsxPath);
 
+// Multi-sheet test validation
+const multiSheetBuf = generateXlsx([
+  { name: 'Summary', headers: ['Metric', 'Value'], rows: [['Total', 6], ['Accuracy', '83%']] },
+  { name: 'Module 1 - Flicker', headers: ['Trial', 'Field'], rows: [[1, 'L'], [2, 'R']] },
+  { name: 'Module 2 - Cluster', headers: ['Trial', 'Speed'], rows: [[3, '75']] },
+  { name: 'Module 3 - HUD', headers: ['Trial', 'RPM'], rows: [[5, '2.8']] },
+  { name: 'All Trials', headers, rows: xlsxRows }
+]);
+const testMultiXlsxPath = path.join(RESULTS_DIR, `${testSessionId}_multi.xlsx`);
+fs.writeFileSync(testMultiXlsxPath, multiSheetBuf);
+assert(fs.existsSync(testMultiXlsxPath) && fs.statSync(testMultiXlsxPath).size > 1000, 'Multi-sheet XLSX must exist and be valid');
+fs.unlinkSync(testMultiXlsxPath);
+console.log('✓ Multi-sheet Excel workbook generation verified with 5 sheets.');
+
 assert(fs.existsSync(testJsonPath), 'Saved JSON must exist');
 assert(fs.existsSync(testCsvPath), 'Saved CSV must exist');
 console.log(`✓ Session saving and CSV formatting validated successfully.`);

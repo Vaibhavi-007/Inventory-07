@@ -347,11 +347,44 @@ const server = http.createServer((req, res) => {
 
         fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf-8');
 
-        // Generate genuine Excel (.xlsx) file synchronously
+        // Generate genuine multi-sheet Excel (.xlsx) file synchronously
         const xlsxFilename = `${sessionId}.xlsx`;
         const xlsxPath = path.join(RESULTS_DIR, xlsxFilename);
         try {
-          const xlsxRows = trials.map((t, idx) => {
+          const summary = payload.summary || {};
+
+          // --- Sheet 1: Executive Summary & Module Performance ---
+          const summaryHeaders = ['Metric', 'Value', 'Details'];
+          const summaryRows = [
+            ['Session ID', sessionId, 'Unique session identifier'],
+            ['Session Timestamp', payload.timestamp || new Date().toISOString(), 'Recorded test timestamp'],
+            ['Trials per Module (n)', params.n || '', 'Configured samples per module'],
+            ['Total Trials (3n)', summary.total_trials || trials.length, 'Disjoint image pairs across 3 modules'],
+            ['Flicker Interval (t)', `${params.t_interval_ms || 250} ms`, 'Blank screen duration'],
+            ['Image Duration', `${params.image_duration_ms || 1000} ms`, 'Scene presentation duration'],
+            ['Hit Tolerance', `${params.tolerance_px || 15} px`, 'Target click radius'],
+            ['Total Session Duration', `${summary.total_duration_sec || 0}s`, 'Elapsed session time'],
+            ['Overall Detection Accuracy', `${summary.accuracy_percent || 0}%`, `${summary.correct_count || 0} / ${summary.total_trials || trials.length} correct hits`],
+            ['Mean Response Time', `${summary.mean_rt_ms || 0} ms`, 'Average detection response time'],
+            ['', '', ''],
+            ['--- MODULE PERFORMANCE COMPARISON ---', '', ''],
+            ['Module 1: Flicker Only Accuracy', `${summary.module_a_accuracy || 0}%`, `${summary.module_a_correct || 0} / ${summary.module_a_trials || 0} correct hits`],
+            ['Module 2: Speed & Cluster Accuracy', `${summary.module_b_accuracy || 0}%`, `${summary.module_b_correct || 0} / ${summary.module_b_trials || 0} correct hits`],
+            ['Module 3: Heads-Up Display HUD Accuracy', `${summary.module_c_accuracy || 0}%`, `${summary.module_c_correct || 0} / ${summary.module_c_trials || 0} correct hits`],
+            ['', '', ''],
+            ['--- MCQ RECALL METRICS ---', '', ''],
+            ['Speed Recall Accuracy', `${summary.speed_recall_accuracy_percent || 0}%`, `${summary.speed_recall_correct_count || 0} / ${summary.speed_recall_probed_count || 0} probed correct${summary.speed_recall_mean_error_kmh != null ? ` (avg error ±${summary.speed_recall_mean_error_kmh} km/h)` : ''}`],
+            ['Warning Symbol Recall Accuracy', `${summary.symbol_recall_accuracy_percent || 0}%`, `${summary.symbol_recall_correct_count || 0} / ${summary.symbol_recall_probed_count || 0} probed correct`],
+            ['Engine RPM Recall Accuracy', `${summary.rpm_recall_accuracy_percent || 0}%`, `${summary.rpm_recall_correct_count || 0} / ${summary.rpm_recall_probed_count || 0} probed correct${summary.rpm_recall_mean_error != null ? ` (avg error ±${summary.rpm_recall_mean_error}k RPM)` : ''}`],
+            ['', '', ''],
+            ['--- VISUAL FIELD BREAKDOWN ---', '', ''],
+            ['Left Visual Field (L) Accuracy', summary.left_accuracy || '--', `${summary.left_correct || 0} / ${summary.left_trials || 0} correct`],
+            ['Left Visual Field (L) Mean RT', `${summary.left_mean_rt || '--'}`, ''],
+            ['Right Visual Field (R) Accuracy', summary.right_accuracy || '--', `${summary.right_correct || 0} / ${summary.right_trials || 0} correct`],
+            ['Right Visual Field (R) Mean RT', `${summary.right_mean_rt || '--'}`, '']
+          ];
+
+          function formatTrialRow(t, idx) {
             const moduleLabel = t.module_name || (t.module === 'c' ? 'Module C (Heads-Up Display HUD)' : (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'));
             const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
             const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
@@ -393,49 +426,123 @@ const server = http.createServer((req, res) => {
 
             const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
-            return [
-              t.trial_index || (idx + 1),
+            return {
+              trialIndex: t.trial_index || (idx + 1),
               moduleLabel,
-              t.id || '',
-              t.trial_str || '',
-              t.category || '',
-              t.side || '',
-              t.object_name || '',
-              t.accurate ? 1 : 0,
-              t.response_time_ms != null ? Number(Number(t.response_time_ms).toFixed(1)) : '',
-              t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
-              speedShown || '',
-              symbolShown || '',
-              rpmShown || '',
-              probeType || '',
+              id: t.id || '',
+              trialStr: t.trial_str || '',
+              category: t.category || '',
+              side: t.side || '',
+              objectName: t.object_name || '',
+              accurate: t.accurate ? 1 : 0,
+              rtMs: t.response_time_ms != null ? Number(Number(t.response_time_ms).toFixed(1)) : '',
+              rtSec: t.response_time_ms != null ? Number((Number(t.response_time_ms) / 1000).toFixed(3)) : '',
+              speedShown: speedShown || '',
+              symbolShown: symbolShown || '',
+              rpmShown: rpmShown || '',
+              probeType: probeType || '',
               speedProbed,
-              speedRecalled || '',
-              speedAccurate !== '' ? Number(speedAccurate) : '',
-              speedError !== '' ? Number(speedError) : '',
+              speedRecalled: speedRecalled || '',
+              speedAccurate: speedAccurate !== '' ? Number(speedAccurate) : '',
+              speedError: speedError !== '' ? Number(speedError) : '',
               symbolProbed,
-              symbolRecalled || '',
-              symbolAccurate !== '' ? Number(symbolAccurate) : '',
+              symbolRecalled: symbolRecalled || '',
+              symbolAccurate: symbolAccurate !== '' ? Number(symbolAccurate) : '',
               rpmProbed,
-              rpmRecalled || '',
-              rpmAccurate !== '' ? Number(rpmAccurate) : '',
-              rpmError !== '' ? Number(rpmError) : '',
-              recallAccurate !== '' ? Number(recallAccurate) : '',
-              t.click_x != null ? t.click_x : '',
-              t.click_y != null ? t.click_y : '',
-              t.target_x != null ? t.target_x : '',
-              t.target_y != null ? t.target_y : '',
-              t.distance_px != null ? Number(Number(t.distance_px).toFixed(1)) : '',
-              t.skipped ? 1 : 0,
-              t.present_image || '',
-              t.absent_image || '',
-              t.mask_image || '',
-              params.t_interval_ms || '',
-              params.image_duration_ms || '',
-              params.mode || '',
-              payload.timestamp || new Date().toISOString()
-            ];
-          });
-          const xlsxBuf = generateXlsx(headers, xlsxRows, 'Trial Results');
+              rpmRecalled: rpmRecalled || '',
+              rpmAccurate: rpmAccurate !== '' ? Number(rpmAccurate) : '',
+              rpmError: rpmError !== '' ? Number(rpmError) : '',
+              recallAccurate: recallAccurate !== '' ? Number(recallAccurate) : '',
+              clickX: t.click_x != null ? t.click_x : '',
+              clickY: t.click_y != null ? t.click_y : '',
+              targetX: t.target_x != null ? t.target_x : '',
+              targetY: t.target_y != null ? t.target_y : '',
+              distancePx: t.distance_px != null ? Number(Number(t.distance_px).toFixed(1)) : '',
+              skipped: t.skipped ? 1 : 0,
+              presentImg: t.present_image || '',
+              absentImg: t.absent_image || '',
+              maskImg: t.mask_image || '',
+              tInterval: params.t_interval_ms || '',
+              imgDur: params.image_duration_ms || '',
+              mode: params.mode || '',
+              timestamp: payload.timestamp || new Date().toISOString()
+            };
+          }
+
+          const parsedTrials = trials.map(formatTrialRow);
+
+          // --- Sheet 2: Module 1 (Flicker Only) ---
+          const mod1Headers = [
+            'Trial #', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
+            'Detection Hit (1/0)', 'RT (ms)', 'RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y',
+            'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image'
+          ];
+          const mod1Rows = parsedTrials
+            .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1'))
+            .map(t => [
+              t.trialIndex, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+              t.accurate, t.rtMs, t.rtSec, t.clickX, t.clickY, t.targetX, t.targetY,
+              t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg
+            ]);
+
+          // --- Sheet 3: Module 2 (Speed & Cluster Strip) ---
+          const mod2Headers = [
+            'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
+            'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
+            'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
+            'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+          ];
+          const mod2Rows = parsedTrials
+            .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2'))
+            .map(t => [
+              t.trialIndex, t.moduleLabel, t.id, t.side, t.objectName,
+              t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
+              t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
+              t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
+              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+            ]);
+
+          // --- Sheet 4: Module 3 (Heads-Up Display HUD) ---
+          const mod3Headers = [
+            'Trial #', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
+            'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
+            'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
+            'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+          ];
+          const mod3Rows = parsedTrials
+            .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3'))
+            .map(t => [
+              t.trialIndex, t.moduleLabel, t.id, t.side, t.objectName,
+              t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
+              t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
+              t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
+              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+            ]);
+
+          // --- Sheet 5: All Trials (Master Unified Data) ---
+          const allHeaders = headers;
+          const allRows = parsedTrials.map(t => [
+            t.trialIndex, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+            t.accurate, t.rtMs, t.rtSec, t.speedShown, t.symbolShown, t.rpmShown,
+            t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
+            t.symbolProbed, t.symbolRecalled, t.symbolAccurate,
+            t.rpmProbed, t.rpmRecalled, t.rpmAccurate, t.rpmError,
+            t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY,
+            t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg,
+            t.tInterval, t.imgDur, t.mode, t.timestamp
+          ]);
+
+          const multiSheets = [
+            { name: 'Summary', headers: summaryHeaders, rows: summaryRows },
+            { name: 'Module 1 - Flicker', headers: mod1Headers, rows: mod1Rows },
+            { name: 'Module 2 - Cluster', headers: mod2Headers, rows: mod2Rows },
+            { name: 'Module 3 - HUD', headers: mod3Headers, rows: mod3Rows },
+            { name: 'All Trials', headers: allHeaders, rows: allRows }
+          ];
+
+          const xlsxBuf = generateXlsx(multiSheets);
           fs.writeFileSync(xlsxPath, xlsxBuf);
         } catch (xlsxErr) {
           console.warn('XLSX generation warning:', xlsxErr.message);

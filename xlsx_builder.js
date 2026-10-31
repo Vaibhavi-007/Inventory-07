@@ -113,7 +113,7 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function generateXlsx(headers, rows, sheetName = 'Trial Results') {
+function buildSheetXml(headers, rows) {
   const sheetRows = [];
   if (headers && headers.length) {
     const hCells = headers
@@ -143,50 +143,84 @@ function generateXlsx(headers, rows, sheetName = 'Trial Results') {
     sheetRows.push(`<row r="${rowNum}">${cells.join('')}</row>`);
   });
 
-  const contentTypes =
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n' +
-    '  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n' +
-    '  <Default Extension="xml" ContentType="application/xml"/>\n' +
-    '  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>\n' +
-    '  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>\n' +
-    '</Types>';
-
-  const rels =
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
-    '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\n' +
-    '</Relationships>';
-
-  const wbRels =
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
-    '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>\n' +
-    '</Relationships>';
-
-  const workbook =
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">\n' +
-    '  <sheets>\n' +
-    `    <sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/>\n` +
-    '  </sheets>\n' +
-    '</workbook>';
-
-  const worksheet =
+  return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">\n' +
     '  <sheetData>\n' +
     `    ${sheetRows.join('\n    ')}\n` +
     '  </sheetData>\n' +
-    '</worksheet>';
+    '</worksheet>'
+  );
+}
 
-  return createZip([
-    { name: '[Content_Types].xml', data: contentTypes },
-    { name: '_rels/.rels', data: rels },
-    { name: 'xl/_rels/workbook.xml.rels', data: wbRels },
-    { name: 'xl/workbook.xml', data: workbook },
-    { name: 'xl/worksheets/sheet1.xml', data: worksheet }
-  ]);
+function generateXlsx(sheetsOrHeaders, maybeRows, maybeSheetName) {
+  let sheets = [];
+  if (Array.isArray(sheetsOrHeaders) && sheetsOrHeaders.length > 0 && typeof sheetsOrHeaders[0] === 'object' && sheetsOrHeaders[0].name) {
+    sheets = sheetsOrHeaders;
+  } else {
+    // Single-sheet backwards compatibility: (headers, rows, sheetName)
+    sheets = [{
+      name: maybeSheetName || 'Trial Results',
+      headers: sheetsOrHeaders || [],
+      rows: maybeRows || []
+    }];
+  }
+
+  const files = [];
+
+  let contentTypesXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n' +
+    '  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n' +
+    '  <Default Extension="xml" ContentType="application/xml"/>\n' +
+    '  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>\n';
+
+  let wbRelsXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n';
+
+  let workbookSheetsXml = '';
+
+  sheets.forEach((sheet, idx) => {
+    const sheetId = idx + 1;
+    const rId = `rId${sheetId}`;
+    const cleanName = (sheet.name || `Sheet${sheetId}`)
+      .replace(/[\\/?*\[\]:]/g, '_')
+      .slice(0, 31);
+
+    contentTypesXml += `  <Override PartName="/xl/worksheets/sheet${sheetId}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>\n`;
+    wbRelsXml += `  <Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${sheetId}.xml"/>\n`;
+    workbookSheetsXml += `    <sheet name="${escapeXml(cleanName)}" sheetId="${sheetId}" r:id="${rId}"/>\n`;
+
+    const sheetXml = buildSheetXml(sheet.headers || [], sheet.rows || []);
+    files.push({ name: `xl/worksheets/sheet${sheetId}.xml`, data: sheetXml });
+  });
+
+  contentTypesXml += '</Types>';
+  wbRelsXml += '</Relationships>';
+
+  const workbookXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">\n' +
+    '  <sheets>\n' +
+    workbookSheetsXml +
+    '  </sheets>\n' +
+    '</workbook>';
+
+  const rootRelsXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n' +
+    '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\n' +
+    '</Relationships>';
+
+  files.push(
+    { name: '[Content_Types].xml', data: contentTypesXml },
+    { name: '_rels/.rels', data: rootRelsXml },
+    { name: 'xl/_rels/workbook.xml.rels', data: wbRelsXml },
+    { name: 'xl/workbook.xml', data: workbookXml }
+  );
+
+  return createZip(files);
 }
 
 module.exports = { generateXlsx };
