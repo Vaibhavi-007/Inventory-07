@@ -1379,13 +1379,38 @@ kbd {
   transform: scale(1.12);
 }
 
+/* Table Warning Symbol Cell & Image */
+.table-symbol-cell,
 .table-symbol-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   vertical-align: middle;
-  margin-right: 6px;
-  filter: drop-shadow(0 1px 3px rgba(226, 35, 26, 0.5));
+  white-space: nowrap;
+}
+
+.table-symbol-img,
+.table-symbol-cell img,
+.table-symbol-icon img,
+img.table-symbol-icon,
+.table-symbol-icon-inline,
+.table-symbol-img-inline {
+  width: 22px !important;
+  height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  object-fit: contain !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+  filter: drop-shadow(0 1px 3px rgba(226, 35, 26, 0.45));
+}
+
+.table-symbol-name,
+.table-symbol-cell span {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f1f5f9;
 }
 
 /* Module Transition Overlay */
@@ -1932,6 +1957,30 @@ kbd {
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Probe type badges */
+.badge-probe-speed {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.badge-probe-symbol {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+.badge-probe-rpm {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
 }
 
 .table-responsive {
@@ -1946,17 +1995,21 @@ kbd {
 }
 
 .results-table th {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0.95rem;
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-muted);
   font-weight: 600;
   border-bottom: 1px solid var(--bg-card-border);
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .results-table td {
-  padding: 0.8rem 1rem;
+  padding: 0.75rem 0.95rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .results-table tr:hover td {

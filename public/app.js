@@ -2566,7 +2566,7 @@
         if (hasCluster) {
           const symObj = r.dashboardData?.symbol || (r.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === r.dashboardData.symbolId) : null);
           if (symObj) {
-            symbolShownText = `<span class="table-symbol-icon"><img src="${symObj.path}" alt="${symObj.name}"> ${symObj.name}</span>`;
+            symbolShownText = `<span class="table-symbol-cell"><img src="${symObj.path}" alt="${symObj.name}" class="table-symbol-img"><span class="table-symbol-name">${symObj.name}</span></span>`;
           } else if (r.dashboardData?.symbolName) {
             symbolShownText = `<span>${r.dashboardData.symbolName}</span>`;
           }
@@ -2575,11 +2575,11 @@
         // Recall Probe Type
         let probeBadge = '<span style="color: var(--text-dim);">—</span>';
         if (r.probe_type === 'speed' || r.speed_recall_asked) {
-          probeBadge = '<span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏎️ Speed</span>';
+          probeBadge = '<span class="badge badge-probe-speed">🏎️ Speed</span>';
         } else if (r.probe_type === 'symbol' || r.symbol_recall_asked) {
-          probeBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⚠️ Symbol</span>';
+          probeBadge = '<span class="badge badge-probe-symbol">⚠️ Symbol</span>';
         } else if (r.probe_type === 'rpm' || r.rpm_recall_asked) {
-          probeBadge = '<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">⚙️ RPM</span>';
+          probeBadge = '<span class="badge badge-probe-rpm">⚙️ RPM</span>';
         }
 
         // Recall Response
@@ -2598,8 +2598,8 @@
               recallResponseText = `<span style="color: var(--text-muted); font-style: italic;">IDK</span>`;
             } else {
               const matchingSym = SYMBOLS.find(s => s.name === r.symbol_recall_response || s.id === r.symbol_recall_response);
-              const iconHtml = matchingSym ? `<img src="${matchingSym.path}" class="table-symbol-icon-inline" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;">` : '';
-              recallResponseText = `<strong>${iconHtml}${r.symbol_recall_response}</strong>`;
+              const iconHtml = matchingSym ? `<img src="${matchingSym.path}" alt="${matchingSym.name}" class="table-symbol-img-inline">` : '';
+              recallResponseText = `<span class="table-symbol-cell">${iconHtml}<strong>${r.symbol_recall_response}</strong></span>`;
             }
           } else {
             recallResponseText = '<span style="color: var(--text-dim); font-size: 0.85em;">Timed out</span>';
@@ -2822,7 +2822,9 @@
     const symbolObj = hasCluster
       ? (trial.dashboardData?.symbol || (trial.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === trial.dashboardData.symbolId) : null))
       : null;
-    const symbolShownVal = symbolObj ? `${symbolObj.name}` : (hasCluster && trial.symbol_recall_actual ? trial.symbol_recall_actual : '— (Module 1)');
+    const symbolShownVal = symbolObj 
+      ? `<span class="table-symbol-cell"><img src="${symbolObj.path}" alt="${symbolObj.name}" class="table-symbol-img"><span class="table-symbol-name">${symbolObj.name}</span></span>` 
+      : (hasCluster && trial.symbol_recall_actual ? trial.symbol_recall_actual : '— (Module 1)');
 
     const rpmShownVal = (hasCluster && trial.dashboardData?.rpm != null)
       ? `${trial.dashboardData.rpm.toFixed(1)} x1000 RPM`
@@ -2834,9 +2836,11 @@
       const status = trial.speed_recall_accurate ? '✓ Correct' : `✗ Error (off by ${trial.speed_error_kmh != null ? trial.speed_error_kmh : '?'} km/h)`;
       recallDetail = `🏎️ Speed Probe: Response <strong>${recalled}</strong> (${status})`;
     } else if (trial.symbol_recall_asked) {
-      const recalled = trial.symbol_recall_response != null ? `${trial.symbol_recall_response}` : 'No response / Timed out';
+      const matchingSym = SYMBOLS.find(s => s.name === trial.symbol_recall_response || s.id === trial.symbol_recall_response);
+      const iconHtml = matchingSym ? `<img src="${matchingSym.path}" alt="${matchingSym.name}" class="table-symbol-img-inline">` : '';
+      const recalled = trial.symbol_recall_response != null ? `<span class="table-symbol-cell">${iconHtml}<strong>${trial.symbol_recall_response}</strong></span>` : 'No response / Timed out';
       const status = trial.symbol_recall_accurate ? '✓ Correct' : '✗ Incorrect';
-      recallDetail = `⚠️ Symbol Probe: Response <strong>${recalled}</strong> (${status})`;
+      recallDetail = `⚠️ Symbol Probe: Response ${recalled} (${status})`;
     } else if (trial.rpm_recall_asked) {
       const recalled = trial.rpm_recall_response != null ? `${trial.rpm_recall_response} x1000 RPM` : 'No response / Timed out';
       const status = trial.rpm_recall_accurate ? '✓ Correct' : `✗ Error (off by ${trial.rpm_error != null ? trial.rpm_error : '?'} x1000 RPM)`;
