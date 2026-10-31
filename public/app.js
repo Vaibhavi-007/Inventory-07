@@ -367,13 +367,13 @@
       const data = await res.json();
       state.datasetInfo = data;
       const totalAvailable = data.total_pairs || 256;
-      const maxPerModule = 50; // 50 per module = 150 trials total across 3 disjoint modules
+      const maxPerModule = 40; // 40 per module = 120 trials total across 3 disjoint modules
       dom.sliderN.max = maxPerModule;
       dom.inputN.max = maxPerModule;
       dom.datasetStatusText.textContent = `${totalAvailable} Stimuli Pairs Ready (${data.categories?.filler || 168} fillers, ${data.categories?.window || 40} window, ${data.categories?.mirror || 48} mirror)`;
       
       if (data.defaults) {
-        if (data.defaults.n) setN(data.defaults.n);
+        if (data.defaults.n && (!dom.inputN || !dom.inputN.value || dom.inputN.value === '10')) setN(data.defaults.n);
         if (data.defaults.t_interval_ms) setT(data.defaults.t_interval_ms);
         if (data.defaults.image_duration_ms) setImgDur(data.defaults.image_duration_ms);
         if (data.defaults.timeout_sec) setTimeoutSec(data.defaults.timeout_sec);
@@ -395,11 +395,11 @@
   function bindLandingControls() {
     // Sync Number of images (n per module, total 3n trials across 3 modules)
     setN = function(val) {
-      const maxPerModule = 50;
+      const maxPerModule = 40;
       val = Math.max(1, Math.min(maxPerModule, parseInt(val, 10) || 1));
-      dom.sliderN.value = val;
-      dom.inputN.value = val;
-      dom.valN.textContent = val;
+      if (dom.sliderN) dom.sliderN.value = val;
+      if (dom.inputN) dom.inputN.value = val;
+      if (dom.valN) dom.valN.textContent = val;
       if (dom.valHintN) dom.valHintN.textContent = val;
       if (dom.valHintN2) dom.valHintN2.textContent = val;
       if (dom.valHintN3) dom.valHintN3.textContent = val;
@@ -407,37 +407,59 @@
       state.config.n = val;
 
       // Update preset active state
-      dom.presetsN.querySelectorAll('.chip').forEach(c => {
-        c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
-      });
+      if (dom.presetsN) {
+        dom.presetsN.querySelectorAll('.chip').forEach(c => {
+          c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
+        });
+      }
     };
 
-    dom.sliderN.addEventListener('input', e => setN(e.target.value));
-    dom.inputN.addEventListener('change', e => setN(e.target.value));
-    dom.presetsN.addEventListener('click', e => {
-      const chip = e.target.closest('.chip');
-      if (chip && chip.dataset.val) setN(chip.dataset.val);
-    });
+    if (dom.sliderN) {
+      dom.sliderN.addEventListener('input', e => setN(e.target.value));
+      dom.sliderN.addEventListener('change', e => setN(e.target.value));
+    }
+    if (dom.inputN) {
+      dom.inputN.addEventListener('input', e => setN(e.target.value));
+      dom.inputN.addEventListener('change', e => setN(e.target.value));
+      dom.inputN.addEventListener('blur', e => setN(e.target.value));
+    }
+    if (dom.presetsN) {
+      dom.presetsN.addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (chip && chip.dataset.val) setN(chip.dataset.val);
+      });
+    }
 
     // Sync Interval time (t)
     setT = function(val) {
       val = Math.max(50, Math.min(5000, parseInt(val, 10) || 80));
-      dom.sliderT.value = val;
-      dom.inputT.value = val;
-      dom.valT.textContent = `${val} ms`;
+      if (dom.sliderT) dom.sliderT.value = val;
+      if (dom.inputT) dom.inputT.value = val;
+      if (dom.valT) dom.valT.textContent = `${val} ms`;
       state.config.t = val;
 
-      dom.presetsT.querySelectorAll('.chip').forEach(c => {
-        c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
-      });
+      if (dom.presetsT) {
+        dom.presetsT.querySelectorAll('.chip').forEach(c => {
+          c.classList.toggle('active', parseInt(c.dataset.val, 10) === val);
+        });
+      }
     };
 
-    dom.sliderT.addEventListener('input', e => setT(e.target.value));
-    dom.inputT.addEventListener('change', e => setT(e.target.value));
-    dom.presetsT.addEventListener('click', e => {
-      const chip = e.target.closest('.chip');
-      if (chip && chip.dataset.val) setT(chip.dataset.val);
-    });
+    if (dom.sliderT) {
+      dom.sliderT.addEventListener('input', e => setT(e.target.value));
+      dom.sliderT.addEventListener('change', e => setT(e.target.value));
+    }
+    if (dom.inputT) {
+      dom.inputT.addEventListener('input', e => setT(e.target.value));
+      dom.inputT.addEventListener('change', e => setT(e.target.value));
+      dom.inputT.addEventListener('blur', e => setT(e.target.value));
+    }
+    if (dom.presetsT) {
+      dom.presetsT.addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (chip && chip.dataset.val) setT(chip.dataset.val);
+      });
+    }
 
     // Present image duration
     setImgDur = function(val) {
@@ -446,22 +468,33 @@
       } else {
         val = Math.max(50, Math.min(5000, parseInt(val, 10) || 240));
       }
-      dom.sliderImgDur.value = val;
-      dom.inputImgDur.value = val;
-      dom.valImgDur.textContent = `${val} ms`;
+      if (dom.sliderImgDur) dom.sliderImgDur.value = val;
+      if (dom.inputImgDur) dom.inputImgDur.value = val;
+      if (dom.valImgDur) dom.valImgDur.textContent = `${val} ms`;
       state.config.imgDuration = val;
 
-      dom.presetsImgDur.querySelectorAll('.chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.val === String(val) || (c.dataset.val === 'sync' && val === state.config.t));
-      });
+      if (dom.presetsImgDur) {
+        dom.presetsImgDur.querySelectorAll('.chip').forEach(c => {
+          c.classList.toggle('active', c.dataset.val === String(val) || (c.dataset.val === 'sync' && val === state.config.t));
+        });
+      }
     };
 
-    dom.sliderImgDur.addEventListener('input', e => setImgDur(e.target.value));
-    dom.inputImgDur.addEventListener('change', e => setImgDur(e.target.value));
-    dom.presetsImgDur.addEventListener('click', e => {
-      const chip = e.target.closest('.chip');
-      if (chip && chip.dataset.val) setImgDur(chip.dataset.val);
-    });
+    if (dom.sliderImgDur) {
+      dom.sliderImgDur.addEventListener('input', e => setImgDur(e.target.value));
+      dom.sliderImgDur.addEventListener('change', e => setImgDur(e.target.value));
+    }
+    if (dom.inputImgDur) {
+      dom.inputImgDur.addEventListener('input', e => setImgDur(e.target.value));
+      dom.inputImgDur.addEventListener('change', e => setImgDur(e.target.value));
+      dom.inputImgDur.addEventListener('blur', e => setImgDur(e.target.value));
+    }
+    if (dom.presetsImgDur) {
+      dom.presetsImgDur.addEventListener('click', e => {
+        const chip = e.target.closest('.chip');
+        if (chip && chip.dataset.val) setImgDur(chip.dataset.val);
+      });
+    }
 
     // Timeout (seconds)
     setTimeoutSec = function(val) {
@@ -472,8 +505,15 @@
       state.config.timeoutSec = val;
     };
 
-    if (dom.sliderTimeout) dom.sliderTimeout.addEventListener('input', e => setTimeoutSec(e.target.value));
-    if (dom.inputTimeout) dom.inputTimeout.addEventListener('change', e => setTimeoutSec(e.target.value));
+    if (dom.sliderTimeout) {
+      dom.sliderTimeout.addEventListener('input', e => setTimeoutSec(e.target.value));
+      dom.sliderTimeout.addEventListener('change', e => setTimeoutSec(e.target.value));
+    }
+    if (dom.inputTimeout) {
+      dom.inputTimeout.addEventListener('input', e => setTimeoutSec(e.target.value));
+      dom.inputTimeout.addEventListener('change', e => setTimeoutSec(e.target.value));
+      dom.inputTimeout.addEventListener('blur', e => setTimeoutSec(e.target.value));
+    }
 
     // Tolerance
     dom.sliderTolerance.addEventListener('input', e => {
@@ -727,6 +767,24 @@
       dom.hudParticipantName.textContent = nameVal;
     }
 
+    // Ensure all landing inputs are strictly synchronized to state.config
+    const parsedN = parseInt(dom.inputN?.value || dom.sliderN?.value || state.config.n, 10);
+    if (!isNaN(parsedN) && parsedN >= 1) {
+      setN(parsedN);
+    }
+    const parsedT = parseInt(dom.inputT?.value || dom.sliderT?.value || state.config.t, 10);
+    if (!isNaN(parsedT) && parsedT >= 50) {
+      setT(parsedT);
+    }
+    const parsedImgDur = parseInt(dom.inputImgDur?.value || dom.sliderImgDur?.value || state.config.imgDuration, 10);
+    if (!isNaN(parsedImgDur) && parsedImgDur >= 50) {
+      setImgDur(parsedImgDur);
+    }
+    const parsedTimeout = parseInt(dom.inputTimeout?.value || dom.sliderTimeout?.value || state.config.timeoutSec, 10);
+    if (!isNaN(parsedTimeout) && parsedTimeout >= 5) {
+      setTimeoutSec(parsedTimeout);
+    }
+
     dom.btnStart.disabled = true;
     dom.btnStart.textContent = 'Loading Stimuli...';
 
@@ -748,52 +806,77 @@
         return;
       }
 
-      // 3 Disjoint Modules:
+      // 3 Disjoint Modules with strictly UNIQUE non-overlapping scenes:
       // Module 1 (A): Pure flicker test (first n trials)
       // Module 2 (B): Speed & cluster test (next n trials, speedometer, tachometer, warning symbol, fuel gauge)
       // Module 3 (C): Heads-Up Display HUD test (final n trials, HUD pill in row 4, solid black strip at bottom, strictly hud_safe images)
       const pool = data.trials;
 
-      // 1. Select n HUD-safe pairs for Module C (guaranteed no mask target under HUD capsule or bottom strip)
-      const safePool = pool.filter(p => p.hud_safe === true);
-      const modCTrialsRaw = safePool.slice(0, n);
-      const usedIdsC = new Set(modCTrialsRaw.map(p => p.id));
-      const usedImagesC = new Set();
-      modCTrialsRaw.forEach(p => {
-        if (p.present_image) usedImagesC.add(p.present_image);
-        if (p.absent_image) usedImagesC.add(p.absent_image);
-      });
-
-      // 2. Remaining pool for Module A and Module B (excluding anything used in C)
-      const poolExcludingC = pool.filter(t =>
-        !usedIdsC.has(t.id) &&
-        !usedImagesC.has(t.present_image) &&
-        !usedImagesC.has(t.absent_image)
-      );
-
-      // 3. Select n pairs for Module A
-      const modATrialsRaw = [];
-      const usedIdsA = new Set();
-      const usedImagesA = new Set();
-
-      for (const t of poolExcludingC) {
-        if (modATrialsRaw.length < n) {
-          modATrialsRaw.push(t);
-          if (t.id) usedIdsA.add(t.id);
-          if (t.present_image) usedImagesA.add(t.present_image);
-          if (t.absent_image) usedImagesA.add(t.absent_image);
+      // Group pool pairs by base scene key (trial_str) so no scene is ever repeated
+      const scenesMap = new Map();
+      for (const p of pool) {
+        const sceneKey = String(p.trial_str || (p.id ? p.id.split('_')[0] : ''));
+        if (!scenesMap.has(sceneKey)) {
+          scenesMap.set(sceneKey, []);
         }
+        scenesMap.get(sceneKey).push(p);
       }
 
-      // 4. Remaining pool for Module B (excluding anything used in C or A)
-      const poolExcludingCA = poolExcludingC.filter(t =>
-        !usedIdsA.has(t.id) &&
-        !usedImagesA.has(t.present_image) &&
-        !usedImagesA.has(t.absent_image)
-      );
-      const modBTrialsRaw = poolExcludingCA.slice(0, n);
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
 
-      // Construct Module A trials
+      const allScenes = Array.from(scenesMap.keys());
+      const hudSafeScenes = shuffle(allScenes.filter(sceneKey => {
+        return scenesMap.get(sceneKey).some(p => p.hud_safe === true);
+      }));
+
+      if (hudSafeScenes.length < n) {
+        alert(`Requested ${n} samples per module, but only ${hudSafeScenes.length} HUD-safe scenes exist.`);
+        dom.btnStart.disabled = false;
+        dom.btnStart.textContent = 'Start Experiment';
+        return;
+      }
+
+      // 1. Select n distinct HUD-safe scenes for Module C (HUD)
+      const selectedCScenes = hudSafeScenes.slice(0, n);
+      const usedScenes = new Set(selectedCScenes);
+
+      const modCTrialsRaw = selectedCScenes.map(sceneKey => {
+        const safePairs = scenesMap.get(sceneKey).filter(p => p.hud_safe === true);
+        return safePairs[Math.floor(Math.random() * safePairs.length)];
+      });
+
+      // 2. Select n distinct scenes for Module A (Flicker) from remaining scenes
+      const remainingForAB = shuffle(allScenes.filter(s => !usedScenes.has(s)));
+      if (remainingForAB.length < 2 * n) {
+        alert(`Requested ${3 * n} distinct scenes across 3 modules, but only ${allScenes.length} total scenes exist.`);
+        dom.btnStart.disabled = false;
+        dom.btnStart.textContent = 'Start Experiment';
+        return;
+      }
+
+      const selectedAScenes = remainingForAB.slice(0, n);
+      selectedAScenes.forEach(s => usedScenes.add(s));
+      const modATrialsRaw = selectedAScenes.map(sceneKey => {
+        const availablePairs = scenesMap.get(sceneKey);
+        return availablePairs[Math.floor(Math.random() * availablePairs.length)];
+      });
+
+      // 3. Select n distinct scenes for Module B (Cluster Strip) from remaining scenes
+      const selectedBScenes = remainingForAB.slice(n, 2 * n);
+      selectedBScenes.forEach(s => usedScenes.add(s));
+      const modBTrialsRaw = selectedBScenes.map(sceneKey => {
+        const availablePairs = scenesMap.get(sceneKey);
+        return availablePairs[Math.floor(Math.random() * availablePairs.length)];
+      });
+
+      // Construct Module A trials (Pure Flicker)
       const modATrials = modATrialsRaw.map(t => ({
         ...t,
         module: 'a',
@@ -803,7 +886,7 @@
         isProbe: false
       }));
 
-      // Construct Module B trials
+      // Construct Module B trials (Cluster Strip)
       const modBTrials = modBTrialsRaw.map((t, i) => ({
         ...t,
         module: 'b',
@@ -814,7 +897,7 @@
         isProbe: false
       }));
 
-      // Construct Module C trials (strictly hud_safe pairs)
+      // Construct Module C trials (Heads-Up Display HUD)
       const modCTrials = modCTrialsRaw.map((t, i) => ({
         ...t,
         module: 'c',
