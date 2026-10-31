@@ -173,6 +173,9 @@
     hudProgressFill: document.getElementById('hud-progress-fill'),
     hudStateBadge: document.getElementById('hud-state-badge'),
     hudStateText: document.getElementById('hud-state-text'),
+    hudDiffBadge: document.getElementById('hud-diff-badge'),
+    hudDiffIcon: document.getElementById('hud-diff-icon'),
+    hudDiffText: document.getElementById('hud-diff-text'),
     hudModuleBadge: document.getElementById('hud-module-badge'),
     hudTimerVal: document.getElementById('hud-timer-val'),
     hudAccVal: document.getElementById('hud-acc-val'),
@@ -1321,6 +1324,8 @@
     fitStageLayout();
 
     // Reset visual feedback elements
+    if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+    if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
     dom.blackOverlay.classList.remove('active');
     dom.feedbackOverlay.classList.remove('visible');
     feedbackCtx.clearRect(0, 0, 1024, 768);
@@ -1435,6 +1440,21 @@
     dom.speedRecallOverlay.classList.add('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'false');
 
+    // Display whether the difference chosen by the user is correct or incorrect in navbar/header
+    const trialResult = state.trialResults.find(r => r.trial_index === trialIndex + 1);
+    const isDiffCorrect = trialResult ? Boolean(trialResult.accurate) : (state.activeResult ? Boolean(state.activeResult.accurate) : false);
+
+    if (dom.hudDiffBadge) {
+      dom.hudDiffBadge.style.display = 'inline-flex';
+      dom.hudDiffBadge.className = `hud-diff-pill ${isDiffCorrect ? 'correct' : 'incorrect'}`;
+      if (dom.hudDiffIcon) dom.hudDiffIcon.textContent = isDiffCorrect ? '✓' : '✗';
+      if (dom.hudDiffText) dom.hudDiffText.textContent = isDiffCorrect ? 'Difference: Correct' : 'Difference: Incorrect';
+    }
+    if (dom.hudStateBadge) {
+      dom.hudStateBadge.style.display = 'none';
+      setHUDState(isDiffCorrect ? 'diff-correct' : 'diff-incorrect', isDiffCorrect ? '✓ Difference: Correct' : '✗ Difference: Incorrect');
+    }
+
     const probeType = trial?.probeType || 'speed';
     const actualSpeed = trial?.dashboardData?.speed || 0;
     const actualSymbol = trial?.dashboardData?.symbol || SYMBOLS[0];
@@ -1450,7 +1470,6 @@
     };
 
     if (probeType === 'symbol') {
-      setHUDState('speed_recall', 'Symbol Recall (MCQ)');
       if (dom.recallModalIcon) dom.recallModalIcon.textContent = '⚠️';
       if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Warning Symbol Recall';
       if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'Which warning symbol was displayed on the dashboard cluster?';
@@ -1485,7 +1504,6 @@
         });
       }
     } else if (probeType === 'rpm') {
-      setHUDState('speed_recall', 'RPM Recall (MCQ)');
       if (dom.recallModalIcon) dom.recallModalIcon.textContent = '⚙️';
       if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Engine Tachometer (RPM) Recall';
       if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'What was the engine RPM (x1000 RPM) displayed in the previous trial?';
@@ -1512,7 +1530,6 @@
       }
     } else {
       // Speed recall
-      setHUDState('speed_recall', 'Speed Recall (MCQ)');
       if (dom.recallModalIcon) dom.recallModalIcon.textContent = '🏎️';
       if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Dashboard Speed Recall';
       if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'What was the vehicle speed displayed on the dashboard meter in the previous trial?';
@@ -1660,28 +1677,21 @@
       }
     }
 
-    // Highlight correct answer in green and lock options
-    if (dom.speedRecallOptions) {
-      const allBtns = dom.speedRecallOptions.querySelectorAll('.speed-option-btn');
-      allBtns.forEach(btn => {
-        btn.disabled = true;
-        btn.style.pointerEvents = 'none';
-        if (btn.dataset.correct === 'true') {
-          btn.classList.add('option-correct');
-        }
-      });
+    state.speedRecallPending = false;
+    state._recallContext = null;
+    state._currentMCQOptions = null;
+    dom.speedRecallOverlay.classList.remove('active');
+    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+    dom.stageWrapper.classList.remove('speed-recall-blur');
+
+    if (dom.hudDiffBadge) {
+      dom.hudDiffBadge.style.display = 'none';
+    }
+    if (dom.hudStateBadge) {
+      dom.hudStateBadge.style.display = 'flex';
     }
 
-    setTimeout(() => {
-      state.speedRecallPending = false;
-      state._recallContext = null;
-      state._currentMCQOptions = null;
-      dom.speedRecallOverlay.classList.remove('active');
-      dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
-      dom.stageWrapper.classList.remove('speed-recall-blur');
-
-      advanceAfterTrial(ctx.trialIndex);
-    }, 340);
+    advanceAfterTrial(ctx.trialIndex);
   }
 
   function submitRecallMCQ(selectedOption) {
@@ -1785,38 +1795,30 @@
       }
     }
 
-    // Highlight correct answer in green, chosen option if incorrect, and disable buttons
-    if (dom.speedRecallOptions) {
-      const allBtns = dom.speedRecallOptions.querySelectorAll('.speed-option-btn');
-      allBtns.forEach(btn => {
-        btn.disabled = true;
-        btn.style.pointerEvents = 'none';
-        if (btn.dataset.correct === 'true') {
-          btn.classList.add('option-correct');
-        } else if (btn.dataset.key === String(selectedOption.key) && !isAccurate) {
-          btn.classList.add('option-incorrect');
-        }
-      });
+    state.speedRecallPending = false;
+    state._recallContext = null;
+    state._currentMCQOptions = null;
+    dom.speedRecallOverlay.classList.remove('active');
+    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+    dom.stageWrapper.classList.remove('speed-recall-blur');
+
+    if (dom.hudDiffBadge) {
+      dom.hudDiffBadge.style.display = 'none';
+    }
+    if (dom.hudStateBadge) {
+      dom.hudStateBadge.style.display = 'flex';
     }
 
-    // 340ms break before skipping to next image
-    setTimeout(() => {
-      state.speedRecallPending = false;
-      state._recallContext = null;
-      state._currentMCQOptions = null;
-      dom.speedRecallOverlay.classList.remove('active');
-      dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
-      dom.stageWrapper.classList.remove('speed-recall-blur');
-
-      playSound('advance');
-      advanceAfterTrial(ctx.trialIndex);
-    }, 340);
+    playSound('advance');
+    advanceAfterTrial(ctx.trialIndex);
   }
 
   // ===== Module Transition System =====
   function showModuleTransitionModal(targetModule = 'b') {
     state.trialState = 'module_transition';
     state._transitionTarget = targetModule;
+    if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+    if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
     setHUDState('module_transition', 'Module Completed');
 
     dom.stageWrapper.classList.add('speed-recall-blur');
@@ -1998,6 +2000,8 @@
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
         if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
+        if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+        if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
         dom.speedRecallOverlay.classList.remove('active');
         dom.stageWrapper.classList.remove('speed-recall-blur');
         state.speedRecallPending = false;
@@ -2218,6 +2222,8 @@
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
         if (dom.moduleTransitionOverlay) dom.moduleTransitionOverlay.classList.remove('active');
+        if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+        if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
         dom.speedRecallOverlay.classList.remove('active');
         dom.stageWrapper.classList.remove('speed-recall-blur');
         state.speedRecallPending = false;
@@ -2655,6 +2661,8 @@
       // Reset participant state
       state.participant = { name: '', gender: '' };
       if (dom.hudParticipantName) dom.hudParticipantName.textContent = '--';
+      if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+      if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
 
       showScreen('landing');
     });
