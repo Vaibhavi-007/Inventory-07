@@ -287,6 +287,36 @@
     });
   }
 
+  // Adjust stimulus stage wrapper & dashboard bar to maintain strict 1024:768 image ratio with zero letterboxing
+  function fitStageLayout() {
+    const wrapper = dom.stageWrapper;
+    const stageUnit = dom.stageDisplayUnit;
+    const dashboard = dom.carDashboardOverlay;
+    if (!wrapper || !stageUnit) return;
+
+    const hasDash = stageUnit.classList.contains('has-dashboard');
+    const dashHeight = hasDash ? 95 : 0;
+
+    // Available space in viewport (accounting for nav 60px, footer 55px, and margins)
+    const availHeight = Math.max(260, window.innerHeight - 135 - dashHeight);
+    const availWidth = Math.max(320, Math.min(1024, window.innerWidth - 32));
+
+    let w = availWidth;
+    let h = Math.round(w * 768 / 1024);
+
+    if (h > availHeight) {
+      h = availHeight;
+      w = Math.round(h * 1024 / 768);
+    }
+
+    wrapper.style.width = `${w}px`;
+    wrapper.style.height = `${h}px`;
+
+    if (dashboard) {
+      dashboard.style.width = `${w}px`;
+    }
+  }
+
   // --- Navigation ---
   function showScreen(name) {
     state.screen = name;
@@ -296,6 +326,7 @@
       dom.screenLanding.classList.add('active');
     } else if (name === 'experiment') {
       dom.screenExperiment.classList.add('active');
+      fitStageLayout();
     } else if (name === 'results') {
       dom.screenResults.classList.add('active');
     }
@@ -306,6 +337,8 @@
     bindLandingControls();
     bindExperimentControls();
     bindResultsControls();
+    window.addEventListener('resize', fitStageLayout);
+    fitStageLayout();
 
     // Fetch dataset info from server
     try {
@@ -758,6 +791,7 @@
 
       showScreen('experiment');
       updateHUD();
+    fitStageLayout();
       runTrial(0);
     } catch (err) {
       console.error('Failed to launch experiment:', err);
@@ -1206,6 +1240,7 @@
     }
 
     updateHUD();
+    fitStageLayout();
 
     // Reset visual feedback elements
     dom.blackOverlay.classList.remove('active');
@@ -1353,7 +1388,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = `speed-option-btn symbol-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
-          btn.dataset.key = opt.key;
+          btn.dataset.key = String(opt.key);
+          btn.dataset.correct = opt.isCorrect ? 'true' : 'false';
           if (opt.isIdk) {
             btn.innerHTML = `
               <span class="opt-badge">${opt.key}</span>
@@ -1386,7 +1422,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
-          btn.dataset.key = opt.key;
+          btn.dataset.key = String(opt.key);
+          btn.dataset.correct = opt.isCorrect ? 'true' : 'false';
           btn.innerHTML = `
             <span class="opt-badge">${opt.key}</span>
             <span class="opt-label">${opt.label}</span>
@@ -1412,7 +1449,8 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
-          btn.dataset.key = opt.key;
+          btn.dataset.key = String(opt.key);
+          btn.dataset.correct = opt.isCorrect ? 'true' : 'false';
           btn.innerHTML = `
             <span class="opt-badge">${opt.key}</span>
             <span class="opt-label">${opt.label}</span>
@@ -1544,14 +1582,28 @@
       }
     }
 
-    state.speedRecallPending = false;
-    state._recallContext = null;
-    state._currentMCQOptions = null;
-    dom.speedRecallOverlay.classList.remove('active');
-    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
-    dom.stageWrapper.classList.remove('speed-recall-blur');
+    // Highlight correct answer in green and lock options
+    if (dom.speedRecallOptions) {
+      const allBtns = dom.speedRecallOptions.querySelectorAll('.speed-option-btn');
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        if (btn.dataset.correct === 'true') {
+          btn.classList.add('option-correct');
+        }
+      });
+    }
 
-    advanceAfterTrial(ctx.trialIndex);
+    setTimeout(() => {
+      state.speedRecallPending = false;
+      state._recallContext = null;
+      state._currentMCQOptions = null;
+      dom.speedRecallOverlay.classList.remove('active');
+      dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+      dom.stageWrapper.classList.remove('speed-recall-blur');
+
+      advanceAfterTrial(ctx.trialIndex);
+    }, 340);
   }
 
   function submitRecallMCQ(selectedOption) {
@@ -1655,16 +1707,32 @@
       }
     }
 
-    // Clean up overlay and unblur (no feedback given to participant!)
-    state.speedRecallPending = false;
-    state._recallContext = null;
-    state._currentMCQOptions = null;
-    dom.speedRecallOverlay.classList.remove('active');
-    dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
-    dom.stageWrapper.classList.remove('speed-recall-blur');
+    // Highlight correct answer in green, chosen option if incorrect, and disable buttons
+    if (dom.speedRecallOptions) {
+      const allBtns = dom.speedRecallOptions.querySelectorAll('.speed-option-btn');
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        if (btn.dataset.correct === 'true') {
+          btn.classList.add('option-correct');
+        } else if (btn.dataset.key === String(selectedOption.key) && !isAccurate) {
+          btn.classList.add('option-incorrect');
+        }
+      });
+    }
 
-    playSound('advance');
-    advanceAfterTrial(ctx.trialIndex);
+    // 340ms break before skipping to next image
+    setTimeout(() => {
+      state.speedRecallPending = false;
+      state._recallContext = null;
+      state._currentMCQOptions = null;
+      dom.speedRecallOverlay.classList.remove('active');
+      dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+      dom.stageWrapper.classList.remove('speed-recall-blur');
+
+      playSound('advance');
+      advanceAfterTrial(ctx.trialIndex);
+    }, 340);
   }
 
   // ===== Module Transition System =====
