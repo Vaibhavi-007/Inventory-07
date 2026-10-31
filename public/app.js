@@ -2910,11 +2910,6 @@
     triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.xls`);
   }
 
-    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.xls`);
-  }
-
   function exportJson() {
     const payload = {
       session_id: state.sessionId,
