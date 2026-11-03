@@ -151,9 +151,13 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       let targetX = null;
       let targetY = null;
+      let displayId = null;
       if (body) {
         try {
           const parsed = JSON.parse(body);
+          if (parsed.display_id != null) {
+            displayId = String(parsed.display_id);
+          }
           if (parsed.x != null && !isNaN(parsed.x) && parsed.y != null && !isNaN(parsed.y)) {
             targetX = String(Math.round(parsed.x));
             targetY = String(Math.round(parsed.y));
@@ -165,12 +169,19 @@ const server = http.createServer((req, res) => {
 
       if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
         const { execFile } = require('child_process');
-        const args = (targetX && targetY) ? [targetX, targetY] : [];
+        const args = [];
+        if (displayId && targetX && targetY) {
+          args.push(displayId, targetX, targetY);
+        } else if (displayId) {
+          args.push(displayId);
+        } else if (targetX && targetY) {
+          args.push(targetX, targetY);
+        }
         execFile(CENTER_MOUSE_BIN, args, (err) => {
           if (err) {
             sendJson(res, 200, { success: false, error: err.message });
           } else {
-            sendJson(res, 200, { success: true, centered: true, x: targetX, y: targetY });
+            sendJson(res, 200, { success: true, centered: true, display_id: displayId, x: targetX, y: targetY });
           }
         });
       } else {

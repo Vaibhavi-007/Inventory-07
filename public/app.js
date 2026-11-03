@@ -1123,16 +1123,31 @@
     if (displays && Array.isArray(displays) && dom.tobiiDisplaySelect) {
       state.tobiiAvailableDisplays = displays;
       dom.tobiiDisplaySelect.innerHTML = '';
+
+      const savedDisplayId = localStorage.getItem('rb_selected_display_id');
+      let targetDisplay = null;
+      if (savedDisplayId) {
+        targetDisplay = displays.find(d => String(d.display_id) === String(savedDisplayId));
+      }
+      if (!targetDisplay) {
+        // Auto-select external 27" monitor (DELL) if connected, rather than the built-in laptop screen
+        targetDisplay = displays.find(d => !d.is_main) || displays[0];
+      }
+
       displays.forEach((d, idx) => {
         const opt = document.createElement('option');
         opt.value = d.display_id != null ? d.display_id : idx;
-        opt.textContent = `${d.name || ('Display ' + (idx + 1))} (${d.width_mm} × ${d.height_mm} mm)${d.is_main ? ' ★ Primary' : ''}`;
-        if (d.is_main) opt.selected = true;
+        const tag = d.is_main ? ' [MacBook Built-in]' : ' [External 27"]';
+        opt.textContent = `${d.name || ('Display ' + (idx + 1))} (${d.width_mm} × ${d.height_mm} mm)${tag}`;
+        if (targetDisplay && String(d.display_id) === String(targetDisplay.display_id)) {
+          opt.selected = true;
+        }
         dom.tobiiDisplaySelect.appendChild(opt);
       });
-      const selected = displays.find(d => d.is_main) || displays[0];
-      if (selected && dom.tobiiDisplayDims) {
-        dom.tobiiDisplayDims.textContent = `${selected.width_mm} × ${selected.height_mm} mm (Distance: ${Math.round((status.screen_geometry?.distance_mm || 650) / 10)} cm)`;
+
+      state.selectedDisplayId = targetDisplay ? targetDisplay.display_id : displays[0].display_id;
+      if (targetDisplay && dom.tobiiDisplayDims) {
+        dom.tobiiDisplayDims.textContent = `${targetDisplay.width_mm} × ${targetDisplay.height_mm} mm (Distance: ${Math.round((status.screen_geometry?.distance_mm || 650) / 10)} cm)`;
       }
     }
   }
@@ -1254,6 +1269,9 @@
 
   function handleTobiiDisplayChange() {
     const dId = dom.tobiiDisplaySelect.value;
+    state.selectedDisplayId = dId;
+    localStorage.setItem('rb_selected_display_id', dId);
+
     const disp = state.tobiiAvailableDisplays.find(d => String(d.display_id) === String(dId));
     if (disp) {
       if (dom.tobiiDisplayDims) {
@@ -1269,6 +1287,13 @@
           offset_y_mm: 40.0
         })
       }).catch(err => console.warn('Display configure error:', err));
+
+      // Immediately center cursor on the selected target display
+      fetch('/api/center-mouse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_id: dId })
+      }).catch(() => {});
     }
   }
 
@@ -1329,9 +1354,9 @@
           dom.tobiiTargetAnchor.style.top = `${pt.y * 100}%`;
         }
         sendTobii('START_VALIDATION_POINT', { x: pt.x, y: pt.y });
-        await delay(1300);
+        await delay(1500);
         sendTobii('STOP_VALIDATION_POINT', { x: pt.x, y: pt.y });
-        await delay(150);
+        await delay(200);
       }
 
       if (dom.tobiiPhaseGuide) {
@@ -1433,21 +1458,27 @@
     }
 
     // 4. Breakdown Table
-    if (dom.tobiiBreakdownTbody && result.breakdown && Array.isArray(result.breakdown)) {
+    const breakdownItems = result.point_details || result.breakdown || [];
+    if (dom.tobiiBreakdownTbody && Array.isArray(breakdownItems) && breakdownItems.length > 0) {
       dom.tobiiBreakdownTbody.innerHTML = '';
-      result.breakdown.forEach((pt, idx) => {
-        const pointDef = TOBII_CALIBRATION_POINTS[idx] || { name: `Point ${idx + 1}` };
+      breakdownItems.forEach((pt, idx) => {
+        const pointDef = TOBII_CALIBRATION_POINTS[idx] || { name: pt.name || `Point ${idx + 1}` };
         const tr = document.createElement('tr');
-        const pPassed = pt.passed !== false && pt.data_loss_pct <= 0.0 && pt.precision_deg <= 0.20 && pt.accuracy_deg <= 0.50;
-        const targetStr = `(${pt.point ? pt.point[0].toFixed(2) : '--'}, ${pt.point ? pt.point[1].toFixed(2) : '--'})`;
-        const gazeStr = pt.gaze_mean ? `(${pt.gaze_mean[0].toFixed(2)}, ${pt.gaze_mean[1].toFixed(2)})` : '--';
+        const pLoss = pt.data_loss_pct != null ? pt.data_loss_pct : 0.0;
+        const pPassed = pt.passed !== false && pLoss <= 0.0 && pt.precision_deg <= 0.20 && pt.accuracy_deg <= 0.50;
+        const targetPt = pt.target || pt.point;
+        const gazePt = pt.gaze_centroid || pt.gaze_mean;
+        const offsetDist = pt.offset_dist_mm != null ? pt.offset_dist_mm : pt.physical_offset_mm;
+
+        const targetStr = targetPt ? `(${Number(targetPt[0]).toFixed(2)}, ${Number(targetPt[1]).toFixed(2)})` : '--';
+        const gazeStr = gazePt ? `(${Number(gazePt[0]).toFixed(2)}, ${Number(gazePt[1]).toFixed(2)})` : '--';
 
         tr.innerHTML = `
-          <td><strong>${pointDef.name}</strong></td>
+          <td><strong>${pt.name || pointDef.name}</strong></td>
           <td><code>${targetStr}</code></td>
           <td><code>${gazeStr}</code></td>
           <td>${pt.accuracy_deg != null ? pt.accuracy_deg + '°' : '--'}</td>
-          <td>${pt.physical_offset_mm != null ? pt.physical_offset_mm + ' mm' : '--'}</td>
+          <td>${offsetDist != null ? offsetDist + ' mm' : '--'}</td>
           <td>${pt.precision_deg != null ? pt.precision_deg + '°' : '--'}</td>
           <td><span class="tobii-badge ${pPassed ? 'tobii-badge-pass' : 'tobii-badge-fail'}">${pPassed ? 'PASS' : 'FAIL'}</span></td>
         `;
@@ -1880,6 +1911,7 @@
   function centerMouseCursor() {
     let targetX = null;
     let targetY = null;
+    const activeDisplayId = dom.tobiiDisplaySelect?.value || state.selectedDisplayId || localStorage.getItem('rb_selected_display_id');
 
     if (dom.displayCanvas) {
       const rect = dom.displayCanvas.getBoundingClientRect();
@@ -1891,15 +1923,14 @@
       targetY = Math.round(winY + chromeHeight + rect.top + (rect.height / 2));
     }
 
-    if (!targetX || !targetY || targetX < 0 || targetY < 0 || targetX > window.screen.width || targetY > window.screen.height) {
-      targetX = Math.round(window.screen.width / 2);
-      targetY = Math.round(window.screen.height / 2);
-    }
-
     fetch('/api/center-mouse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ x: targetX, y: targetY })
+      body: JSON.stringify({ 
+        display_id: activeDisplayId,
+        x: targetX, 
+        y: targetY 
+      })
     }).catch(() => {});
   }
 
