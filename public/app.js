@@ -1117,17 +1117,18 @@
     }
 
     // Populate display select dropdown
-    if (status.displays && Array.isArray(status.displays) && dom.tobiiDisplaySelect) {
-      state.tobiiAvailableDisplays = status.displays;
+    const displays = status.available_displays || status.displays;
+    if (displays && Array.isArray(displays) && dom.tobiiDisplaySelect) {
+      state.tobiiAvailableDisplays = displays;
       dom.tobiiDisplaySelect.innerHTML = '';
-      status.displays.forEach((d, idx) => {
+      displays.forEach((d, idx) => {
         const opt = document.createElement('option');
         opt.value = d.display_id != null ? d.display_id : idx;
         opt.textContent = `${d.name || ('Display ' + (idx + 1))} (${d.width_mm} × ${d.height_mm} mm)${d.is_main ? ' ★ Primary' : ''}`;
         if (d.is_main) opt.selected = true;
         dom.tobiiDisplaySelect.appendChild(opt);
       });
-      const selected = status.displays.find(d => d.is_main) || status.displays[0];
+      const selected = displays.find(d => d.is_main) || displays[0];
       if (selected && dom.tobiiDisplayDims) {
         dom.tobiiDisplayDims.textContent = `${selected.width_mm} × ${selected.height_mm} mm (Distance: ${Math.round((status.screen_geometry?.distance_mm || 650) / 10)} cm)`;
       }
@@ -1141,14 +1142,18 @@
     if (track.has_eyes) {
       if (dom.tobiiNoEyesText) dom.tobiiNoEyesText.style.display = 'none';
       if (track.left_eye && dom.tobiiLeftPupil) {
+        const lx = track.left_eye.x != null ? track.left_eye.x : (Array.isArray(track.left_eye) ? track.left_eye[0] : 0.5);
+        const ly = track.left_eye.y != null ? track.left_eye.y : (Array.isArray(track.left_eye) ? track.left_eye[1] : 0.5);
         dom.tobiiLeftPupil.style.display = 'block';
-        dom.tobiiLeftPupil.style.left = `${Math.round(track.left_eye[0] * 100)}%`;
-        dom.tobiiLeftPupil.style.top = `${Math.round(track.left_eye[1] * 100)}%`;
+        dom.tobiiLeftPupil.style.left = `${Math.round(lx * 100)}%`;
+        dom.tobiiLeftPupil.style.top = `${Math.round(ly * 100)}%`;
       }
       if (track.right_eye && dom.tobiiRightPupil) {
+        const rx = track.right_eye.x != null ? track.right_eye.x : (Array.isArray(track.right_eye) ? track.right_eye[0] : 0.5);
+        const ry = track.right_eye.y != null ? track.right_eye.y : (Array.isArray(track.right_eye) ? track.right_eye[1] : 0.5);
         dom.tobiiRightPupil.style.display = 'block';
-        dom.tobiiRightPupil.style.left = `${Math.round(track.right_eye[0] * 100)}%`;
-        dom.tobiiRightPupil.style.top = `${Math.round(track.right_eye[1] * 100)}%`;
+        dom.tobiiRightPupil.style.left = `${Math.round(rx * 100)}%`;
+        dom.tobiiRightPupil.style.top = `${Math.round(ry * 100)}%`;
       }
     } else {
       if (dom.tobiiNoEyesText) dom.tobiiNoEyesText.style.display = 'block';
@@ -1171,7 +1176,7 @@
 
     if (dom.tobiiDistStatus) {
       dom.tobiiDistStatus.className = 'tobii-distance-status-badge';
-      if (track.distance_status === 'SWEET_SPOT') {
+      if (track.distance_status === 'OPTIMAL' || track.distance_status === 'SWEET_SPOT') {
         dom.tobiiDistStatus.textContent = 'OPTIMAL (55–65 cm)';
         dom.tobiiDistStatus.classList.add('status-optimal');
       } else if (track.distance_status === 'TOO_CLOSE') {
@@ -1215,6 +1220,14 @@
     if (dom.tobiiPositioningView) dom.tobiiPositioningView.style.display = 'block';
     if (dom.tobiiResultsView) dom.tobiiResultsView.style.display = 'none';
     if (dom.tobiiStageOverlay) dom.tobiiStageOverlay.style.display = 'none';
+
+    // Fetch hardware displays & geometry immediately via REST
+    fetch('/api/tobii/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data) updateTobiiHardwareUI(data);
+      })
+      .catch(err => console.warn('Tobii status fetch error:', err));
 
     // If socket is disconnected, try reconnect
     if (!state.tobiiConnected) {

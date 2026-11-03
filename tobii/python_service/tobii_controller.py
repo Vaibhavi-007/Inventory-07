@@ -284,7 +284,8 @@ class TobiiFusionController:
                 "width_mm": self.screen_width_mm,
                 "height_mm": self.screen_height_mm,
                 "distance_mm": self.distance_mm
-            }
+            },
+            "available_displays": getattr(self, "available_displays", [])
         }
 
     # --------------------------------------------------------------------------
