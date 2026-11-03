@@ -995,6 +995,7 @@
   }
 
   function proceedToExperimentArena() {
+    clearInterval(tobiiTrackPollInterval);
     showScreen('experiment');
     updateHUD();
     fitStageLayout();
@@ -1014,6 +1015,7 @@
   ];
 
   let pendingValidationResolve = null;
+  let tobiiTrackPollInterval = null;
 
   function initTobiiClient() {
     if (state.tobiiSocket && (state.tobiiSocket.readyState === WebSocket.OPEN || state.tobiiSocket.readyState === WebSocket.CONNECTING)) {
@@ -1228,6 +1230,21 @@
         if (data) updateTobiiHardwareUI(data);
       })
       .catch(err => console.warn('Tobii status fetch error:', err));
+
+    // Fast polling fallback for Track Status to guarantee instant live headbox & distance
+    clearInterval(tobiiTrackPollInterval);
+    tobiiTrackPollInterval = setInterval(() => {
+      if (state.screen !== 'tobii') {
+        clearInterval(tobiiTrackPollInterval);
+        return;
+      }
+      fetch('/api/tobii/track-status')
+        .then(res => res.json())
+        .then(track => {
+          if (track) updateTobiiTrackStatus(track);
+        })
+        .catch(() => {});
+    }, 100);
 
     // If socket is disconnected, try reconnect
     if (!state.tobiiConnected) {
