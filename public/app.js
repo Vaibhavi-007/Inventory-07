@@ -100,8 +100,8 @@
 
     // Participant state
     participant: {
-      name: '',
-      gender: ''
+      id: '',
+      name: ''
     },
 
     // Speed recall probe state
@@ -123,14 +123,11 @@
     screenResults: document.getElementById('screen-results'),
 
     // Participant details
-    inputParticipantName: document.getElementById('input-participant-name'),
-    selectParticipantGender: document.getElementById('select-participant-gender'),
-    nameError: document.getElementById('name-error'),
-    genderError: document.getElementById('gender-error'),
+    inputParticipantId: document.getElementById('input-participant-id'),
+    idError: document.getElementById('id-error'),
     hudParticipantBadge: document.getElementById('hud-participant-badge'),
     hudParticipantName: document.getElementById('hud-participant-name'),
-    resParticipantName: document.getElementById('res-participant-name'),
-    resParticipantGender: document.getElementById('res-participant-gender'),
+    resParticipantId: document.getElementById('res-participant-id'),
     resSessionIdDisplay: document.getElementById('res-session-id-display'),
     resSessionDateDisplay: document.getElementById('res-session-date-display'),
 
@@ -528,20 +525,11 @@
     dom.chkSound.addEventListener('change', e => state.config.sound = e.target.checked);
 
     // Participant inputs validation clear on interaction
-    if (dom.inputParticipantName) {
-      dom.inputParticipantName.addEventListener('input', () => {
-        if (dom.inputParticipantName.value.trim()) {
-          dom.inputParticipantName.classList.remove('input-error');
-          if (dom.nameError) dom.nameError.style.display = 'none';
-        }
-      });
-    }
-
-    if (dom.selectParticipantGender) {
-      dom.selectParticipantGender.addEventListener('change', () => {
-        if (dom.selectParticipantGender.value) {
-          dom.selectParticipantGender.classList.remove('input-error');
-          if (dom.genderError) dom.genderError.style.display = 'none';
+    if (dom.inputParticipantId) {
+      dom.inputParticipantId.addEventListener('input', () => {
+        if (dom.inputParticipantId.value.trim()) {
+          dom.inputParticipantId.classList.remove('input-error');
+          if (dom.idError) dom.idError.style.display = 'none';
         }
       });
     }
@@ -726,46 +714,31 @@
 
   // --- Experiment Execution ---
   async function startExperiment() {
-    // Validate required participant name and gender
-    const nameVal = dom.inputParticipantName?.value?.trim() || '';
-    const genderVal = dom.selectParticipantGender?.value || '';
+    // Validate required Participation ID
+    const idVal = dom.inputParticipantId?.value?.trim() || '';
 
-    let hasValidationError = false;
-    if (!nameVal) {
-      if (dom.inputParticipantName) dom.inputParticipantName.classList.add('input-error');
-      if (dom.nameError) dom.nameError.style.display = 'block';
-      hasValidationError = true;
-    } else {
-      if (dom.inputParticipantName) dom.inputParticipantName.classList.remove('input-error');
-      if (dom.nameError) dom.nameError.style.display = 'none';
-    }
-
-    if (!genderVal) {
-      if (dom.selectParticipantGender) dom.selectParticipantGender.classList.add('input-error');
-      if (dom.genderError) dom.genderError.style.display = 'block';
-      hasValidationError = true;
-    } else {
-      if (dom.selectParticipantGender) dom.selectParticipantGender.classList.remove('input-error');
-      if (dom.genderError) dom.genderError.style.display = 'none';
-    }
-
-    if (hasValidationError) {
-      if (!nameVal && dom.inputParticipantName) {
-        dom.inputParticipantName.focus();
-      } else if (!genderVal && dom.selectParticipantGender) {
-        dom.selectParticipantGender.focus();
+    if (!idVal) {
+      if (dom.inputParticipantId) {
+        dom.inputParticipantId.classList.add('input-error');
+        dom.inputParticipantId.focus();
       }
+      if (dom.idError) dom.idError.style.display = 'block';
       return;
     }
 
+    if (dom.inputParticipantId) dom.inputParticipantId.classList.remove('input-error');
+    if (dom.idError) dom.idError.style.display = 'none';
+
     state.participant = {
-      name: nameVal,
-      gender: genderVal
+      id: idVal,
+      name: idVal
     };
 
     if (dom.hudParticipantName) {
-      dom.hudParticipantName.textContent = nameVal;
+      dom.hudParticipantName.textContent = idVal;
     }
+
+    centerMouseCursor();
 
     // Ensure all landing inputs are strictly synchronized to state.config
     const parsedN = parseInt(dom.inputN?.value || dom.sliderN?.value || state.config.n, 10);
@@ -1067,6 +1040,7 @@
     };
 
     playSound('miss');
+    centerMouseCursor();
 
     const trial = state.currentTrialData;
 
@@ -1321,8 +1295,36 @@
       </svg>`;
   }
 
+  // Center the physical mouse cursor at the center of the display / experiment canvas
+  function centerMouseCursor() {
+    let targetX = null;
+    let targetY = null;
+
+    if (dom.displayCanvas) {
+      const rect = dom.displayCanvas.getBoundingClientRect();
+      const winX = window.screenX !== undefined ? window.screenX : (window.screenLeft !== undefined ? window.screenLeft : 0);
+      const winY = window.screenY !== undefined ? window.screenY : (window.screenTop !== undefined ? window.screenTop : 0);
+      
+      const chromeHeight = (window.outerHeight - window.innerHeight) > 0 ? (window.outerHeight - window.innerHeight) : 0;
+      targetX = Math.round(winX + rect.left + (rect.width / 2));
+      targetY = Math.round(winY + chromeHeight + rect.top + (rect.height / 2));
+    }
+
+    if (!targetX || !targetY || targetX < 0 || targetY < 0 || targetX > window.screen.width || targetY > window.screen.height) {
+      targetX = Math.round(window.screen.width / 2);
+      targetY = Math.round(window.screen.height / 2);
+    }
+
+    fetch('/api/center-mouse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: targetX, y: targetY })
+    }).catch(() => {});
+  }
+
   // Run a single trial
   async function runTrial(index) {
+    centerMouseCursor();
     clearTimeout(state.phaseTimer);
     clearInterval(state.flickerTimer);
     clearTimeout(state.trialTimeoutTimer);
@@ -1488,6 +1490,7 @@
 
   // ===== Recall MCQ System (Speed or Symbol) =====
   function showRecallPrompt(trialIndex) {
+    centerMouseCursor();
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 
@@ -1774,6 +1777,7 @@
       dom.hudStateBadge.style.display = 'flex';
     }
 
+    centerMouseCursor();
     advanceAfterTrial(ctx.trialIndex);
   }
 
@@ -1892,6 +1896,7 @@
       dom.hudStateBadge.style.display = 'flex';
     }
 
+    centerMouseCursor();
     playSound('advance');
     advanceAfterTrial(ctx.trialIndex);
   }
@@ -2054,6 +2059,7 @@
     clearInterval(state.speedRecallInterval);
     if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
     playSound('advance');
+    centerMouseCursor();
 
     const trial = state.currentTrialData;
     if (trial && (trial.module === 'b' || trial.module === 'c') && trial.isProbe && trial.dashboardData) {
@@ -2150,6 +2156,7 @@
     } else {
       playSound('miss');
     }
+    centerMouseCursor();
 
     const trial = state.currentTrialData;
 
@@ -2526,8 +2533,9 @@
     if (dom.resRightRt) dom.resRightRt.textContent = rightStats.rt;
     if (dom.resRightCount) dom.resRightCount.textContent = rightStats.count;
 
-    if (dom.resParticipantName) dom.resParticipantName.textContent = state.participant?.name || 'Anonymous';
-    if (dom.resParticipantGender) dom.resParticipantGender.textContent = state.participant?.gender || 'Not specified';
+    const dispId = state.participant?.id || state.participant?.name || 'Anonymous';
+    if (dom.resParticipantId) dom.resParticipantId.textContent = dispId;
+    if (dom.resParticipantName) dom.resParticipantName.textContent = dispId;
     if (dom.resSessionIdDisplay) dom.resSessionIdDisplay.textContent = state.sessionId || '--';
     if (dom.resSessionDateDisplay) dom.resSessionDateDisplay.textContent = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -2663,9 +2671,9 @@
     const payload = {
       session_id: state.sessionId,
       timestamp: new Date().toISOString(),
-      participant: state.participant || { name: 'Anonymous', gender: 'Not specified' },
-      participant_name: state.participant?.name || 'Anonymous',
-      participant_gender: state.participant?.gender || 'Not specified',
+      participant: state.participant || { id: 'Anonymous' },
+      participant_id: state.participant?.id || 'Anonymous',
+      participant_name: state.participant?.id || 'Anonymous',
       parameters: {
         n: state.config.n,
         total_trials: total,
@@ -2730,19 +2738,14 @@
   function bindResultsControls() {
     dom.btnNewExperiment.addEventListener('click', () => {
       // Reset participant fields
-      if (dom.inputParticipantName) {
-        dom.inputParticipantName.value = '';
-        dom.inputParticipantName.classList.remove('input-error');
+      if (dom.inputParticipantId) {
+        dom.inputParticipantId.value = '';
+        dom.inputParticipantId.classList.remove('input-error');
       }
-      if (dom.selectParticipantGender) {
-        dom.selectParticipantGender.selectedIndex = 0;
-        dom.selectParticipantGender.classList.remove('input-error');
-      }
-      if (dom.nameError) dom.nameError.style.display = 'none';
-      if (dom.genderError) dom.genderError.style.display = 'none';
+      if (dom.idError) dom.idError.style.display = 'none';
 
       // Reset participant state
-      state.participant = { name: '', gender: '' };
+      state.participant = { id: '', name: '' };
       if (dom.hudParticipantName) dom.hudParticipantName.textContent = '--';
       if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
       if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
@@ -2887,8 +2890,7 @@
 
     const headers = [
       'trial_index',
-      'participant_name',
-      'participant_gender',
+      'participant_id',
       'module',
       'id',
       'object_name',
@@ -2925,8 +2927,7 @@
       'image_duration_ms'
     ];
 
-    const pName = (state.participant?.name || 'Anonymous').replace(/"/g, '""');
-    const pGender = (state.participant?.gender || 'Not specified').replace(/"/g, '""');
+    const pId = (state.participant?.id || 'Anonymous').replace(/"/g, '""');
 
     const rows = [headers.join(',')];
     trials.forEach(t => {
@@ -2959,8 +2960,7 @@
 
       rows.push([
         t.trial_index,
-        `"${pName}"`,
-        `"${pGender}"`,
+        `"${pId}"`,
         `"${modLabel}"`,
         `"${t.id}"`,
         `"${t.object_name}"`,
@@ -3047,8 +3047,7 @@
     // Sheet 1: Executive Summary
     xml += ' <Worksheet ss:Name="Executive Summary">\n  <Table>\n' +
       '   <Row><Cell><Data ss:Type="String">Metric</Data></Cell><Cell><Data ss:Type="String">Value</Data></Cell></Row>\n' +
-      `   <Row><Cell><Data ss:Type="String">Participant Name</Data></Cell><Cell><Data ss:Type="String">${state.participant?.name || 'Anonymous'}</Data></Cell></Row>\n` +
-      `   <Row><Cell><Data ss:Type="String">Participant Gender</Data></Cell><Cell><Data ss:Type="String">${state.participant?.gender || 'Not specified'}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Participation ID</Data></Cell><Cell><Data ss:Type="String">${state.participant?.id || 'Anonymous'}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Session ID</Data></Cell><Cell><Data ss:Type="String">${state.sessionId || ''}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Total Trials</Data></Cell><Cell><Data ss:Type="Number">${trials.length}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Overall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resAccuracy ? dom.resAccuracy.textContent : ''}</Data></Cell></Row>\n` +
@@ -3063,12 +3062,12 @@
 
     // Sheet 2: Module 1 (Flicker)
     xml += buildWorksheetXml('Module 1 - Flicker', [
-      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
+      'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
       'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
     ], t => {
       if (t.module !== 'a') return null;
       return [
-        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        t.trial_index, state.participant?.id || 'Anonymous',
         'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
@@ -3079,7 +3078,7 @@
 
     // Sheet 3: Module 2 (Cluster Strip)
     xml += buildWorksheetXml('Module 2 - Cluster', [
-      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
@@ -3090,7 +3089,7 @@
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        t.trial_index, state.participant?.id || 'Anonymous',
         'Module 2 (Cluster)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
@@ -3104,7 +3103,7 @@
 
     // Sheet 4: Module 3 (HUD)
     xml += buildWorksheetXml('Module 3 - HUD', [
-      'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+      'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
@@ -3115,7 +3114,7 @@
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        t.trial_index, state.participant?.id || 'Anonymous',
         'Module 3 (HUD)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
@@ -3129,7 +3128,7 @@
 
     // Sheet 5: All Trials
     xml += buildWorksheetXml('All Trials', [
-      'trial_index', 'participant_name', 'participant_gender', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
+      'trial_index', 'participant_id', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
       'response_time_ms', 'speed_shown_kmh', 'symbol_shown', 'rpm_shown', 'probe_type',
       'speed_recall_probed', 'speed_recalled_kmh', 'speed_recall_accurate', 'speed_error_kmh',
       'symbol_recall_probed', 'symbol_recalled', 'symbol_recall_accurate',
@@ -3166,7 +3165,7 @@
       const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       return [
-        t.trial_index, state.participant?.name || 'Anonymous', state.participant?.gender || 'Not specified',
+        t.trial_index, state.participant?.id || 'Anonymous',
         modLabel, t.id, t.object_name, t.side || '', t.category || '',
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, probeType,
@@ -3192,9 +3191,9 @@
     const payload = {
       session_id: state.sessionId,
       timestamp: new Date().toISOString(),
-      participant: state.participant || { name: 'Anonymous', gender: 'Not specified' },
-      participant_name: state.participant?.name || 'Anonymous',
-      participant_gender: state.participant?.gender || 'Not specified',
+      participant: state.participant || { id: 'Anonymous' },
+      participant_id: state.participant?.id || 'Anonymous',
+      participant_name: state.participant?.id || 'Anonymous',
       parameters: state.config,
       trials: state.trialResults
     };

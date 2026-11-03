@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=29">
+  <link rel="stylesheet" href="/public/style.css?v=30">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -40,26 +40,15 @@
             <!-- Participant Information (Required) -->
             <div class="participant-config-card">
               <div class="participant-card-header">
-                <span class="icon">👤</span>
-                <h3>Participant Details</h3>
+                <span class="icon">🆔</span>
+                <h3>Participation Details</h3>
                 <span class="badge-required">* Required</span>
               </div>
-              <div class="participant-fields-grid">
+              <div class="participant-fields-single">
                 <div class="form-group mb-0">
-                  <label for="input-participant-name">Full Name <span class="required-star">*</span></label>
-                  <input type="text" id="input-participant-name" class="text-input" placeholder="Enter participant full name" required autocomplete="off">
-                  <span class="field-error" id="name-error">Please enter participant name to begin</span>
-                </div>
-                <div class="form-group mb-0">
-                  <label for="select-participant-gender">Gender <span class="required-star">*</span></label>
-                  <select id="select-participant-gender" class="select-input" required>
-                    <option value="" disabled selected>Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Non-Binary">Non-Binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                  <span class="field-error" id="gender-error">Please select participant gender</span>
+                  <label for="input-participant-id">Participation ID <span class="required-star">*</span></label>
+                  <input type="text" id="input-participant-id" class="text-input" placeholder="Enter Participation ID (e.g. PID-101, Subj-05)" required autocomplete="off">
+                  <span class="field-error" id="id-error">Please enter Participation ID to begin</span>
                 </div>
               </div>
             </div>
@@ -422,15 +411,13 @@
         <!-- Participant Session Overview Card -->
         <div class="glass-card participant-results-banner">
           <div class="participant-results-info">
-            <div class="participant-avatar">👤</div>
+            <div class="participant-avatar">🆔</div>
             <div>
               <div class="participant-name-row">
-                <span class="participant-tag">Participant</span>
-                <h2 id="res-participant-name">--</h2>
+                <span class="participant-tag">Participation ID</span>
+                <h2 id="res-participant-id">--</h2>
               </div>
               <p class="participant-meta">
-                <span class="meta-item"><strong>Gender:</strong> <span id="res-participant-gender">--</span></span>
-                <span class="meta-dot">•</span>
                 <span class="meta-item"><strong>Session ID:</strong> <span id="res-session-id-display">--</span></span>
                 <span class="meta-dot">•</span>
                 <span class="meta-item"><strong>Date:</strong> <span id="res-session-date-display">--</span></span>
@@ -671,6 +658,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=29"></script>
+  <script src="/public/app.js?v=30"></script>
 </body>
 </html>

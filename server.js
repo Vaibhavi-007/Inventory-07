@@ -42,6 +42,24 @@ const MIME_TYPES = {
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 };
 
+const BIN_DIR = path.join(__dirname, 'bin');
+const CENTER_MOUSE_BIN = path.join(BIN_DIR, 'center_mouse');
+const CENTER_MOUSE_SRC = path.join(__dirname, 'tools', 'center_mouse.c');
+
+function ensureCenterMouseBinary() {
+  if (process.platform !== 'darwin') return;
+  if (!fs.existsSync(CENTER_MOUSE_BIN) && fs.existsSync(CENTER_MOUSE_SRC)) {
+    try {
+      if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
+      const { execSync } = require('child_process');
+      execSync(`clang -O2 -framework CoreGraphics -framework ApplicationServices -o "${CENTER_MOUSE_BIN}" "${CENTER_MOUSE_SRC}"`);
+    } catch (err) {
+      console.warn('Could not compile center_mouse utility:', err.message);
+    }
+  }
+}
+ensureCenterMouseBinary();
+
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -102,6 +120,42 @@ const server = http.createServer((req, res) => {
   // Health check
   if (pathname === '/api/health') {
     sendJson(res, 200, { status: 'ok', uptime: process.uptime() });
+    return;
+  }
+
+  // Center Mouse Cursor (macOS Native Warping)
+  if (pathname === '/api/center-mouse') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      let targetX = null;
+      let targetY = null;
+      if (body) {
+        try {
+          const parsed = JSON.parse(body);
+          if (parsed.x != null && !isNaN(parsed.x) && parsed.y != null && !isNaN(parsed.y)) {
+            targetX = String(Math.round(parsed.x));
+            targetY = String(Math.round(parsed.y));
+          }
+        } catch (e) {}
+      }
+
+      ensureCenterMouseBinary();
+
+      if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
+        const { execFile } = require('child_process');
+        const args = (targetX && targetY) ? [targetX, targetY] : [];
+        execFile(CENTER_MOUSE_BIN, args, (err) => {
+          if (err) {
+            sendJson(res, 200, { success: false, error: err.message });
+          } else {
+            sendJson(res, 200, { success: true, centered: true, x: targetX, y: targetY });
+          }
+        });
+      } else {
+        sendJson(res, 200, { success: true, platform: process.platform, nativeSupported: false });
+      }
+    });
     return;
   }
 
@@ -213,14 +267,12 @@ const server = http.createServer((req, res) => {
         fs.writeFileSync(jsonPath, JSON.stringify(payload, null, 2), 'utf-8');
 
         // Extract participant information
-        const participantName = payload.participant?.name || payload.participant_name || 'Anonymous';
-        const participantGender = payload.participant?.gender || payload.participant_gender || 'Not specified';
+        const participantId = payload.participant?.id || payload.participant_id || payload.participant?.name || payload.participant_name || 'Anonymous';
 
         // Convert trials to CSV
         const headers = [
           'trial_number',
-          'participant_name',
-          'participant_gender',
+          'participant_id',
           'module',
           'pair_id',
           'trial_str',
@@ -309,8 +361,7 @@ const server = http.createServer((req, res) => {
 
           const row = [
             t.trial_index || (idx + 1),
-            `"${participantName.replace(/"/g, '""')}"`,
-            `"${participantGender.replace(/"/g, '""')}"`,
+            `"${participantId.replace(/"/g, '""')}"`,
             `"${moduleLabel}"`,
             `"${t.id || ''}"`,
             `"${t.trial_str || ''}"`,
@@ -364,8 +415,7 @@ const server = http.createServer((req, res) => {
           // --- Sheet 1: Executive Summary & Module Performance ---
           const summaryHeaders = ['Metric', 'Value', 'Details'];
           const summaryRows = [
-            ['Participant Name', participantName, 'Subject identifier'],
-            ['Participant Gender', participantGender, 'Subject gender'],
+            ['Participation ID', participantId, 'Subject participation identifier'],
             ['Session ID', sessionId, 'Unique session identifier'],
             ['Session Timestamp', payload.timestamp || new Date().toISOString(), 'Recorded test timestamp'],
             ['Trials per Module (n)', params.n || '', 'Configured samples per module'],
@@ -483,21 +533,21 @@ const server = http.createServer((req, res) => {
 
           // --- Sheet 2: Module 1 (Flicker Only) ---
           const mod1Headers = [
-            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y',
             'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image'
           ];
           const mod1Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1'))
             .map(t => [
-              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+              t.trialIndex, participantId, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
               t.accurate, t.rtMs, t.rtSec, t.clickX, t.clickY, t.targetX, t.targetY,
               t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg
             ]);
 
           // --- Sheet 3: Module 2 (Speed & Cluster Strip) ---
           const mod2Headers = [
-            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
@@ -506,7 +556,7 @@ const server = http.createServer((req, res) => {
           const mod2Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2'))
             .map(t => [
-              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.side, t.objectName,
+              t.trialIndex, participantId, t.moduleLabel, t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
@@ -515,7 +565,7 @@ const server = http.createServer((req, res) => {
 
           // --- Sheet 4: Module 3 (Heads-Up Display HUD) ---
           const mod3Headers = [
-            'Trial #', 'Participant Name', 'Participant Gender', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
+            'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
@@ -524,7 +574,7 @@ const server = http.createServer((req, res) => {
           const mod3Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3'))
             .map(t => [
-              t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.side, t.objectName,
+              t.trialIndex, participantId, t.moduleLabel, t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
@@ -534,7 +584,7 @@ const server = http.createServer((req, res) => {
           // --- Sheet 5: All Trials (Master Unified Data) ---
           const allHeaders = headers;
           const allRows = parsedTrials.map(t => [
-            t.trialIndex, participantName, participantGender, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+            t.trialIndex, participantId, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
             t.accurate, t.rtMs, t.rtSec, t.speedShown, t.symbolShown, t.rpmShown,
             t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
             t.symbolProbed, t.symbolRecalled, t.symbolAccurate,

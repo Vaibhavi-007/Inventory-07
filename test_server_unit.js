@@ -57,11 +57,9 @@ const testPayload = {
   session_id: testSessionId,
   timestamp: new Date().toISOString(),
   participant: {
-    name: 'Dr. Jane Doe',
-    gender: 'Female'
+    id: 'PID-901'
   },
-  participant_name: 'Dr. Jane Doe',
-  participant_gender: 'Female',
+  participant_id: 'PID-901',
   parameters: {
     n: 2,
     total_trials: 6,
@@ -178,8 +176,7 @@ fs.writeFileSync(testJsonPath, JSON.stringify(testPayload, null, 2), 'utf-8');
 // Build CSV
 const headers = [
   'trial_number',
-  'participant_name',
-  'participant_gender',
+  'participant_id',
   'module',
   'pair_id',
   'trial_str',
@@ -250,8 +247,7 @@ testPayload.trials.forEach((t, i) => {
 
   csvRows.push([
     t.trial_index,
-    `"${testPayload.participant_name}"`,
-    `"${testPayload.participant_gender}"`,
+    `"${testPayload.participant_id}"`,
     `"${moduleLabel}"`,
     `"${t.id}"`,
     `"${t.trial_str}"`,
@@ -327,8 +323,7 @@ const xlsxRows = testPayload.trials.map((t, idx) => {
 
   return [
     t.trial_index || (idx + 1),
-    testPayload.participant_name,
-    testPayload.participant_gender,
+    testPayload.participant_id,
     moduleLabel,
     t.id || '',
     t.trial_str || '',
