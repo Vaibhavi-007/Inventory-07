@@ -15,6 +15,13 @@ node_modules/
 # Build artifacts
 bin/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
 # Results
 results/*
 !results/.gitkeep

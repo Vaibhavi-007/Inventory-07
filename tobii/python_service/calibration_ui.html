@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tobii Pro Fusion - Official Lab Grade Calibration & Validation</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0c0d0e;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: #141518;
+      border-bottom: 1px solid #23252a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      letter-spacing: 0.03em;
+    }
+
+    .tobii-logo-pill {
+      background: #00d26a;
+      color: #0c0d0e;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .device-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: #ef4444;
+    }
+
+    .status-dot.active {
+      background-color: #00d26a;
+      box-shadow: 0 0 10px #00d26a;
+    }
+
+    .view-container {
+      width: 100%;
+      max-width: 940px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      margin-top: 40px;
+    }
+
+    /* Screen 1: Tobii Pro Lab Track Status */
+    .track-status-card {
+      background: #141518;
+      border: 1px solid #272a30;
+      border-radius: 12px;
+      padding: 32px 40px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+
+    .section-desc {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .positioning-grid {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .headbox-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .headbox {
+      width: 380px;
+      height: 250px;
+      background: #090a0b;
+      border: 2px solid #333842;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .headbox-crosshair-x {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .headbox-crosshair-y {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .headbox-center-bracket {
+      position: absolute;
+      top: 25%;
+      left: 25%;
+      width: 50%;
+      height: 50%;
+      border: 1px dashed rgba(0, 210, 106, 0.25);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .eye-pupil {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00d26a 30%, rgba(0, 210, 106, 0.3) 70%);
+      border: 2px solid #00d26a;
+      box-shadow: 0 0 16px rgba(0, 210, 106, 0.8);
+      transform: translate(-50%, -50%);
+      transition: all 0.05s ease-out;
+      display: none;
+    }
+
+    .headbox-no-eyes-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.85rem;
+      color: #64748b;
+      text-align: center;
+      width: 80%;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    .distance-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 250px;
+    }
+
+    .distance-meter-container {
+      display: flex;
+      gap: 16px;
+      height: 100%;
+      align-items: center;
+    }
+
+    .distance-bar-track {
+      position: relative;
+      width: 22px;
+      height: 220px;
+      background: #090a0b;
+      border: 1px solid #333842;
+      border-radius: 11px;
+      overflow: hidden;
+    }
+
+    .distance-sweet-spot {
+      position: absolute;
+      bottom: 30%;
+      height: 40%;
+      width: 100%;
+      background: rgba(0, 210, 106, 0.18);
+      border-top: 1px solid rgba(0, 210, 106, 0.6);
+      border-bottom: 1px solid rgba(0, 210, 106, 0.6);
+    }
+
+    .distance-indicator-level {
+      position: absolute;
+      bottom: 50%;
+      left: 2px;
+      right: 2px;
+      height: 8px;
+      background: #00d26a;
+      border-radius: 4px;
+      box-shadow: 0 0 8px #00d26a;
+      transition: all 0.1s ease-out;
+    }
+
+    .distance-scale {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 220px;
+      font-size: 0.72rem;
+      color: #64748b;
+      font-family: monospace;
+    }
+
+    .distance-readout-pill {
+      margin-top: 12px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: #1f232b;
+      color: #94a3b8;
+      border: 1px solid #333842;
+    }
+
+    .distance-readout-pill.optimal {
+      background: rgba(0, 210, 106, 0.15);
+      border-color: #00d26a;
+      color: #00d26a;
+    }
+
+    .distance-readout-pill.warning {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    /* Screen Config */
+    .config-strip {
+      display: flex;
+      background: #090a0b;
+      border: 1px solid #23252a;
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .btn {
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-calibrate {
+      background: #00d26a;
+      color: #0c0d0e;
+      box-shadow: 0 4px 18px rgba(0, 210, 106, 0.4);
+    }
+
+    .btn-calibrate:hover {
+      background: #05f07c;
+      transform: translateY(-1px);
+    }
+
+    .btn-calibrate:disabled {
+      background: #23252a;
+      color: #64748b;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ------------------------------------------------------------- */
+    /* Fullscreen Tobii Pro Lab Smooth Motion Fixation Target Layer  */
+    /* ------------------------------------------------------------- */
+    #target-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #111113;
+      z-index: 100;
+    }
+
+    .live-phase-badge {
+      position: absolute;
+      top: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 21, 24, 0.95);
+      border: 1px solid #333842;
+      padding: 10px 28px;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      color: #e2e8f0;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Ultra-smooth glide across points (Smooth Pursuit - 1.6s default) */
+    .fixation-point-anchor {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: left 1.6s cubic-bezier(0.35, 0, 0.25, 1), top 1.6s cubic-bezier(0.35, 0, 0.25, 1);
+    }
+
+    .pro-lab-target {
+      width: 56px;
+      height: 56px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pro-lab-outer {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 3px solid #00d26a;
+      opacity: 0.8;
+      animation: contract-pulse 1.35s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    }
+
+    .pro-lab-center {
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+      z-index: 2;
+    }
+
+    @keyframes contract-pulse {
+      0% {
+        transform: scale(1.5);
+        opacity: 0.4;
+      }
+      70% {
+        transform: scale(0.65);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0.65);
+        opacity: 1;
+      }
+    }
+
+    .pro-lab-outer.point-acquired {
+      border-color: #00d26a !important;
+      background: rgba(0, 210, 106, 0.45) !important;
+      transform: scale(1.35) !important;
+      transition: all 0.2s ease-out;
+    }
+
+    /* ------------------------------------------------------------- */
+    /* Screen 2: Results & Visual Tracking Offset Diagram            */
+    /* ------------------------------------------------------------- */
+    .results-card {
+      background: #141518;
+      border: 1px solid #272a30;
+      border-radius: 12px;
+      padding: 32px 40px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      display: none;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 22px 0;
+      text-align: left;
+    }
+
+    .metric-box {
+      background: #090a0b;
+      border: 1px solid #272a30;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .metric-box.pass {
+      border-color: #00d26a;
+      background: rgba(0, 210, 106, 0.06);
+    }
+
+    .metric-box.fail {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.06);
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+    }
+
+    .metric-val {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin: 4px 0;
+    }
+
+    .metric-cutoff {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .metric-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    .badge-pass {
+      background: rgba(0, 210, 106, 0.2);
+      color: #00d26a;
+    }
+
+    .badge-fail {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    /* Visual Screen Offset Plot (Tobii Pro Lab Visualizer) */
+    .plot-wrapper {
+      margin: 24px 0;
+      text-align: left;
+      background: #090a0b;
+      border: 1px solid #272a30;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .plot-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .plot-legend {
+      display: flex;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-bullet {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .visual-screen-canvas-box {
+      width: 100%;
+      height: 320px;
+      background: #141518;
+      border: 2px solid #333842;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Point Breakdown Table */
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 16px;
+      text-align: left;
+    }
+
+    .breakdown-table th {
+      background: #141518;
+      padding: 8px 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      border-bottom: 1px solid #272a30;
+    }
+
+    .breakdown-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1a1d24;
+      color: #cbd5e1;
+      font-family: monospace;
+    }
+
+    .failure-reasons-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      text-align: left;
+      display: none;
+    }
+
+    .failure-reasons-title {
+      color: #f87171;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .failure-list {
+      margin: 0;
+      padding-left: 20px;
+      color: #cbd5e1;
+      font-size: 0.85rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .btn-recalibrate {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-recalibrate:hover {
+      background: #dc2626;
+    }
+
+    .btn-proceed {
+      background: #00d26a;
+      color: #0c0d0e;
+      box-shadow: 0 4px 16px rgba(0, 210, 106, 0.4);
+    }
+
+    .btn-proceed:hover {
+      background: #05f07c;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <span class="tobii-logo-pill">TOBII PRO</span>
+      <span>Pro Fusion 120 Hz &mdash; Official Lab Grade Calibration &amp; Validation</span>
+    </div>
+    <div class="device-status-badge">
+      <span id="hw-dot" class="status-dot"></span>
+      <span id="hw-info">Connecting to Python Driver...</span>
+    </div>
+  </div>
+
+  <!-- Fullscreen Smooth-Pursuit Fixation Target Layer -->
+  <div id="target-container">
+    <div id="phase-badge" class="live-phase-badge">Calibration Phase</div>
+    <div id="target-anchor" class="fixation-point-anchor">
+      <div class="pro-lab-target">
+        <div class="pro-lab-outer"></div>
+        <div class="pro-lab-center"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main View Container -->
+  <div class="view-container">
+
+    <!-- Screen 1: Tobii Pro Lab Track Status (Eye Positioning) -->
+    <div id="screen-track-status" class="track-status-card">
+      <h1 class="section-title">Participant Positioning</h1>
+      <p class="section-desc">
+        Position the participant so both eyes are centered inside the headbox and the distance meter is in the green zone (~65 cm).
+      </p>
+
+      <div class="positioning-grid">
+        <!-- 2D Headbox Canvas -->
+        <div class="headbox-wrapper">
+          <div class="headbox">
+            <div class="headbox-crosshair-x"></div>
+            <div class="headbox-crosshair-y"></div>
+            <div class="headbox-center-bracket"></div>
+
+            <div id="left-pupil" class="eye-pupil"></div>
+            <div id="right-pupil" class="eye-pupil"></div>
+
+            <div id="no-eyes-text" class="headbox-no-eyes-text">
+              Looking for eyes...<br>Please look towards the center of the display.
+            </div>
+          </div>
+          <div id="coords-readout" style="font-size: 0.72rem; color: #64748b; font-family: monospace; margin-top: 8px;">
+            Headbox UCS: Waiting for eyes...
+          </div>
+        </div>
+
+        <!-- Vertical Distance Gauge -->
+        <div class="distance-wrapper">
+          <div class="distance-meter-container">
+            <div class="distance-bar-track">
+              <div class="distance-sweet-spot"></div>
+              <div id="dist-level" class="distance-indicator-level"></div>
+            </div>
+            <div class="distance-scale">
+              <span>90 cm</span>
+              <span style="color: #00d26a;">75 cm</span>
+              <span style="color: #00d26a; font-weight: bold;">65 cm</span>
+              <span style="color: #00d26a;">55 cm</span>
+              <span>40 cm</span>
+            </div>
+          </div>
+          <div id="dist-pill" class="distance-readout-pill">-- cm</div>
+        </div>
+      </div>
+
+      <!-- Automated Screen Selection Strip -->
+      <div class="config-strip" style="flex-direction: column; align-items: stretch; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 6px;">
+            <span>🖥️ Screen Display:</span>
+            <select id="display-select" onchange="onDisplaySelected()" style="background: #141518; border: 1px solid #333842; color: #00d26a; border-radius: 6px; padding: 4px 10px; font-weight: 600; cursor: pointer;">
+              <option value="">Detecting displays...</option>
+            </select>
+          </span>
+          <span id="auto-detected-badge" style="font-size: 0.75rem; background: rgba(0, 210, 106, 0.15); color: #00d26a; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0, 210, 106, 0.3);">
+            ✓ Auto-detected from Mac
+          </span>
+        </div>
+        <div style="display: flex; gap: 14px; align-items: center; font-size: 0.78rem; color: #64748b; font-family: monospace;">
+          <span>Width: <b id="lbl-w" style="color: #cbd5e1;">--</b> mm</span>
+          <span>Height: <b id="lbl-h" style="color: #cbd5e1;">--</b> mm</span>
+          <label style="color: #94a3b8; font-family: sans-serif;">Mount Bezel:
+            <input id="cfg-offset-y" type="number" value="40" onchange="onDisplaySelected()" style="background: #141518; border: 1px solid #333842; color: #00d26a; font-weight: bold; border-radius: 4px; padding: 2px 6px; width: 50px; font-size: 0.78rem;"> mm
+          </label>
+          <label style="color: #94a3b8; font-family: sans-serif; display: flex; align-items: center; gap: 6px;">
+            <span>Moving Speed:</span>
+            <select id="cfg-pace" style="background: #141518; border: 1px solid #333842; color: #00d26a; border-radius: 4px; padding: 3px 8px; font-size: 0.78rem; font-weight: 600;">
+              <option value="gentle" selected>Gentle Lab Glide (1.6s glide + 1.8s hold - Recommended)</option>
+              <option value="slow">Slow Clinical Pace (2.2s glide + 2.2s hold - Extra Steady)</option>
+              <option value="moderate">Moderate Glide (1.1s glide + 1.4s hold)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <button id="btn-start-cal" class="btn btn-calibrate" onclick="startCalibrationSequence()">
+        Start Calibration &amp; Validation &rarr;
+      </button>
+    </div>
+
+    <!-- Screen 2: Results & Visual Tracking Offset Diagram -->
+    <div id="screen-results" class="results-card">
+      <h1 id="res-title" class="section-title">Calibration &amp; Validation Results</h1>
+      <p id="res-subtitle" class="section-desc"></p>
+
+      <!-- Overall Metrics Grid -->
+      <div class="metrics-grid">
+        <div id="card-loss" class="metric-box">
+          <div class="metric-label">Data Loss</div>
+          <div id="res-loss" class="metric-val">0%</div>
+          <div class="metric-cutoff">Laboratory Cutoff: 0.0%</div>
+          <span id="badge-loss" class="metric-badge"></span>
+        </div>
+
+        <div id="card-prec" class="metric-box">
+          <div class="metric-label">Precision (RMS Noise)</div>
+          <div id="res-prec" class="metric-val">0.12°</div>
+          <div class="metric-cutoff">Laboratory Cutoff: &le; 0.20°</div>
+          <span id="badge-prec" class="metric-badge"></span>
+        </div>
+
+        <div id="card-acc" class="metric-box">
+          <div class="metric-label">Accuracy (Mean Offset)</div>
+          <div id="res-acc" class="metric-val">0.38°</div>
+          <div class="metric-cutoff">Laboratory Cutoff: &le; 0.50°</div>
+          <span id="badge-acc" class="metric-badge"></span>
+        </div>
+      </div>
+
+      <!-- Visual Screen Offset Plot (Tobii Pro Lab Style) -->
+      <div class="plot-wrapper">
+        <div class="plot-title">
+          <span>Spatial Tracking Offset Map (Screen Layout)</span>
+          <div class="plot-legend">
+            <div class="legend-item"><span class="legend-bullet" style="background: #ffffff;"></span> Target Location</div>
+            <div class="legend-item"><span class="legend-bullet" style="background: #00d26a;"></span> Valid Gaze Centroid (&le; 0.5°)</div>
+            <div class="legend-item"><span class="legend-bullet" style="background: #ef4444;"></span> Inadequate Offset (> 0.5°)</div>
+          </div>
+        </div>
+
+        <div class="visual-screen-canvas-box">
+          <svg id="offset-svg" width="100%" height="100%" viewBox="0 0 1000 600"></svg>
+        </div>
+
+        <!-- Point-by-Point Offset Breakdown Table -->
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>Point</th>
+              <th>Target (X, Y)</th>
+              <th>Gaze Centroid</th>
+              <th>Angular Error</th>
+              <th>Physical Offset</th>
+              <th>RMS Precision</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="breakdown-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Failure Reasons Box -->
+      <div id="failure-box" class="failure-reasons-box">
+        <div class="failure-reasons-title">Validation Deviations:</div>
+        <ul id="failure-list" class="failure-list"></ul>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-recal" class="btn btn-recalibrate" onclick="returnToTrackStatus()">
+          &#x21bb; Recalibrate Eye Tracker
+        </button>
+        <button id="btn-proceed" class="btn btn-proceed" style="display: none;" onclick="proceedToExperiment()">
+          Proceed to Experiment Tasks &rarr;
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const POINTS = [
+      { id: "Center", x: 0.50, y: 0.50 },
+      { id: "Top-Left", x: 0.15, y: 0.15 },
+      { id: "Top-Right", x: 0.85, y: 0.15 },
+      { id: "Bottom-Left", x: 0.15, y: 0.85 },
+      { id: "Bottom-Right", x: 0.85, y: 0.85 }
+    ];
+
+    let ws = null;
+    let isConnected = false;
+    let availableDisplays = [];
+    let currentWidthMm = 602.1;
+    let currentHeightMm = 338.7;
+
+    async function loadAutomatedDisplays() {
+      try {
+        const res = await fetch('/api/displays');
+        const data = await res.json();
+        availableDisplays = data.displays || [];
+        const selectEl = document.getElementById('display-select');
+        selectEl.innerHTML = '';
+
+        if (availableDisplays.length === 0) {
+          selectEl.innerHTML = '<option value="">Default (602 × 338 mm)</option>';
+          return;
+        }
+
+        // Auto-detect which display the current browser window is residing on:
+        // If window.screen.width >= 1920 or screen width matches DELL
+        const winW = window.screen.width;
+        let matchedIdx = 0;
+
+        availableDisplays.forEach((d, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          const isMainText = d.is_main ? ' [Built-in Display]' : ' [External Monitor]';
+          opt.innerText = `${d.name} (${d.width_mm} × ${d.height_mm} mm)${isMainText}`;
+          selectEl.appendChild(opt);
+
+          // Auto-select DELL monitor if on external display or resolution >= 1900
+          if ((winW >= 1900 || d.name.toLowerCase().includes('dell')) && !d.is_main) {
+            matchedIdx = idx;
+          } else if (winW < 1600 && d.is_main) {
+            matchedIdx = idx;
+          }
+        });
+
+        selectEl.selectedIndex = matchedIdx;
+        applySelectedDisplay(availableDisplays[matchedIdx]);
+      } catch (e) {
+        console.error("Failed to load automated displays:", e);
+      }
+    }
+
+    function onDisplaySelected() {
+      const idx = document.getElementById('display-select').value;
+      if (availableDisplays[idx]) {
+        applySelectedDisplay(availableDisplays[idx]);
+      }
+    }
+
+    function applySelectedDisplay(disp) {
+      currentWidthMm = disp.width_mm;
+      currentHeightMm = disp.height_mm;
+      document.getElementById('lbl-w').innerText = currentWidthMm;
+      document.getElementById('lbl-h').innerText = currentHeightMm;
+
+      // Auto-set mount offset default based on monitor type
+      const isDell = disp.name.toLowerCase().includes('dell') || currentWidthMm > 500;
+      const offsetInput = document.getElementById('cfg-offset-y');
+      if (offsetInput) {
+        offsetInput.value = isDell ? '40' : '15';
+      }
+      const offsetY = parseFloat(offsetInput ? offsetInput.value : 40.0) || 40.0;
+
+      fetch('/api/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          screen_width_mm: currentWidthMm,
+          screen_height_mm: currentHeightMm,
+          distance_mm: 650.0,
+          offset_y_mm: offsetY
+        })
+      });
+      console.log(`Applied display: ${disp.name} (${currentWidthMm}x${currentHeightMm} mm, offset ${offsetY} mm)`);
+    }
+
+    function initWebSocket() {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${proto}//${window.location.host}/ws/tobii`;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        isConnected = true;
+        document.getElementById('hw-dot').className = 'status-dot active';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleMessage(msg);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      ws.onclose = () => {
+        isConnected = false;
+        document.getElementById('hw-dot').className = 'status-dot';
+        document.getElementById('hw-info').innerText = 'Disconnected. Reconnecting...';
+        setTimeout(initWebSocket, 2000);
+      };
+    }
+
+    let pendingCalResolver = null;
+    let pendingComputeResolver = null;
+
+    function waitForCalibrationPoint() {
+      return new Promise((resolve) => {
+        pendingCalResolver = resolve;
+        setTimeout(() => {
+          if (pendingCalResolver) {
+            pendingCalResolver({ success: true, timeout: true });
+            pendingCalResolver = null;
+          }
+        }, 3000);
+      });
+    }
+
+    function waitForComputeCalibration() {
+      return new Promise((resolve) => {
+        pendingComputeResolver = resolve;
+        setTimeout(() => {
+          if (pendingComputeResolver) {
+            pendingComputeResolver({ success: true, timeout: true });
+            pendingComputeResolver = null;
+          }
+        }, 3000);
+      });
+    }
+
+    function getPhysicalScreenCoords(normX, normY) {
+      if (document.fullscreenElement) {
+        return { x: normX, y: normY };
+      }
+      const screenW = window.screen.width || 1920;
+      const screenH = window.screen.height || 1080;
+      const topChrome = window.outerHeight - window.innerHeight;
+      const leftOffset = window.screenX || 0;
+      const topOffset = (window.screenY || 0) + topChrome;
+
+      const pxX = leftOffset + (normX * window.innerWidth);
+      const pxY = topOffset + (normY * window.innerHeight);
+
+      return {
+        x: Math.max(0.01, Math.min(0.99, pxX / screenW)),
+        y: Math.max(0.01, Math.min(0.99, pxY / screenH))
+      };
+    }
+
+    function handleMessage(msg) {
+      if (msg.type === 'STATUS') {
+        const s = msg.payload;
+        const mode = s.is_mock ? '[Simulation]' : '[Hardware Active]';
+        document.getElementById('hw-info').innerText = `${s.model} (${s.sampling_frequency_hz} Hz) ${mode}`;
+      } else if (msg.type === 'TRACK_STATUS') {
+        renderTrackStatus(msg.payload);
+      } else if (msg.type === 'CALIBRATION_POINT_COLLECTED') {
+        if (pendingCalResolver) {
+          pendingCalResolver(msg.payload);
+          pendingCalResolver = null;
+        }
+      } else if (msg.type === 'CALIBRATION_RESULT') {
+        if (pendingComputeResolver) {
+          pendingComputeResolver(msg.payload);
+          pendingComputeResolver = null;
+        }
+      } else if (msg.type === 'VALIDATION_EVALUATION') {
+        renderValidationEvaluation(msg.payload);
+      }
+    }
+
+    function renderTrackStatus(status) {
+      const leftEl = document.getElementById('left-pupil');
+      const rightEl = document.getElementById('right-pupil');
+      const noEyesText = document.getElementById('no-eyes-text');
+      const distLevel = document.getElementById('dist-level');
+      const distPill = document.getElementById('dist-pill');
+      const btnStart = document.getElementById('btn-start-cal');
+      const coordsEl = document.getElementById('coords-readout');
+
+      if (!status.has_eyes) {
+        leftEl.style.display = 'none';
+        rightEl.style.display = 'none';
+        noEyesText.style.display = 'block';
+        distLevel.style.display = 'none';
+        distPill.className = 'distance-readout-pill';
+        distPill.innerText = 'No Eyes Detected';
+        coordsEl.innerText = 'Headbox UCS: Looking for eyes...';
+        btnStart.disabled = true;
+        return;
+      }
+
+      noEyesText.style.display = 'none';
+      distLevel.style.display = 'block';
+
+      const eye = status.left_eye || status.right_eye;
+      if (eye && eye.raw_x !== undefined) {
+        coordsEl.innerText = `Headbox UCS: X = ${eye.raw_x} mm | Y = ${eye.raw_y} mm`;
+      }
+
+      if (status.left_eye) {
+        leftEl.style.display = 'block';
+        leftEl.style.left = `${status.left_eye.x * 100}%`;
+        leftEl.style.top = `${status.left_eye.y * 100}%`;
+      } else {
+        leftEl.style.display = 'none';
+      }
+
+      if (status.right_eye) {
+        rightEl.style.display = 'block';
+        rightEl.style.left = `${status.right_eye.x * 100}%`;
+        rightEl.style.top = `${status.right_eye.y * 100}%`;
+      } else {
+        rightEl.style.display = 'none';
+      }
+
+      const d = status.distance_cm;
+      const pct = Math.max(0, Math.min(100, ((d - 40) / (90 - 40)) * 100));
+      distLevel.style.bottom = `${pct}%`;
+
+      if (status.distance_status === 'OPTIMAL') {
+        distPill.className = 'distance-readout-pill optimal';
+        distPill.innerText = `Optimal: ${d} cm`;
+        distLevel.style.background = '#00d26a';
+        btnStart.disabled = false;
+      } else if (status.distance_status === 'TOO_CLOSE') {
+        distPill.className = 'distance-readout-pill warning';
+        distPill.innerText = `Too Close: ${d} cm (Move back)`;
+        distLevel.style.background = '#ef4444';
+        btnStart.disabled = true;
+      } else if (status.distance_status === 'TOO_FAR') {
+        distPill.className = 'distance-readout-pill warning';
+        distPill.innerText = `Too Far: ${d} cm (Move closer)`;
+        distLevel.style.background = '#ef4444';
+        btnStart.disabled = true;
+      }
+    }
+
+    function send(action, payload = {}) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action, payload }));
+      }
+    }
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // -------------------------------------------------------------
+    // Calibration & Validation with Tobii Smooth Pursuit Gliding
+    // -------------------------------------------------------------
+    async function startCalibrationSequence() {
+      // 1. Enter True Fullscreen for 1:1 hardware coordinate mapping
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        try {
+          await document.documentElement.requestFullscreen();
+          await sleep(350);
+        } catch (e) {
+          console.warn("Fullscreen request bypassed:", e);
+        }
+      }
+
+      const offsetY = parseFloat(document.getElementById('cfg-offset-y')?.value || 40.0);
+      fetch('/api/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          screen_width_mm: currentWidthMm,
+          screen_height_mm: currentHeightMm,
+          distance_mm: 650.0,
+          offset_y_mm: offsetY
+        })
+      });
+
+      const pace = document.getElementById('cfg-pace')?.value || 'gentle';
+      let glideDuration = 1600; // Gentle smooth pursuit glide
+      let calSettleTime = 1400; // Time for fovea to settle on contracting ring
+      let calHoldTime = 400;   // Solid fixation hold
+      let valFixationTime = 2200; // 120Hz recording window during steady fixation
+
+      if (pace === 'slow') {
+        glideDuration = 2200;
+        calSettleTime = 1800;
+        calHoldTime = 500;
+        valFixationTime = 2600;
+      } else if (pace === 'moderate') {
+        glideDuration = 1100;
+        calSettleTime = 1200;
+        calHoldTime = 300;
+        valFixationTime = 1800;
+      }
+
+      const glideSec = (glideDuration / 1000).toFixed(2);
+
+      document.getElementById('screen-track-status').style.display = 'none';
+      document.getElementById('screen-results').style.display = 'none';
+      document.getElementById('target-container').style.display = 'block';
+
+      const targetEl = document.getElementById('target-anchor');
+      const badgeEl = document.getElementById('phase-badge');
+      const outerRing = targetEl.querySelector('.pro-lab-outer');
+
+      // Place target at first point initially without transition
+      targetEl.style.transition = 'none';
+      targetEl.style.left = `${POINTS[0].x * 100}%`;
+      targetEl.style.top = `${POINTS[0].y * 100}%`;
+      await sleep(60);
+
+      // Re-enable smooth transition with calibrated gentle duration
+      targetEl.style.transition = `left ${glideSec}s cubic-bezier(0.35, 0, 0.25, 1), top ${glideSec}s cubic-bezier(0.35, 0, 0.25, 1)`;
+
+      // -------------------------------------------------------------
+      // Phase 1: Calibration (Gentle Smooth Pursuit Glide)
+      // -------------------------------------------------------------
+      badgeEl.innerText = "Calibration Phase — Follow the gently gliding dot with your eyes";
+      send('START_CALIBRATION');
+      await sleep(400);
+
+      for (let i = 0; i < POINTS.length; i++) {
+        const pt = POINTS[i];
+        badgeEl.innerText = `Calibration Point ${i + 1} of ${POINTS.length} — Fixate on the center dot`;
+
+        // Smooth glide to new location
+        targetEl.style.left = `${pt.x * 100}%`;
+        targetEl.style.top = `${pt.y * 100}%`;
+        if (outerRing) outerRing.classList.remove('point-acquired');
+
+        // Wait for the dot to complete its smooth travel across the screen
+        await sleep(glideDuration);
+
+        // Allow target to contract and fovea to lock firmly
+        await sleep(calSettleTime);
+        await sleep(calHoldTime);
+
+        // Calculate exact physical screen coordinates on the monitor glass
+        const physPt = getPhysicalScreenCoords(pt.x, pt.y);
+
+        // Sample point and explicitly wait for eye tracker hardware collection
+        send('COLLECT_CALIBRATION_POINT', { x: physPt.x, y: physPt.y });
+        await waitForCalibrationPoint();
+
+        // Ripple pulse acknowledgment
+        if (outerRing) outerRing.classList.add('point-acquired');
+        await sleep(400);
+        if (outerRing) outerRing.classList.remove('point-acquired');
+      }
+
+      badgeEl.innerText = "Computing High-Precision Calibration Matrix...";
+      send('COMPUTE_CALIBRATION');
+      await waitForComputeCalibration();
+
+      // -------------------------------------------------------------
+      // Phase 2: Validation (Gentle Glide + Stationary Fixation Only)
+      // -------------------------------------------------------------
+      badgeEl.innerText = "Validation Phase — Follow the dot and hold steady gaze";
+      send('RESET_VALIDATION');
+      await sleep(300);
+
+      for (let i = 0; i < POINTS.length; i++) {
+        const pt = POINTS[i];
+        badgeEl.innerText = `Validation Point ${i + 1} of ${POINTS.length} — Hold steady gaze`;
+
+        // Smooth glide to target
+        targetEl.style.left = `${pt.x * 100}%`;
+        targetEl.style.top = `${pt.y * 100}%`;
+        if (outerRing) outerRing.classList.remove('point-acquired');
+
+        // Wait for the dot to arrive at the target position
+        await sleep(glideDuration);
+
+        // Allow 400ms for eyes to complete landing and steady their fovea
+        await sleep(400);
+
+        const physPt = getPhysicalScreenCoords(pt.x, pt.y);
+
+        // Collect 120Hz continuous gaze for pure stationary fixation
+        send('START_VALIDATION_POINT', { x: physPt.x, y: physPt.y });
+        await sleep(valFixationTime);
+        send('STOP_VALIDATION_POINT', { x: physPt.x, y: physPt.y });
+
+        if (outerRing) outerRing.classList.add('point-acquired');
+        await sleep(350);
+        if (outerRing) outerRing.classList.remove('point-acquired');
+      }
+
+      document.getElementById('target-container').style.display = 'none';
+
+      // Exit fullscreen to show clean results dashboard
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+          await sleep(250);
+        } catch (e) {}
+      }
+
+      // Request validation evaluation
+      send('EVALUATE_VALIDATION', {
+        max_data_loss_pct: 0.0,
+        max_precision_deg: 0.2,
+        max_accuracy_deg: 0.5
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Render Results & Visual Spatial Tracking Offset Map
+    // -------------------------------------------------------------
+    function renderValidationEvaluation(res) {
+      document.getElementById('screen-results').style.display = 'block';
+
+      const passed = res.passed;
+      const m = res.metrics;
+
+      document.getElementById('res-title').innerText = passed ? "Calibration Validated ✓" : "Calibration Inadequate ✗";
+      document.getElementById('res-subtitle').innerText = passed
+        ? "All quality criteria met at 120 Hz. Gaze tracking precision is certified for experiment trials."
+        : "Eye tracking precision did not satisfy experiment standards. Review the Spatial Offset Map below and recalibrate.";
+
+      // 1. Data Loss
+      const lossOk = m.data_loss_pct <= 0.0;
+      document.getElementById('res-loss').innerText = `${m.data_loss_pct}%`;
+      document.getElementById('card-loss').className = `metric-box ${lossOk ? 'pass' : 'fail'}`;
+      document.getElementById('badge-loss').className = `metric-badge ${lossOk ? 'badge-pass' : 'badge-fail'}`;
+      document.getElementById('badge-loss').innerText = lossOk ? "PASS" : "FAIL";
+
+      // 2. Precision
+      const precOk = m.precision_deg <= 0.20;
+      document.getElementById('res-prec').innerText = `${m.precision_deg}°`;
+      document.getElementById('card-prec').className = `metric-box ${precOk ? 'pass' : 'fail'}`;
+      document.getElementById('badge-prec').className = `metric-badge ${precOk ? 'badge-pass' : 'badge-fail'}`;
+      document.getElementById('badge-prec').innerText = precOk ? "PASS" : "FAIL";
+
+      // 3. Accuracy
+      const accOk = m.accuracy_deg <= 0.50;
+      document.getElementById('res-acc').innerText = `${m.accuracy_deg}°`;
+      document.getElementById('card-acc').className = `metric-box ${accOk ? 'pass' : 'fail'}`;
+      document.getElementById('badge-acc').className = `metric-badge ${accOk ? 'badge-pass' : 'badge-fail'}`;
+      document.getElementById('badge-acc').innerText = accOk ? "PASS" : "FAIL";
+
+      // -------------------------------------------------------------
+      // Render Spatial Offset Map (SVG Screen Representation)
+      // -------------------------------------------------------------
+      const svg = document.getElementById('offset-svg');
+      svg.innerHTML = '';
+      const tbody = document.getElementById('breakdown-tbody');
+      tbody.innerHTML = '';
+
+      const details = res.point_details || [];
+      const ptNames = ["Center", "Top-Left", "Top-Right", "Bottom-Left", "Bottom-Right"];
+
+      details.forEach((pt, idx) => {
+        const name = pt.name || ptNames[idx] || `Point ${idx + 1}`;
+        const tx = pt.target[0] * 1000;
+        const ty = pt.target[1] * 600;
+        const gx = (pt.gaze_centroid ? pt.gaze_centroid[0] : pt.target[0]) * 1000;
+        const gy = (pt.gaze_centroid ? pt.gaze_centroid[1] : pt.target[1]) * 600;
+
+        const isGood = pt.accuracy_deg <= 0.50;
+        const col = isGood ? '#00d26a' : '#ef4444';
+
+        // 1. Draw Offset Vector Line
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", tx);
+        line.setAttribute("y1", ty);
+        line.setAttribute("x2", gx);
+        line.setAttribute("y2", gy);
+        line.setAttribute("stroke", col);
+        line.setAttribute("stroke-width", "3");
+        line.setAttribute("stroke-dasharray", "4,3");
+        svg.appendChild(line);
+
+        // 2. Draw Target Pin (White Ring)
+        const targetCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        targetCircle.setAttribute("cx", tx);
+        targetCircle.setAttribute("cy", ty);
+        targetCircle.setAttribute("r", "10");
+        targetCircle.setAttribute("fill", "#090a0b");
+        targetCircle.setAttribute("stroke", "#ffffff");
+        targetCircle.setAttribute("stroke-width", "2.5");
+        svg.appendChild(targetCircle);
+
+        const targetCenterDot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        targetCenterDot.setAttribute("cx", tx);
+        targetCenterDot.setAttribute("cy", ty);
+        targetCenterDot.setAttribute("r", "3");
+        targetCenterDot.setAttribute("fill", "#ffffff");
+        svg.appendChild(targetCenterDot);
+
+        // 3. Draw Actual Gaze Centroid (Colored Pupil)
+        const gazeCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        gazeCircle.setAttribute("cx", gx);
+        gazeCircle.setAttribute("cy", gy);
+        gazeCircle.setAttribute("r", "8");
+        gazeCircle.setAttribute("fill", col);
+        gazeCircle.setAttribute("stroke", "#0c0d0e");
+        gazeCircle.setAttribute("stroke-width", "2");
+        svg.appendChild(gazeCircle);
+
+        // 4. Text Label showing offset in degrees & mm
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", tx + 14);
+        label.setAttribute("y", ty - 8);
+        label.setAttribute("fill", col);
+        label.setAttribute("font-size", "14");
+        label.setAttribute("font-family", "monospace");
+        label.setAttribute("font-weight", "bold");
+        label.textContent = `${name}: ${pt.accuracy_deg}° (${pt.offset_dist_mm || 0} mm)`;
+        svg.appendChild(label);
+
+        // 5. Populate Breakdown Table Row
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight: 600; color: #f8fafc;">${name}</td>
+          <td>(${pt.target[0]}, ${pt.target[1]})</td>
+          <td>(${pt.gaze_centroid ? pt.gaze_centroid[0] : '--'}, ${pt.gaze_centroid ? pt.gaze_centroid[1] : '--'})</td>
+          <td style="color: ${col}; font-weight: bold;">${pt.accuracy_deg}°</td>
+          <td style="color: ${col};">${pt.offset_dist_mm !== undefined ? pt.offset_dist_mm + ' mm' : '--'}</td>
+          <td>${pt.precision_deg}°</td>
+          <td>
+            <span class="metric-badge ${isGood ? 'badge-pass' : 'badge-fail'}">
+              ${isGood ? 'PASS' : 'EXCEEDED'}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Failure List
+      const failBox = document.getElementById('failure-box');
+      const failList = document.getElementById('failure-list');
+      failList.innerHTML = '';
+
+      if (res.failure_reasons && res.failure_reasons.length > 0) {
+        res.failure_reasons.forEach(msg => {
+          const li = document.createElement('li');
+          li.innerText = msg;
+          failList.appendChild(li);
+        });
+        failBox.style.display = 'block';
+      } else {
+        failBox.style.display = 'none';
+      }
+
+      // Buttons
+      const recalBtn = document.getElementById('btn-recal');
+      const procBtn = document.getElementById('btn-proceed');
+
+      if (res.recalibrate_required) {
+        recalBtn.style.display = 'inline-flex';
+        procBtn.style.display = 'none';
+      } else {
+        recalBtn.style.display = 'inline-flex';
+        recalBtn.style.background = '#272a30';
+        recalBtn.style.boxShadow = 'none';
+        procBtn.style.display = 'inline-flex';
+      }
+    }
+
+    function returnToTrackStatus() {
+      document.getElementById('screen-results').style.display = 'none';
+      document.getElementById('screen-track-status').style.display = 'flex';
+    }
+
+    function proceedToExperiment() {
+      alert("Validation verified! Advancing to experiment blocks in your MERN application.");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebSocket();
+      loadAutomatedDisplays();
+    });
+  </script>
+</body>
+</html>

@@ -370,19 +370,22 @@ fs.writeFileSync(testXlsxPath, xlsxBuf);
 assert(fs.existsSync(testXlsxPath) && fs.statSync(testXlsxPath).size > 100, 'Saved XLSX must exist and be populated');
 fs.unlinkSync(testXlsxPath);
 
-// Multi-sheet test validation
+// Multi-sheet test validation (8 sheets including eye tracker data separated for each module)
 const multiSheetBuf = generateXlsx([
   { name: 'Summary', headers: ['Metric', 'Value'], rows: [['Total', 6], ['Accuracy', '83%']] },
-  { name: 'Module 1 - Flicker', headers: ['Trial', 'Field'], rows: [[1, 'L'], [2, 'R']] },
-  { name: 'Module 2 - Cluster', headers: ['Trial', 'Speed'], rows: [[3, '75']] },
-  { name: 'Module 3 - HUD', headers: ['Trial', 'RPM'], rows: [[5, '2.8']] },
+  { name: 'Module 1 - Behavior', headers: ['Trial', 'Field'], rows: [[1, 'L'], [2, 'R']] },
+  { name: 'Module 1 - Eye Tracking', headers: ['Trial #', 'Pair ID', 'Sample #'], rows: [['>>> Image 1', 'f_01', 'Samples'], [1, 'f_01', 1], [1, 'f_01', 2]] },
+  { name: 'Module 2 - Behavior', headers: ['Trial', 'Speed'], rows: [[3, '75']] },
+  { name: 'Module 2 - Eye Tracking', headers: ['Trial #', 'Pair ID', 'Sample #'], rows: [['>>> Image 3', 'f_03', 'Samples'], [3, 'f_03', 1]] },
+  { name: 'Module 3 - Behavior', headers: ['Trial', 'RPM'], rows: [[5, '2.8']] },
+  { name: 'Module 3 - Eye Tracking', headers: ['Trial #', 'Pair ID', 'Sample #'], rows: [['>>> Image 5', 'f_05', 'Samples'], [5, 'f_05', 1]] },
   { name: 'All Trials', headers, rows: xlsxRows }
 ]);
 const testMultiXlsxPath = path.join(RESULTS_DIR, `${testSessionId}_multi.xlsx`);
 fs.writeFileSync(testMultiXlsxPath, multiSheetBuf);
 assert(fs.existsSync(testMultiXlsxPath) && fs.statSync(testMultiXlsxPath).size > 1000, 'Multi-sheet XLSX must exist and be valid');
 fs.unlinkSync(testMultiXlsxPath);
-console.log('✓ Multi-sheet Excel workbook generation verified with 5 sheets.');
+console.log('✓ Multi-sheet Excel workbook generation verified with 8 sheets (2 sheets per module: Behavior & Eye Tracking).');
 
 assert(fs.existsSync(testJsonPath), 'Saved JSON must exist');
 assert(fs.existsSync(testCsvPath), 'Saved CSV must exist');

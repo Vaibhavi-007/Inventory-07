@@ -60,6 +60,27 @@ function ensureCenterMouseBinary() {
 }
 ensureCenterMouseBinary();
 
+function ensureTobiiService() {
+  const checkReq = http.get('http://127.0.0.1:8765/api/status', () => {});
+  checkReq.on('error', () => {
+    const pyPath = fs.existsSync('/opt/anaconda3/envs/py310/bin/python') 
+      ? '/opt/anaconda3/envs/py310/bin/python' 
+      : 'python3';
+    const srvScript = path.join(__dirname, 'tobii', 'python_service', 'server.py');
+    if (fs.existsSync(srvScript)) {
+      console.log(`Auto-starting Tobii Eye Tracker service using ${pyPath}...`);
+      const { spawn } = require('child_process');
+      const pyProc = spawn(pyPath, [srvScript], {
+        cwd: path.join(__dirname, 'tobii', 'python_service'),
+        detached: true,
+        stdio: 'ignore'
+      });
+      pyProc.unref();
+    }
+  });
+}
+ensureTobiiService();
+
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -159,6 +180,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Proxy to Tobii Eye Tracker Python Service on port 8765
+  if (pathname.startsWith('/api/tobii/')) {
+    const subPath = pathname.replace(/^\/api\/tobii/, '/api');
+    const proxyOptions = {
+      hostname: '127.0.0.1',
+      port: 8765,
+      path: subPath,
+      method: req.method,
+      headers: { ...req.headers, host: '127.0.0.1:8765' }
+    };
+    const pReq = http.request(proxyOptions, (pRes) => {
+      res.writeHead(pRes.statusCode, pRes.headers);
+      pRes.pipe(res);
+    });
+    pReq.on('error', (err) => {
+      sendJson(res, 502, { error: 'Tobii service unreachable on port 8765', details: err.message });
+    });
+    req.pipe(pReq);
+    return;
+  }
+
   // Dataset info
   if (pathname === '/api/dataset-info') {
     const fillers = allPairs.filter(p => p.category === 'filler');
@@ -247,7 +289,7 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 5 * 1024 * 1024) { // 5MB limit
+      if (body.length > 50 * 1024 * 1024) { // 50MB limit
         req.connection.destroy();
       }
     });
@@ -444,6 +486,17 @@ const server = http.createServer((req, res) => {
             ['Right Visual Field (R) Mean RT', `${summary.right_mean_rt || '--'}`, '']
           ];
 
+          if (payload.tobii_validation) {
+            const tv = payload.tobii_validation;
+            summaryRows.push(['', '', '']);
+            summaryRows.push(['--- TOBII EYE TRACKER VALIDATION (120 Hz) ---', '', '']);
+            summaryRows.push(['Tracker Hardware', tv.model || 'Tobii Pro Fusion', '120 Hz Sampling Rate']);
+            summaryRows.push(['Validation Outcome', tv.passed ? 'PASSED (Quality Verified)' : 'FAILED / RECALIBRATED', 'Cognitive Psychology Acceptance Standard']);
+            summaryRows.push(['Data Loss (%)', tv.data_loss_pct != null ? `${tv.data_loss_pct}%` : '0.0%', 'Threshold: 0.0% (strictly zero loss)']);
+            summaryRows.push(['Precision RMS (deg)', tv.precision_deg != null ? `${tv.precision_deg}°` : 'N/A', 'Threshold: ≤ 0.20°']);
+            summaryRows.push(['Accuracy Offset (deg)', tv.accuracy_deg != null ? `${tv.accuracy_deg}°` : 'N/A', 'Threshold: ≤ 0.50°']);
+          }
+
           function formatTrialRow(t, idx) {
             const moduleLabel = t.module_name || (t.module === 'c' ? 'Module C (Heads-Up Display HUD)' : (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'));
             const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
@@ -594,11 +647,85 @@ const server = http.createServer((req, res) => {
             t.tInterval, t.imgDur, t.mode, t.timestamp
           ]);
 
+          // --- Eye Tracking Headers ---
+          const eyeTrackingHeaders = [
+            'Trial #', 'Pair ID', 'Image Stimulus', 'Target Object', 'Visual Field',
+            'Sample #', 'Time (ms)', 'Gaze X (Norm)', 'Gaze Y (Norm)', 'Gaze X (px)', 'Gaze Y (px)',
+            'Left Pupil (mm)', 'Right Pupil (mm)', 'Distance (cm)', 'Validity (1/0)', 'Tobii Timestamp'
+          ];
+
+          function buildModuleEyeTrackingRows(modKey) {
+            const modTrials = trials.filter(t => t.module === modKey);
+            const rows = [];
+            modTrials.forEach((t, imgIdx) => {
+              const trialNum = t.trial_index || (imgIdx + 1);
+              const gazeList = t.gaze_samples || [];
+              const pairId = t.id || '';
+              const objName = t.object_name || '';
+              const side = t.side || '';
+              const imgName = t.present_image || t.absent_image || '';
+              const rtStr = t.response_time_ms != null ? `${Math.round(t.response_time_ms)} ms` : 'Skipped';
+              const outcome = t.accurate ? 'Hit' : 'Miss';
+
+              // Header banner separating each image in the module
+              rows.push([
+                `>>> Image ${trialNum} [${pairId}]`,
+                pairId,
+                imgName,
+                objName,
+                side,
+                `Outcome: ${outcome} | RT: ${rtStr}`,
+                `Total Samples: ${gazeList.length}`,
+                '', '', '', '', '', '', '', '', ''
+              ]);
+
+              if (gazeList.length === 0) {
+                rows.push([
+                  trialNum, pairId, imgName, objName, side,
+                  '-', 'No gaze samples recorded for this image',
+                  '', '', '', '', '', '', '', '', ''
+                ]);
+              } else {
+                gazeList.forEach((s, sIdx) => {
+                  rows.push([
+                    trialNum,
+                    pairId,
+                    imgName,
+                    objName,
+                    side,
+                    s.sample_num != null ? s.sample_num : (sIdx + 1),
+                    s.time_offset_ms != null ? s.time_offset_ms : '',
+                    s.gaze_x_norm != null ? s.gaze_x_norm : (s.x != null ? Number(s.x.toFixed(4)) : ''),
+                    s.gaze_y_norm != null ? s.gaze_y_norm : (s.y != null ? Number(s.y.toFixed(4)) : ''),
+                    s.gaze_x_px != null ? s.gaze_x_px : (s.x != null ? Math.round(s.x * 1024) : ''),
+                    s.gaze_y_px != null ? s.gaze_y_px : (s.y != null ? Math.round(s.y * 768) : ''),
+                    s.left_pupil_mm != null ? s.left_pupil_mm : '',
+                    s.right_pupil_mm != null ? s.right_pupil_mm : '',
+                    s.distance_cm != null ? s.distance_cm : '',
+                    s.validity != null ? s.validity : (s.valid ? 1 : 0),
+                    s.timestamp != null ? s.timestamp : ''
+                  ]);
+                });
+              }
+
+              // Blank separator row after each image
+              rows.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+            });
+            return rows;
+          }
+
+          const mod1EyeTrackingRows = buildModuleEyeTrackingRows('a');
+          const mod2EyeTrackingRows = buildModuleEyeTrackingRows('b');
+          const mod3EyeTrackingRows = buildModuleEyeTrackingRows('c');
+
           const multiSheets = [
             { name: 'Summary', headers: summaryHeaders, rows: summaryRows },
-            { name: 'Module 1 - Flicker', headers: mod1Headers, rows: mod1Rows },
-            { name: 'Module 2 - Cluster', headers: mod2Headers, rows: mod2Rows },
-            { name: 'Module 3 - HUD', headers: mod3Headers, rows: mod3Rows },
+            { name: 'Module 1 - Behavior', headers: mod1Headers, rows: mod1Rows },
+            { name: 'Module 1 - Eye Tracking', headers: eyeTrackingHeaders, rows: mod1EyeTrackingRows },
+            { name: 'Module 2 - Behavior', headers: mod2Headers, rows: mod2Rows },
+            { name: 'Module 2 - Eye Tracking', headers: eyeTrackingHeaders, rows: mod2EyeTrackingRows },
+            { name: 'Module 3 - Behavior', headers: mod3Headers, rows: mod3Rows },
+            { name: 'Module 3 - Eye Tracking', headers: eyeTrackingHeaders, rows: mod3EyeTrackingRows },
             { name: 'All Trials', headers: allHeaders, rows: allRows }
           ];
 

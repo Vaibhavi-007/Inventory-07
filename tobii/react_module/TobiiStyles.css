@@ -1,0 +1,273 @@
+/* TobiiCalibrationValidation Styling */
+.tobii-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+/* Fixation Target Animation */
+.tobii-target-anchor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.tobii-outer-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-ring 1.2s infinite ease-in-out;
+}
+
+.tobii-inner-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+}
+
+/* Card and UI Layouts */
+.tobii-card {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 32px 40px;
+  max-width: 680px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  z-index: 10;
+}
+
+.tobii-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #f1f5f9;
+}
+
+.tobii-subtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.tobii-hardware-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 24px;
+}
+
+.tobii-dot-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tobii-dot-online {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.tobii-dot-offline {
+  background-color: #ef4444;
+}
+
+/* Metrics Grid */
+.tobii-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.tobii-metric-box {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.tobii-metric-box.pass {
+  border-color: #10b981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.tobii-metric-box.fail {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.tobii-metric-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.tobii-metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.tobii-metric-threshold {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.tobii-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.tobii-badge-pass {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.tobii-badge-fail {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Warnings and Failure List */
+.tobii-failure-alert {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.tobii-failure-title {
+  color: #f87171;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.tobii-failure-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.tobii-failure-list li {
+  margin-bottom: 4px;
+}
+
+/* Buttons */
+.tobii-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.tobii-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.tobii-btn-primary {
+  background-color: #38bdf8;
+  color: #0f172a;
+}
+
+.tobii-btn-primary:hover {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.tobii-btn-recalibrate {
+  background-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+.tobii-btn-recalibrate:hover {
+  background-color: #dc2626;
+}
+
+.tobii-btn-proceed {
+  background-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+.tobii-btn-proceed:hover {
+  background-color: #059669;
+}
+
+.tobii-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Instructions during calibration/validation */
+.tobii-live-guide {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(15, 23, 42, 0.85);
+  border: 1px solid #334155;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+  pointer-events: none;
+  z-index: 20;
+}
