@@ -438,6 +438,10 @@
         </div>
 
         <div class="hud-center">
+          <div class="tutorial-hud-pill" id="hud-tutorial-badge" style="display: none;">
+            <span class="tutorial-pulse-dot"></span>
+            <span>PRACTICE TUTORIAL (No Data Recorded)</span>
+          </div>
           <span class="module-hud-pill module-a" id="hud-module-badge">Module A (Flicker)</span>
           <div class="state-badge" id="hud-state-badge">
             <span class="dot"></span>
@@ -521,6 +525,12 @@
           <p class="speed-recall-desc" id="recall-modal-desc">What was the speed displayed on the dashboard meter?</p>
           <div class="speed-recall-options-grid" id="speed-recall-options">
             <!-- 4 MCQ options injected dynamically -->
+          </div>
+          <div id="recall-tutorial-feedback" class="recall-tutorial-feedback" style="display: none;">
+            <span id="recall-tutorial-feedback-text"></span>
+            <button id="btn-next-tutorial-sample" class="btn-primary" style="margin-top: 8px; padding: 6px 18px; font-size: 0.9rem;">
+              Next Practice Sample →
+            </button>
           </div>
           <p class="speed-recall-hint" id="recall-modal-hint">Select one option or press 1, 2, 3, or 4 on your keyboard (1 min limit)</p>
         </div>

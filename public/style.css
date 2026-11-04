@@ -1405,6 +1405,95 @@ kbd {
   transform: scale(1.12);
 }
 
+/* Tutorial Mode Pill in Top HUD */
+.tutorial-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.tutorial-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* Tutorial MCQ Feedback Styles */
+.speed-option-btn.opt-correct-choice {
+  background: rgba(16, 185, 129, 0.25) !important;
+  border-color: #10b981 !important;
+  color: #a7f3d0 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.4) !important;
+}
+
+.speed-option-btn.opt-correct-choice .opt-badge {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.speed-option-btn.opt-incorrect-choice {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #fecaca !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4) !important;
+}
+
+.speed-option-btn.opt-incorrect-choice .opt-badge {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.speed-option-btn.opt-correct-highlight {
+  border: 2px dashed #10b981 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.recall-tutorial-feedback {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.recall-tutorial-feedback.correct {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.recall-tutorial-feedback.incorrect {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
 /* Table Warning Symbol Cell & Image */
 .table-symbol-cell,
 .table-symbol-icon {

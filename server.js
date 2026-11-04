@@ -313,6 +313,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Get tutorial pools (2 samples per module, strictly non-overlapping with modulePools)
+  if (pathname === '/api/tutorial-pools') {
+    const tMod1 = allPairs.filter(p => ['01_R_filler_mirror', '02_L_filler_napkin'].includes(p.id));
+    const tMod2 = allPairs.filter(p => ['03_R_filler_ducks', '04_L_filler_electricalgrid'].includes(p.id));
+    const tMod3 = allPairs.filter(p => ['05_R_filler_mirror', '06_L_filler_vase'].includes(p.id));
+    sendJson(res, 200, {
+      success: true,
+      pools: {
+        module_1: tMod1,
+        module_2: tMod2,
+        module_3: tMod3
+      }
+    });
+    return;
+  }
+
   // Get trials/pairs for experiment
   if (pathname === '/api/pairs') {
     let n = parseInt(parsedUrl.query.n, 10) || 10;

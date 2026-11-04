@@ -84,6 +84,14 @@
     sessionStartTime: 0,
     sessionId: null,
 
+    // Tutorial state (2 practice samples per module before actual experiment)
+    isTutorial: false,
+    tutorialTrials: [],
+    experimentTrials: [],
+    _inTutorialTransition: false,
+    _tutMcqAutoAdvance: null,
+    _proceedTutorialMCQ: null,
+
     // Runtime experiment variables
     trialState: 'idle', // 'present', 'interval', 'absent', 'feedback'
     stimulusStartTime: 0,
@@ -329,7 +337,13 @@
     moduleTransitionDesc: document.getElementById('module-transition-desc'),
     btnStartModuleB: document.getElementById('btn-start-module-b'),
     btnStartModuleText: document.getElementById('btn-start-module-text'),
-    valHintN3: document.getElementById('val-hint-n3')
+    valHintN3: document.getElementById('val-hint-n3'),
+
+    // Tutorial HUD & feedback elements
+    hudTutorialBadge: document.getElementById('hud-tutorial-badge'),
+    recallTutorialFeedback: document.getElementById('recall-tutorial-feedback'),
+    recallTutorialFeedbackText: document.getElementById('recall-tutorial-feedback-text'),
+    btnNextTutorialSample: document.getElementById('btn-next-tutorial-sample')
   };
 
   const displayCtx = dom.displayCanvas.getContext('2d');
@@ -964,7 +978,81 @@
       state.speedRecallResults = [];
       state.symbolRecallResults = [];
 
-      // Preload all dashboard symbol icons and first 3 trials
+      // Tutorial Pools (2 samples per module = 6 practice trials, non-overlapping with module pools)
+      let tutorialPoolsData = null;
+      try {
+        const tutRes = await fetch('/api/tutorial-pools');
+        if (tutRes.ok) {
+          const tJson = await tutRes.json();
+          if (tJson && tJson.pools) {
+            tutorialPoolsData = tJson.pools;
+          }
+        }
+      } catch (tErr) {
+        console.warn('Could not load /api/tutorial-pools:', tErr);
+      }
+
+      let tutM1 = tutorialPoolsData?.module_1;
+      let tutM2 = tutorialPoolsData?.module_2;
+      let tutM3 = tutorialPoolsData?.module_3;
+
+      if (!tutM1 || tutM1.length < 2) {
+        tutM1 = data.trials.filter(p => ['01_R_filler_mirror', '02_L_filler_napkin'].includes(p.id));
+      }
+      if (!tutM2 || tutM2.length < 2) {
+        tutM2 = data.trials.filter(p => ['03_R_filler_ducks', '04_L_filler_electricalgrid'].includes(p.id));
+      }
+      if (!tutM3 || tutM3.length < 2) {
+        tutM3 = data.trials.filter(p => ['05_R_filler_mirror', '06_L_filler_vase'].includes(p.id));
+      }
+
+      const tut1Trials = tutM1.slice(0, 2).map((t, i) => ({
+        ...t,
+        module: 'a',
+        module_num: 1,
+        module_name: 'Practice Module 1 (Flicker)',
+        hasDashboard: false,
+        hasHud: false,
+        isProbe: false,
+        isTutorial: true,
+        tutorial_sample_num: i + 1
+      }));
+
+      const tut2Trials = tutM2.slice(0, 2).map((t, i) => ({
+        ...t,
+        module: 'b',
+        module_num: 2,
+        module_name: 'Practice Module 2 (Cluster Strip)',
+        hasDashboard: true,
+        hasHud: false,
+        isProbe: true,
+        probeType: i === 0 ? 'speed' : 'symbol',
+        dashboardData: generateRandomDashboardData(100 + i),
+        isTutorial: true,
+        tutorial_sample_num: i + 1
+      }));
+
+      const tut3Trials = tutM3.slice(0, 2).map((t, i) => ({
+        ...t,
+        module: 'c',
+        module_num: 3,
+        module_name: 'Practice Module 3 (HUD)',
+        hasDashboard: true,
+        hasHud: true,
+        isProbe: true,
+        probeType: i === 0 ? 'rpm' : 'speed',
+        dashboardData: generateRandomDashboardData(200 + i),
+        isTutorial: true,
+        tutorial_sample_num: i + 1
+      }));
+
+      state.tutorialTrials = [
+        ...tut1Trials,
+        ...tut2Trials,
+        ...tut3Trials
+      ];
+
+      // Preload all dashboard symbol icons, first trials, and practice tutorial assets
       const preloadPromises = [
         preloadImage('/public/symbols/seatbelt.png'),
         preloadImage('/public/symbols/engine.png'),
@@ -977,6 +1065,11 @@
         preloadPromises.push(preloadImage(`/images/${t.absent_image}`));
         preloadPromises.push(preloadImage(`/masks/${t.mask_image}`));
       }
+      state.tutorialTrials.forEach(t => {
+        preloadPromises.push(preloadImage(`/images/${t.present_image}`));
+        preloadPromises.push(preloadImage(`/images/${t.absent_image}`));
+        preloadPromises.push(preloadImage(`/masks/${t.mask_image}`));
+      });
       await Promise.all(preloadPromises);
 
       dom.btnStart.disabled = false;
@@ -999,17 +1092,152 @@
   function proceedToExperimentArena() {
     clearInterval(tobiiTrackPollInterval);
     showScreen('experiment');
-    updateHUD();
     fitStageLayout();
 
-    // Ensure the Tobii WebSocket is connected before the first trial starts recording.
-    // If already open, this is a no-op. If dropped (e.g. after calibration screen closed),
-    // initTobiiClient() re-establishes it so START_GAZE_STREAM during runTrial() succeeds.
+    // Ensure the Tobii WebSocket is connected before trials start
     if (!state.tobiiSocket || state.tobiiSocket.readyState !== WebSocket.OPEN) {
       initTobiiClient();
     }
 
-    // Introduce the first randomized module via transition modal so the participant knows instructions
+    startTutorialFlow();
+  }
+
+  function startTutorialFlow() {
+    state.isTutorial = true;
+    state.experimentTrials = [...state.trials];
+    state.trials = [...state.tutorialTrials];
+    state.currentTrialIndex = 0;
+    state.trialResults = [];
+
+    if (dom.hudTutorialBadge) {
+      dom.hudTutorialBadge.style.display = 'inline-flex';
+    }
+
+    updateHUD();
+    showTutorialTransitionModal('a', 1);
+  }
+
+  function showTutorialTransitionModal(targetModuleKey, targetModuleNum) {
+    state.trialState = 'module_transition';
+    state._inTutorialTransition = true;
+    if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+    if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
+    setHUDState('module_transition', `Practice Tutorial: Module ${targetModuleNum}`);
+
+    dom.stageWrapper.classList.add('speed-recall-blur');
+    if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+    if (dom.stageHudOverlay) dom.stageHudOverlay.style.display = 'none';
+    if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
+    dom.spacebarPrompt.classList.remove('active');
+    dom.feedbackOverlay.classList.remove('visible');
+    dom.clickMarker.className = 'click-marker';
+
+    if (targetModuleNum === 1) {
+      if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'PRACTICE TUTORIAL (PART 1 OF 3)';
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.innerHTML = 'Module 1: Flicker Paradigm Practice';
+      if (dom.moduleTransitionDesc) {
+        dom.moduleTransitionDesc.innerHTML = `
+          Welcome to the <strong>Practice Tutorial</strong>! Before the actual test begins, you will complete <strong>2 practice samples for each of the 3 modules</strong> (6 practice samples total).<br><br>
+          • In Module 1, two versions of a scene alternate with a brief interval.<br>
+          • Carefully scan the image to locate what is changing (appearing, disappearing, or shifting).<br>
+          • As soon as you spot the difference, <strong>click directly on it</strong>.<br>
+          • Immediate feedback will indicate whether you clicked the correct difference.<br>
+          <div style="margin-top: 12px; color: #fbbf24; font-size: 0.88em; font-weight: 600;">⚠️ Practice data is NOT recorded.</div>
+        `;
+      }
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = 'Begin Module 1 Practice (2 samples)';
+      state._transitionTargetIndex = 0;
+    } else if (targetModuleNum === 2) {
+      if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'PRACTICE TUTORIAL (PART 2 OF 3)';
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.innerHTML = 'Module 2: Speed &amp; Cluster Practice';
+      if (dom.moduleTransitionDesc) {
+        dom.moduleTransitionDesc.innerHTML = `
+          Great job! Now practice <strong>Module 2</strong>.<br><br>
+          • An <strong>automotive instrument cluster</strong> (speedometer, RPM gauge, warning symbol, fuel) is displayed along the bottom.<br>
+          • Locate and click the difference in the scene while dividing your visual attention to monitor vehicle instruments.<br>
+          • On recall prompts, you will be asked a multiple-choice question about the displayed instruments (Speed, Warning Symbol, or RPM).<br>
+          • You will receive immediate feedback on whether your recall choice was correct.
+        `;
+      }
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = 'Begin Module 2 Practice (2 samples)';
+      state._transitionTargetIndex = 2;
+    } else if (targetModuleNum === 3) {
+      if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'PRACTICE TUTORIAL (PART 3 OF 3)';
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.innerHTML = 'Module 3: Heads-Up Display (HUD) Practice';
+      if (dom.moduleTransitionDesc) {
+        dom.moduleTransitionDesc.innerHTML = `
+          Now practice <strong>Module 3</strong>.<br><br>
+          • Vehicle instruments are projected inside the scene via a floating <strong>Heads-Up Display (HUD) glass capsule</strong>, while the bottom area is blanked out.<br>
+          • Locate and click the difference in the scene while monitoring the HUD.<br>
+          • Recall questions will also be asked with immediate feedback.<br>
+          • This is the final practice module before the actual experiment.
+        `;
+      }
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = 'Begin Module 3 Practice (2 samples)';
+      state._transitionTargetIndex = 4;
+    }
+
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.add('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function showTutorialCompletionModal() {
+    state.trialState = 'module_transition';
+    state._inTutorialTransition = 'complete';
+    if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+    if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
+    setHUDState('module_transition', 'Tutorial Completed');
+
+    dom.stageWrapper.classList.add('speed-recall-blur');
+    if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
+    if (dom.stageHudOverlay) dom.stageHudOverlay.style.display = 'none';
+    if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
+    dom.spacebarPrompt.classList.remove('active');
+    dom.feedbackOverlay.classList.remove('visible');
+    dom.clickMarker.className = 'click-marker';
+
+    if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'TUTORIAL COMPLETED';
+    if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.innerHTML = '🎉 Tutorial Completed — Ready for Experiment!';
+    if (dom.moduleTransitionDesc) {
+      dom.moduleTransitionDesc.innerHTML = `
+        You have successfully completed the practice samples for all three modules.<br><br>
+        • All practice data has been cleared (no trial scores were recorded).<br>
+        • The <strong>actual experiment</strong> consists of 15 images per module (<strong>45 trials total</strong>).<br>
+        • Work as quickly and accurately as possible.<br><br>
+        Click the button below when you are ready to begin the real experiment.
+      `;
+    }
+    if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = '🚀 Begin Actual Experiment';
+
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.add('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function finishTutorialAndStartRealExperiment() {
+    if (dom.moduleTransitionOverlay) {
+      dom.moduleTransitionOverlay.classList.remove('active');
+      dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'true');
+    }
+    if (dom.hudTutorialBadge) {
+      dom.hudTutorialBadge.style.display = 'none';
+    }
+
+    state.isTutorial = false;
+    state._inTutorialTransition = false;
+    state.trials = [...state.experimentTrials];
+    state.currentTrialIndex = 0;
+    state.trialResults = [];
+    state.speedRecallResults = [];
+    state.symbolRecallResults = [];
+    state.sessionStartTime = Date.now();
+
+    updateHUD();
+
+    // Introduce the first randomized real module
     const firstTrial = state.trials[0];
     const firstModKey = firstTrial?.module || 'a';
     const firstModNum = firstTrial?.module_num || (firstModKey === 'c' ? 3 : (firstModKey === 'b' ? 2 : 1));
@@ -1594,6 +1822,35 @@
   }
 
   function updateHUD() {
+    if (state.isTutorial) {
+      if (dom.hudTutorialBadge) dom.hudTutorialBadge.style.display = 'inline-flex';
+      const trial = state.trials[state.currentTrialIndex];
+      const modNum = trial?.module_num || 1;
+      const sampleInMod = ((state.currentTrialIndex % 2) + 1);
+
+      dom.hudCurrentTrial.textContent = `${sampleInMod}`;
+      dom.hudTotalTrials.textContent = `2 (Mod ${modNum})`;
+      dom.hudProgressFill.style.width = `${((state.currentTrialIndex + 1) / 6) * 100}%`;
+
+      if (dom.hudModuleBadge && trial) {
+        if (trial.module === 'c') {
+          dom.hudModuleBadge.textContent = 'Practice: Module 3 (HUD)';
+          dom.hudModuleBadge.className = 'module-hud-pill module-c';
+        } else if (trial.module === 'b') {
+          dom.hudModuleBadge.textContent = 'Practice: Module 2 (Cluster Strip)';
+          dom.hudModuleBadge.className = 'module-hud-pill module-b';
+        } else {
+          dom.hudModuleBadge.textContent = 'Practice: Module 1 (Flicker)';
+          dom.hudModuleBadge.className = 'module-hud-pill module-a';
+        }
+      }
+
+      dom.hudAccVal.textContent = `--%`;
+      dom.hudRtVal.textContent = `-- ms`;
+      return;
+    }
+
+    if (dom.hudTutorialBadge) dom.hudTutorialBadge.style.display = 'none';
     const total = state.trials.length;
     const current = state.currentTrialIndex + 1;
     dom.hudCurrentTrial.textContent = Math.min(current, total);
@@ -1699,6 +1956,38 @@
 
     const trial = state.currentTrialData;
 
+    // In Tutorial Mode: Give immediate visual hit/miss feedback, reveal difference location, and guide user
+    if (state.isTutorial) {
+      renderTargetRevealOverlay();
+      const cssX = (clickX / 1024) * 100;
+      const cssY = (clickY / 768) * 100;
+      dom.clickMarker.style.left = `${cssX}%`;
+      dom.clickMarker.style.top = `${cssY}%`;
+      dom.clickMarker.className = `click-marker show ${isHit ? 'hit' : 'miss'}`;
+
+      if (isHit) {
+        dom.feedbackMsg.className = 'feedback-msg correct';
+        dom.feedbackMsg.textContent = `✓ Correct! Difference detected (${Math.round(rt)} ms)`;
+      } else {
+        dom.feedbackMsg.className = 'feedback-msg incorrect';
+        dom.feedbackMsg.textContent = `✗ Incorrect! Target difference location is highlighted below`;
+      }
+
+      if (trial && trial.isProbe && trial.dashboardData) {
+        // Allow participant to view hit/miss indication before opening recall prompt
+        setTimeout(() => {
+          showRecallPrompt(state.currentTrialIndex);
+        }, 900);
+        return;
+      }
+
+      // Non-probe tutorial sample (Module 1): show prompt to advance
+      dom.spacebarPrompt.classList.add('active');
+      setHUDState('feedback', 'Press Spacebar for Next Practice Sample');
+      return;
+    }
+
+    // Normal experiment:
     // Check if this trial requires immediate speed, symbol, or RPM recall MCQ popup:
     // Skip the spacebar prompt completely and immediately display recall MCQ
     if ((trial.module === 'b' || trial.module === 'c') && trial.isProbe && trial.dashboardData) {
@@ -2010,20 +2299,25 @@
 
     const trial = state.currentTrialData;
 
-    // Start 120Hz Eye Tracking recording for this image trial
-    state.currentTrialGazeSamples = [];
-    state.currentTrialGazeStartTime = window.performance.now();
-    state.isTrialGazeRecording = true;
-    sendTobii('START_GAZE_STREAM');
-    sendTobii('LOG_EVENT', {
-      event: 'TRIAL_START',
-      data: {
-        trial_index: index + 1,
-        module: trial.module,
-        id: trial.id,
-        image: trial.absent_image
-      }
-    });
+    // Start 120Hz Eye Tracking recording for this image trial (only for actual experiment)
+    if (!state.isTutorial) {
+      state.currentTrialGazeSamples = [];
+      state.currentTrialGazeStartTime = window.performance.now();
+      state.isTrialGazeRecording = true;
+      sendTobii('START_GAZE_STREAM');
+      sendTobii('LOG_EVENT', {
+        event: 'TRIAL_START',
+        data: {
+          trial_index: index + 1,
+          module: trial.module,
+          id: trial.id,
+          image: trial.absent_image
+        }
+      });
+    } else {
+      state.currentTrialGazeSamples = [];
+      state.isTrialGazeRecording = false;
+    }
 
     // Configure dashboard & HUD overlays according to active Module
     if (trial.module === 'c') {
@@ -2196,9 +2490,13 @@
     dom.speedRecallOverlay.classList.add('active');
     dom.speedRecallOverlay.setAttribute('aria-hidden', 'false');
 
+    if (dom.recallTutorialFeedback) {
+      dom.recallTutorialFeedback.style.display = 'none';
+    }
+
     // Display whether the difference chosen by the user is correct or incorrect in navbar/header
     const trialResult = state.trialResults.find(r => r.trial_index === trialIndex + 1);
-    const isDiffCorrect = trialResult ? Boolean(trialResult.accurate) : (state.activeResult ? Boolean(state.activeResult.accurate) : false);
+    const isDiffCorrect = trialResult ? Boolean(trialResult.accurate) : (state.currentClick ? Boolean(state.currentClick.accurate) : (state.activeResult ? Boolean(state.activeResult.accurate) : false));
 
     if (dom.hudDiffBadge) {
       dom.hudDiffBadge.style.display = 'inline-flex';
@@ -2460,6 +2758,79 @@
     const ctx = state._recallContext;
     const probeType = ctx.probeType;
     const isAccurate = selectedOption.isCorrect === true;
+
+    // In Tutorial Mode: Provide immediate visual feedback & explanation banner
+    if (state.isTutorial) {
+      const allBtns = dom.speedRecallOptions.querySelectorAll('.speed-option-btn');
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+        if (btn.dataset.correct === 'true') {
+          btn.classList.add('opt-correct-highlight');
+        }
+      });
+
+      const selectedBtn = Array.from(allBtns).find(b => b.dataset.key === String(selectedOption.key));
+      if (selectedBtn) {
+        selectedBtn.classList.remove('opt-correct-highlight');
+        selectedBtn.classList.add(isAccurate ? 'opt-correct-choice' : 'opt-incorrect-choice');
+      }
+
+      if (isAccurate) {
+        playSound('hit');
+      } else {
+        playSound('miss');
+      }
+
+      let feedbackMsg = '';
+      if (probeType === 'symbol') {
+        const correctSym = ctx.actualSymbol?.name || 'Warning Symbol';
+        feedbackMsg = isAccurate
+          ? `✓ Correct! Warning symbol was <strong>${correctSym}</strong>.`
+          : `✗ Incorrect! Warning symbol was <strong>${correctSym}</strong>.`;
+      } else if (probeType === 'rpm') {
+        feedbackMsg = isAccurate
+          ? `✓ Correct! Engine RPM was <strong>${ctx.actualRpm}k RPM</strong>.`
+          : `✗ Incorrect! Engine RPM was <strong>${ctx.actualRpm}k RPM</strong>.`;
+      } else {
+        feedbackMsg = isAccurate
+          ? `✓ Correct! Vehicle speed was <strong>${ctx.speedFormatted} km/h</strong>.`
+          : `✗ Incorrect! Vehicle speed was <strong>${ctx.speedFormatted} km/h</strong>.`;
+      }
+
+      if (dom.recallTutorialFeedback && dom.recallTutorialFeedbackText) {
+        dom.recallTutorialFeedbackText.innerHTML = feedbackMsg;
+        dom.recallTutorialFeedback.className = `recall-tutorial-feedback ${isAccurate ? 'correct' : 'incorrect'}`;
+        dom.recallTutorialFeedback.style.display = 'flex';
+      }
+
+      function proceedTutorialMCQ() {
+        if (!state.speedRecallPending) return;
+        clearTimeout(state._tutMcqAutoAdvance);
+        state._proceedTutorialMCQ = null;
+        if (dom.recallTutorialFeedback) {
+          dom.recallTutorialFeedback.style.display = 'none';
+        }
+        state.speedRecallPending = false;
+        state._recallContext = null;
+        state._currentMCQOptions = null;
+        dom.speedRecallOverlay.classList.remove('active');
+        dom.speedRecallOverlay.setAttribute('aria-hidden', 'true');
+        dom.stageWrapper.classList.remove('speed-recall-blur');
+
+        if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+        if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
+
+        centerMouseCursor();
+        playSound('advance');
+        advanceAfterTrial(ctx.trialIndex);
+      }
+
+      state._proceedTutorialMCQ = proceedTutorialMCQ;
+      state._tutMcqAutoAdvance = setTimeout(proceedTutorialMCQ, 2500);
+      return;
+    }
+
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
 
     if (probeType === 'symbol') {
@@ -2648,6 +3019,19 @@
     dom.stageWrapper.classList.remove('speed-recall-blur');
 
     playSound('advance');
+
+    if (state._inTutorialTransition === 'complete') {
+      finishTutorialAndStartRealExperiment();
+      return;
+    }
+
+    if (state.isTutorial) {
+      state._inTutorialTransition = false;
+      const targetIdx = state._transitionTargetIndex != null ? state._transitionTargetIndex : 0;
+      runTrial(targetIdx);
+      return;
+    }
+
     const targetIdx = state._transitionTargetIndex != null ? state._transitionTargetIndex : state.config.n;
     runTrial(targetIdx);
   }
@@ -2655,6 +3039,25 @@
   const continueToModuleB = continueToNextModule;
 
   function advanceAfterTrial(completedIndex) {
+    if (state.isTutorial) {
+      const nextIndex = completedIndex + 1;
+      if (nextIndex === 2) {
+        // Module 1 practice complete -> introduce Module 2 practice
+        showTutorialTransitionModal('b', 2);
+        return;
+      } else if (nextIndex === 4) {
+        // Module 2 practice complete -> introduce Module 3 practice
+        showTutorialTransitionModal('c', 3);
+        return;
+      } else if (nextIndex >= 6) {
+        // All 3 practice modules completed!
+        showTutorialCompletionModal();
+        return;
+      }
+      runTrial(nextIndex);
+      return;
+    }
+
     const nextIndex = completedIndex + 1;
     const n = state.config.n;
 
@@ -2689,6 +3092,9 @@
   }
 
   function recordCurrentTrialResult() {
+    // Strictly isolate tutorial data: NEVER save practice trial results
+    if (state.isTutorial) return;
+
     const existing = state.trialResults.find(r => r.trial_index === state.currentTrialIndex + 1);
     if (existing) return;
 
@@ -2769,6 +3175,11 @@
     playSound('advance');
     centerMouseCursor();
 
+    if (state.isTutorial) {
+      advanceAfterTrial(state.currentTrialIndex);
+      return;
+    }
+
     const trial = state.currentTrialData;
     if (trial && (trial.module === 'b' || trial.module === 'c') && trial.isProbe && trial.dashboardData) {
       recordCurrentTrialResult();
@@ -2784,6 +3195,14 @@
     dom.stageWrapper.addEventListener('click', handleStageClick);
     window.addEventListener('keydown', handleGlobalKeydown);
 
+    if (dom.btnNextTutorialSample) {
+      dom.btnNextTutorialSample.addEventListener('click', () => {
+        if (typeof state._proceedTutorialMCQ === 'function') {
+          state._proceedTutorialMCQ();
+        }
+      });
+    }
+
     dom.btnQuit.addEventListener('click', () => {
       if (confirm('Are you sure you want to exit the current experiment session?')) {
         clearTimeout(state.phaseTimer);
@@ -2793,6 +3212,12 @@
         clearTimeout(state.fixationTimer);
         clearTimeout(state.speedRecallTimer);
         clearInterval(state.speedRecallInterval);
+        clearTimeout(state._tutMcqAutoAdvance);
+        state._proceedTutorialMCQ = null;
+        state.isTutorial = false;
+        state._inTutorialTransition = false;
+        if (dom.hudTutorialBadge) dom.hudTutorialBadge.style.display = 'none';
+        if (dom.recallTutorialFeedback) dom.recallTutorialFeedback.style.display = 'none';
         if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
         if (dom.carDashboardOverlay) dom.carDashboardOverlay.style.display = 'none';
         if (dom.stageDisplayUnit) dom.stageDisplayUnit.classList.remove('has-dashboard');
@@ -2868,6 +3293,38 @@
 
     const trial = state.currentTrialData;
 
+    // In Tutorial Mode: Give immediate visual hit/miss feedback, reveal difference location, and guide user
+    if (state.isTutorial) {
+      renderTargetRevealOverlay();
+      const cssX = (clickX / 1024) * 100;
+      const cssY = (clickY / 768) * 100;
+      dom.clickMarker.style.left = `${cssX}%`;
+      dom.clickMarker.style.top = `${cssY}%`;
+      dom.clickMarker.className = `click-marker show ${isHit ? 'hit' : 'miss'}`;
+
+      if (isHit) {
+        dom.feedbackMsg.className = 'feedback-msg correct';
+        dom.feedbackMsg.textContent = `✓ Correct! Difference detected (${Math.round(rt)} ms)`;
+      } else {
+        dom.feedbackMsg.className = 'feedback-msg incorrect';
+        dom.feedbackMsg.textContent = `✗ Incorrect! Target difference location is highlighted below`;
+      }
+
+      if (trial && trial.isProbe && trial.dashboardData) {
+        // Allow participant to view hit/miss indication before opening recall prompt
+        setTimeout(() => {
+          showRecallPrompt(state.currentTrialIndex);
+        }, 900);
+        return;
+      }
+
+      // Non-probe tutorial sample (Module 1): show prompt to advance
+      dom.spacebarPrompt.classList.add('active');
+      setHUDState('feedback', 'Press Spacebar for Next Practice Sample');
+      return;
+    }
+
+    // Normal experiment:
     // Check if this trial requires immediate speed, symbol, or RPM recall MCQ popup:
     // Skip the spacebar prompt completely and immediately display recall MCQ
     if ((trial.module === 'b' || trial.module === 'c') && trial.isProbe && trial.dashboardData) {
@@ -2972,17 +3429,27 @@
     }
 
     // Handle Recall MCQ keyboard shortcuts (1..4 or A..D)
-    if (state.trialState === 'speed_recall' && state.speedRecallPending && state._currentMCQOptions) {
-      const key = e.key.toUpperCase();
-      let matched = null;
-      if (['1', '2', '3', '4'].includes(key)) {
-        matched = state._currentMCQOptions.find(o => o.key === key);
-      } else if (['A', 'B', 'C', 'D'].includes(key)) {
-        matched = state._currentMCQOptions.find(o => o.letter === key);
+    if (state.trialState === 'speed_recall' && state.speedRecallPending) {
+      if (state.isTutorial && state._proceedTutorialMCQ && dom.recallTutorialFeedback && dom.recallTutorialFeedback.style.display !== 'none') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          state._proceedTutorialMCQ();
+          return;
+        }
       }
-      if (matched) {
-        e.preventDefault();
-        submitRecallMCQ(matched);
+
+      if (state._currentMCQOptions) {
+        const key = e.key.toUpperCase();
+        let matched = null;
+        if (['1', '2', '3', '4'].includes(key)) {
+          matched = state._currentMCQOptions.find(o => o.key === key);
+        } else if (['A', 'B', 'C', 'D'].includes(key)) {
+          matched = state._currentMCQOptions.find(o => o.letter === key);
+        }
+        if (matched) {
+          e.preventDefault();
+          submitRecallMCQ(matched);
+        }
       }
       if (e.code === 'Space') e.preventDefault();
       return;
