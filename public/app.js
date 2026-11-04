@@ -181,6 +181,7 @@
     resParticipantId: document.getElementById('res-participant-id'),
     resSessionIdDisplay: document.getElementById('res-session-id-display'),
     resSessionDateDisplay: document.getElementById('res-session-date-display'),
+    resModuleOrderDisplay: document.getElementById('res-module-order-display'),
 
     // Landing inputs
     sliderN: document.getElementById('slider-n'),
@@ -3245,6 +3246,8 @@
     if (dom.resParticipantName) dom.resParticipantName.textContent = dispId;
     if (dom.resSessionIdDisplay) dom.resSessionIdDisplay.textContent = state.sessionId || '--';
     if (dom.resSessionDateDisplay) dom.resSessionDateDisplay.textContent = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const orderStr = (state.moduleOrder || []).map(k => k === 'c' ? 'Module 3' : (k === 'b' ? 'Module 2' : 'Module 1')).join(' → ');
+    if (dom.resModuleOrderDisplay) dom.resModuleOrderDisplay.textContent = orderStr || 'Randomized';
 
     if (dom.resTotalBadge) dom.resTotalBadge.textContent = `${total} Trials`;
 
@@ -3384,6 +3387,7 @@
       parameters: {
         n: state.config.n,
         total_trials: total,
+        module_presentation_order: (state.moduleOrder || []).map(k => k === 'c' ? '3' : (k === 'b' ? '2' : '1')).join(' → '),
         t_interval_ms: state.config.t,
         image_duration_ms: state.config.imgDuration,
         mode: state.config.mode,
@@ -3393,6 +3397,7 @@
       },
       summary: {
         total_trials: total,
+        module_presentation_order: (state.moduleOrder || []).map(k => k === 'c' ? 'Module 3 (HUD)' : (k === 'b' ? 'Module 2 (Cluster Strip)' : 'Module 1 (Flicker)')).join(' → '),
         correct_count: hits.length,
         accuracy_percent: accuracyPct,
         module_a_trials: modATrials.length,
@@ -3791,6 +3796,7 @@
       '   <Row><Cell><Data ss:Type="String">Metric</Data></Cell><Cell><Data ss:Type="String">Value</Data></Cell></Row>\n' +
       `   <Row><Cell><Data ss:Type="String">Participation ID</Data></Cell><Cell><Data ss:Type="String">${state.participant?.id || 'Anonymous'}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Session ID</Data></Cell><Cell><Data ss:Type="String">${state.sessionId || ''}</Data></Cell></Row>\n` +
+      `   <Row><Cell><Data ss:Type="String">Module Presentation Order</Data></Cell><Cell><Data ss:Type="String">${(state.moduleOrder || []).map(k => k === 'c' ? 'Module 3' : (k === 'b' ? 'Module 2' : 'Module 1')).join(' → ')}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Total Trials</Data></Cell><Cell><Data ss:Type="Number">${trials.length}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Overall Accuracy</Data></Cell><Cell><Data ss:Type="String">${dom.resAccuracy ? dom.resAccuracy.textContent : ''}</Data></Cell></Row>\n` +
       `   <Row><Cell><Data ss:Type="String">Mean Response Time</Data></Cell><Cell><Data ss:Type="String">${dom.resMeanRt ? dom.resMeanRt.textContent : ''}</Data></Cell></Row>\n` +

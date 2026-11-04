@@ -540,6 +540,7 @@ const server = http.createServer((req, res) => {
             ['Participation ID', participantId, 'Subject participation identifier'],
             ['Session ID', sessionId, 'Unique session identifier'],
             ['Session Timestamp', payload.timestamp || new Date().toISOString(), 'Recorded test timestamp'],
+            ['Module Presentation Order', summary.module_presentation_order || params.module_presentation_order || 'Randomized', 'Randomized sequence presented to subject'],
             ['Trials per Module (n)', params.n || '', 'Configured samples per module'],
             ['Total Trials (3n)', summary.total_trials || trials.length, 'Disjoint image pairs across 3 modules'],
             ['Flicker Interval (t)', `${params.t_interval_ms || 250} ms`, 'Blank screen duration'],
