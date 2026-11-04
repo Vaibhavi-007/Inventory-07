@@ -3913,6 +3913,20 @@
     } catch (e) {
       console.warn('Failed to auto-save session on server:', e);
     }
+
+    // Automatically trigger Excel file download without participant needing to click
+    setTimeout(() => {
+      exportXlsx();
+      if (dom.btnDownloadXlsx) {
+        const origContent = dom.btnDownloadXlsx.innerHTML;
+        dom.btnDownloadXlsx.innerHTML = `<span>✓ Excel Downloaded</span>`;
+        dom.btnDownloadXlsx.classList.add('btn-downloaded');
+        setTimeout(() => {
+          dom.btnDownloadXlsx.innerHTML = origContent;
+          dom.btnDownloadXlsx.classList.remove('btn-downloaded');
+        }, 4000);
+      }
+    }, 400);
   }
 
   function bindResultsControls() {
