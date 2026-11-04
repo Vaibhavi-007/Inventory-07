@@ -453,6 +453,28 @@ html, body {
   border-color: #e2231a;
 }
 
+.chip.locked {
+  cursor: default;
+  pointer-events: none;
+  background: rgba(226, 35, 26, 0.15);
+  color: #fca5a5;
+  border-color: #e2231a;
+  font-weight: 600;
+}
+
+.badge-fixed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 0.5rem;
+}
+
 .helper-text {
   font-size: 0.8rem;
   color: var(--text-dim);

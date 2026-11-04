@@ -421,13 +421,22 @@
       const data = await res.json();
       state.datasetInfo = data;
       const totalAvailable = data.total_pairs || 256;
-      const maxPerModule = 40; // 40 per module = 120 trials total across 3 disjoint modules
-      dom.sliderN.max = maxPerModule;
-      dom.inputN.max = maxPerModule;
+      if (dom.sliderN) {
+        dom.sliderN.min = 15;
+        dom.sliderN.max = 15;
+        dom.sliderN.value = 15;
+        dom.sliderN.disabled = true;
+      }
+      if (dom.inputN) {
+        dom.inputN.min = 15;
+        dom.inputN.max = 15;
+        dom.inputN.value = 15;
+        dom.inputN.disabled = true;
+      }
       dom.datasetStatusText.textContent = `${totalAvailable} Stimuli Pairs Ready (${data.categories?.filler || 168} fillers, ${data.categories?.window || 40} window, ${data.categories?.mirror || 48} mirror)`;
       
+      setN(15);
       if (data.defaults) {
-        if (data.defaults.n && (!dom.inputN || !dom.inputN.value || dom.inputN.value === '10')) setN(data.defaults.n);
         if (data.defaults.t_interval_ms) setT(data.defaults.t_interval_ms);
         if (data.defaults.image_duration_ms) setImgDur(data.defaults.image_duration_ms);
         if (data.defaults.timeout_sec) setTimeoutSec(data.defaults.timeout_sec);
@@ -447,18 +456,17 @@
   let setN, setT, setImgDur, setTimeoutSec;
 
   function bindLandingControls() {
-    // Sync Number of images (n per module, total 3n trials across 3 modules)
-    setN = function(val) {
-      const maxPerModule = 40;
-      val = Math.max(1, Math.min(maxPerModule, parseInt(val, 10) || 1));
+    // Number of images strictly fixed to 15 per module (45 trials total across 3 modules)
+    setN = function(_val) {
+      const val = 15;
       if (dom.sliderN) dom.sliderN.value = val;
       if (dom.inputN) dom.inputN.value = val;
       if (dom.valN) dom.valN.textContent = val;
       if (dom.valHintN) dom.valHintN.textContent = val;
       if (dom.valHintN2) dom.valHintN2.textContent = val;
       if (dom.valHintN3) dom.valHintN3.textContent = val;
-      if (dom.valTotalN) dom.valTotalN.textContent = val * 3;
-      state.config.n = val;
+      if (dom.valTotalN) dom.valTotalN.textContent = 45;
+      state.config.n = 15;
 
       // Update preset active state
       if (dom.presetsN) {
@@ -797,11 +805,8 @@
 
     centerMouseCursor();
 
-    // Ensure all landing inputs are strictly synchronized to state.config
-    const parsedN = parseInt(dom.inputN?.value || dom.sliderN?.value || state.config.n, 10);
-    if (!isNaN(parsedN) && parsedN >= 1) {
-      setN(parsedN);
-    }
+    // n is strictly fixed to 15 per module (45 trials total across 3 modules)
+    setN(15);
     const parsedT = parseInt(dom.inputT?.value || dom.sliderT?.value || state.config.t, 10);
     if (!isNaN(parsedT) && parsedT >= 50) {
       setT(parsedT);
@@ -819,7 +824,7 @@
     dom.btnStart.textContent = 'Loading Stimuli...';
 
     try {
-      const n = state.config.n;
+      const n = 15;
       // Fetch full pool of pairs so disjoint Module A & B subsets are guaranteed without image overlap
       const query = new URLSearchParams({
         n: 256,

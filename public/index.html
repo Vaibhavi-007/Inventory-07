@@ -53,20 +53,18 @@
               </div>
             </div>
 
-            <!-- Parameter: Number of images 'n' per module -->
+            <!-- Parameter: Number of images 'n' per module (Fixed to 15) -->
             <div class="form-group">
               <div class="label-row">
-                <label for="input-n">Number of Samples per Module (<span class="code">n</span>)</label>
+                <label for="input-n">Number of Samples per Module (<span class="code">n</span>) <span class="badge-fixed">Fixed</span></label>
                 <span class="param-value" id="val-n">15</span>
               </div>
               <div class="slider-row">
-                <input type="range" id="slider-n" min="1" max="15" value="15" class="range-slider">
-                <input type="number" id="input-n" min="1" max="15" value="15" class="number-input">
+                <input type="range" id="slider-n" min="15" max="15" value="15" class="range-slider" disabled>
+                <input type="number" id="input-n" min="15" max="15" value="15" class="number-input" readonly disabled>
               </div>
               <div class="preset-chips" id="presets-n">
-                <button type="button" class="chip" data-val="5">5</button>
-                <button type="button" class="chip" data-val="10">10</button>
-                <button type="button" class="chip active" data-val="15">15 (Fixed Pool)</button>
+                <button type="button" class="chip active locked" data-val="15">🔒 15 Fixed Samples / Module (45 Trials Total)</button>
               </div>
               <p class="helper-text"><span id="val-hint-n">15</span> per module • Module 1 (Flicker), Module 2 (Cluster Strip), Module 3 (HUD) presented in randomized order • Total: <strong id="val-total-n">45</strong> trials (canonical sorted export).</p>
             </div>
@@ -832,6 +830,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=40"></script>
+  <script src="/public/app.js?v=41"></script>
 </body>
 </html>
