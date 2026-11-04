@@ -6,7 +6,7 @@
   <title>Change Blindness Experiment - TSLAS</title>
   <link rel="icon" type="image/png" href="/public/tslas_logo.png">
   <link rel="preload" as="image" href="/public/seatbelt_icon_red.png">
-  <link rel="stylesheet" href="/public/style.css?v=34">
+  <link rel="stylesheet" href="/public/style.css?v=35">
 </head>
 <body class="theme-dark">
   <div id="app" class="app-container">
@@ -57,21 +57,18 @@
             <div class="form-group">
               <div class="label-row">
                 <label for="input-n">Number of Samples per Module (<span class="code">n</span>)</label>
-                <span class="param-value" id="val-n">10</span>
+                <span class="param-value" id="val-n">15</span>
               </div>
               <div class="slider-row">
-                <input type="range" id="slider-n" min="1" max="50" value="10" class="range-slider">
-                <input type="number" id="input-n" min="1" max="50" value="10" class="number-input">
+                <input type="range" id="slider-n" min="1" max="15" value="15" class="range-slider">
+                <input type="number" id="input-n" min="1" max="15" value="15" class="number-input">
               </div>
               <div class="preset-chips" id="presets-n">
                 <button type="button" class="chip" data-val="5">5</button>
-                <button type="button" class="chip active" data-val="10">10</button>
-                <button type="button" class="chip" data-val="15">15</button>
-                <button type="button" class="chip" data-val="20">20</button>
-                <button type="button" class="chip" data-val="30">30</button>
-                <button type="button" class="chip" data-val="40">40</button>
+                <button type="button" class="chip" data-val="10">10</button>
+                <button type="button" class="chip active" data-val="15">15 (Fixed Pool)</button>
               </div>
-              <p class="helper-text">1st <span id="val-hint-n">10</span>: Module 1 (Flicker) • 2nd <span id="val-hint-n2">10</span>: Module 2 (Cluster Strip) • 3rd <span id="val-hint-n3">10</span>: Module 3 (Heads-Up Display HUD). Total: <strong id="val-total-n">30</strong> trials (disjoint stimuli across all modules).</p>
+              <p class="helper-text"><span id="val-hint-n">15</span> per module • Module 1 (Flicker), Module 2 (Cluster Strip), Module 3 (HUD) presented in randomized order • Total: <strong id="val-total-n">45</strong> trials (canonical sorted export).</p>
             </div>
 
             <!-- Parameter: Time in ms before each interval 't' -->
@@ -835,6 +832,6 @@
 
   </div>
 
-  <script src="/public/app.js?v=34"></script>
+  <script src="/public/app.js?v=40"></script>
 </body>
 </html>

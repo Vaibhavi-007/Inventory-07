@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from typing import Dict, Any, List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -117,8 +118,18 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("Client connected to Tobii WebSocket.")
 
+    # Lock to prevent concurrent send collisions between 120Hz gaze, 30Hz track status, and RPC responses
+    ws_lock = asyncio.Lock()
+
+    async def safe_send_json(data: dict):
+        async with ws_lock:
+            try:
+                await websocket.send_json(data)
+            except Exception:
+                pass
+
     # Send initial status
-    await websocket.send_json({
+    await safe_send_json({
         "type": "STATUS",
         "payload": controller.get_status()
     })
@@ -131,13 +142,15 @@ async def websocket_endpoint(websocket: WebSocket):
         while not stop_stream_event.is_set():
             try:
                 status = controller.get_track_status()
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "TRACK_STATUS",
                     "payload": status
                 })
                 await asyncio.sleep(0.033)  # ~30 Hz broadcast
             except Exception:
-                break
+                if stop_stream_event.is_set():
+                    break
+                await asyncio.sleep(0.05)
 
     async def stream_calibrated_gaze():
         # High-frequency 120Hz calibrated gaze streaming for cognitive experiment trials
@@ -145,13 +158,15 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 if gaze_stream_active:
                     gaze_sample = controller.get_latest_gaze_sample()
-                    await websocket.send_json({
+                    await safe_send_json({
                         "type": "GAZE_DATA",
                         "payload": gaze_sample
                     })
                 await asyncio.sleep(0.008)  # ~120 Hz broadcast (~8.3 ms per frame)
             except Exception:
-                break
+                if stop_stream_event.is_set():
+                    break
+                await asyncio.sleep(0.01)
 
     stream_task = asyncio.create_task(stream_track_status())
     gaze_task = asyncio.create_task(stream_calibrated_gaze())
@@ -165,18 +180,18 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if action == "START_GAZE_STREAM":
                 gaze_stream_active = True
-                await websocket.send_json({"type": "GAZE_STREAM_STARTED", "sampling_rate_hz": 120})
+                await safe_send_json({"type": "GAZE_STREAM_STARTED", "sampling_rate_hz": 120})
 
             elif action == "STOP_GAZE_STREAM":
                 gaze_stream_active = False
-                await websocket.send_json({"type": "GAZE_STREAM_STOPPED"})
+                await safe_send_json({"type": "GAZE_STREAM_STOPPED"})
 
             elif action == "LOG_EVENT":
                 # Tag an experimental event (e.g. STIMULUS_ONSET, KEYPRESS, TRIAL_START)
                 event_name = payload.get("event", "UNKNOWN")
                 event_data = payload.get("data", {})
                 logger.info(f"Experiment Event Logged: {event_name} | {event_data}")
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "EVENT_LOGGED",
                     "event": event_name,
                     "timestamp": time.time()
@@ -184,11 +199,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif action == "RECONNECT":
                 status = controller.connect()
-                await websocket.send_json({"type": "STATUS", "payload": status})
+                await safe_send_json({"type": "STATUS", "payload": status})
 
             elif action == "START_CALIBRATION":
                 success = controller.start_calibration()
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "CALIBRATION_STARTED",
                     "success": success
                 })
@@ -197,27 +212,27 @@ async def websocket_endpoint(websocket: WebSocket):
                 x = float(payload.get("x", 0.5))
                 y = float(payload.get("y", 0.5))
                 result = controller.collect_calibration_point(x, y)
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "CALIBRATION_POINT_COLLECTED",
                     "payload": result
                 })
 
             elif action == "COMPUTE_CALIBRATION":
                 result = controller.compute_and_finish_calibration()
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "CALIBRATION_RESULT",
                     "payload": result
                 })
 
             elif action == "RESET_VALIDATION":
                 controller.reset_validation()
-                await websocket.send_json({"type": "VALIDATION_RESET", "success": True})
+                await safe_send_json({"type": "VALIDATION_RESET", "success": True})
 
             elif action == "START_VALIDATION_POINT":
                 x = float(payload.get("x", 0.5))
                 y = float(payload.get("y", 0.5))
                 controller.mark_validation_point_start(x, y)
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "VALIDATION_RECORDING_STARTED",
                     "point": [x, y]
                 })
@@ -226,7 +241,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 x = float(payload.get("x", 0.5))
                 y = float(payload.get("y", 0.5))
                 controller.mark_validation_point_stop(x, y)
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "VALIDATION_POINT_SAVED",
                     "point": [x, y]
                 })
@@ -249,7 +264,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     f"Prec={evaluation['metrics']['precision_deg']}°"
                 )
 
-                await websocket.send_json({
+                await safe_send_json({
                     "type": "VALIDATION_EVALUATION",
                     "payload": evaluation
                 })
@@ -269,4 +284,4 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("  Starting Tobii Pro Fusion Bridge Service on ws://localhost:8765")
     print("=" * 60 + "\n")
-    uvicorn.run(app, host="127.0.0.1", port=8765)
+    uvicorn.run(app, host="0.0.0.0", port=8765)

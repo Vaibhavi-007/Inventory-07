@@ -6,6 +6,11 @@ const { generateXlsx } = require('./xlsx_builder.js');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'pairs.json');
+const MODULE_POOLS_PATHS = [
+  path.join(__dirname, 'data_store', 'module_pools.json'),
+  path.join(__dirname, 'config', 'module_pools.json'),
+  path.join(__dirname, 'data', 'module_pools.json')
+];
 const RESULTS_DIR = path.join(__dirname, 'results');
 const IMAGES_DIR = path.join(__dirname, 'CBDatabase', 'Images');
 const MASKS_DIR = path.join(__dirname, 'CBDatabase', 'Masks');
@@ -26,6 +31,52 @@ try {
   }
 } catch (err) {
   console.error('Error loading pairs data:', err);
+}
+
+// Load fixed module pools (15 distinct images per module, pool 3 strictly HUD-safe)
+// Persists across software changes by checking data_store, config, and data directories
+let modulePools = { module_1: [], module_2: [], module_3: [] };
+let loadedPoolsPath = null;
+for (const p of MODULE_POOLS_PATHS) {
+  try {
+    if (fs.existsSync(p)) {
+      modulePools = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      loadedPoolsPath = p;
+      console.log(`Loaded fixed module pools from ${p}: M1=${modulePools.module_1?.length || 0}, M2=${modulePools.module_2?.length || 0}, M3=${modulePools.module_3?.length || 0}`);
+      break;
+    }
+  } catch (err) {
+    console.error(`Error loading module pools from ${p}:`, err);
+  }
+}
+
+// Global deterministic sort helpers for Excel and CSV outputs
+function parseSortKey(idStr) {
+  if (!idStr) return 9999;
+  const m = String(idStr).match(/^0*(\d+)/);
+  return m ? parseInt(m[1], 10) : 9999;
+}
+
+function compareTrialsDeterministic(a, b) {
+  const numA = parseSortKey(a.id || a.trial_str);
+  const numB = parseSortKey(b.id || b.trial_str);
+  if (numA !== numB) return numA - numB;
+  return String(a.id || '').localeCompare(String(b.id || ''));
+}
+
+function compareAllTrialsDeterministic(a, b) {
+  const modOrder = { 'a': 1, 'b': 2, 'c': 3 };
+  const getModKey = (x) => {
+    if (x.module === 'a' || x.module === 'b' || x.module === 'c') return x.module;
+    const lbl = x.moduleLabel || x.module_name || '';
+    if (lbl.includes('Module C') || lbl.includes('Module 3')) return 'c';
+    if (lbl.includes('Module B') || lbl.includes('Module 2')) return 'b';
+    return 'a';
+  };
+  const mA = modOrder[getModKey(a)] || 9;
+  const mB = modOrder[getModKey(b)] || 9;
+  if (mA !== mB) return mA - mB;
+  return compareTrialsDeterministic(a, b);
 }
 
 const MIME_TYPES = {
@@ -235,14 +286,29 @@ const server = http.createServer((req, res) => {
         practice: practice.length
       },
       defaults: {
-        n: Math.min(10, allPairs.length),
-        max_n: allPairs.length,
+        n: 15,
+        max_n: 15,
+        pool_size: 15,
         t_interval_ms: 80,
         image_duration_ms: 240,
         tolerance_px: 15,
         mode: 'continuous_flicker',
         timeout_sec: 60
+      },
+      module_pools: {
+        module_1: modulePools.module_1?.map(p => p.id) || [],
+        module_2: modulePools.module_2?.map(p => p.id) || [],
+        module_3: modulePools.module_3?.map(p => p.id) || []
       }
+    });
+    return;
+  }
+
+  // Get fixed module pools (15 images per module, bounded pool)
+  if (pathname === '/api/module-pools') {
+    sendJson(res, 200, {
+      success: true,
+      pools: modulePools
     });
     return;
   }
@@ -370,7 +436,10 @@ const server = http.createServer((req, res) => {
         const trials = payload.trials || [];
         const params = payload.parameters || {};
 
-        trials.forEach((t, idx) => {
+        // Sort CSV trials in deterministic canonical order (Module 1, 2, 3, sorted 1..15)
+        const sortedCsvTrials = [...trials].sort(compareAllTrialsDeterministic);
+
+        sortedCsvTrials.forEach((t, idx) => {
           const moduleLabel = t.module_name || (t.module === 'c' ? 'Module C (Heads-Up Display HUD)' : (t.module === 'b' ? 'Module B (Speed & Flicker)' : 'Module A (Flicker)'));
           const speedRaw = t.speed_recall_actual != null ? t.speed_recall_actual : (t.dashboardData?.speed != null ? t.dashboardData.speed : '');
           const speedShown = (speedRaw !== '' && !isNaN(Number(speedRaw))) ? String(Math.round(Number(speedRaw))).padStart(2, '0') : (speedRaw ? String(speedRaw) : '');
@@ -413,7 +482,7 @@ const server = http.createServer((req, res) => {
           const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
           const row = [
-            t.trial_index || (idx + 1),
+            idx + 1,
             `"${participantId.replace(/"/g, '""')}"`,
             `"${moduleLabel}"`,
             `"${t.id || ''}"`,
@@ -552,6 +621,7 @@ const server = http.createServer((req, res) => {
 
             return {
               trialIndex: t.trial_index || (idx + 1),
+              module: t.module || (moduleLabel.includes('Module C') || moduleLabel.includes('Module 3') ? 'c' : (moduleLabel.includes('Module B') || moduleLabel.includes('Module 2') ? 'b' : 'a')),
               moduleLabel,
               id: t.id || '',
               trialStr: t.trial_str || '',
@@ -595,21 +665,22 @@ const server = http.createServer((req, res) => {
 
           const parsedTrials = trials.map(formatTrialRow);
 
-          // --- Sheet 2: Module 1 (Flicker Only) ---
+          // --- Sheet 2: Module 1 (Flicker Only) - Sorted in fixed canonical order ---
           const mod1Headers = [
             'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y',
             'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image'
           ];
           const mod1Rows = parsedTrials
-            .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1'))
-            .map(t => [
-              t.trialIndex, participantId, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+            .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1') || t.module === 'a')
+            .sort(compareTrialsDeterministic)
+            .map((t, idx) => [
+              idx + 1, participantId, 'Module 1 (Flicker)', t.id, t.trialStr, t.category, t.side, t.objectName,
               t.accurate, t.rtMs, t.rtSec, t.clickX, t.clickY, t.targetX, t.targetY,
               t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg
             ]);
 
-          // --- Sheet 3: Module 2 (Speed & Cluster Strip) ---
+          // --- Sheet 3: Module 2 (Speed & Cluster Strip) - Sorted in fixed canonical order ---
           const mod2Headers = [
             'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
@@ -618,16 +689,17 @@ const server = http.createServer((req, res) => {
             'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
           ];
           const mod2Rows = parsedTrials
-            .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2'))
-            .map(t => [
-              t.trialIndex, participantId, t.moduleLabel, t.id, t.side, t.objectName,
+            .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2') || t.module === 'b')
+            .sort(compareTrialsDeterministic)
+            .map((t, idx) => [
+              idx + 1, participantId, 'Module 2 (Cluster Strip)', t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
               t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
             ]);
 
-          // --- Sheet 4: Module 3 (Heads-Up Display HUD) ---
+          // --- Sheet 4: Module 3 (Heads-Up Display HUD) - Sorted in fixed canonical order ---
           const mod3Headers = [
             'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
@@ -636,27 +708,30 @@ const server = http.createServer((req, res) => {
             'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
           ];
           const mod3Rows = parsedTrials
-            .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3'))
-            .map(t => [
-              t.trialIndex, participantId, t.moduleLabel, t.id, t.side, t.objectName,
+            .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3') || t.module === 'c')
+            .sort(compareTrialsDeterministic)
+            .map((t, idx) => [
+              idx + 1, participantId, 'Module 3 (HUD)', t.id, t.side, t.objectName,
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
               t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
             ]);
 
-          // --- Sheet 5: All Trials (Master Unified Data) ---
+          // --- Sheet 5: All Trials (Master Unified Data) - Sorted by canonical Module (1, 2, 3) then image ID ---
           const allHeaders = headers;
-          const allRows = parsedTrials.map(t => [
-            t.trialIndex, participantId, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
-            t.accurate, t.rtMs, t.rtSec, t.speedShown, t.symbolShown, t.rpmShown,
-            t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
-            t.symbolProbed, t.symbolRecalled, t.symbolAccurate,
-            t.rpmProbed, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-            t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY,
-            t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg,
-            t.tInterval, t.imgDur, t.mode, t.timestamp
-          ]);
+          const allRows = [...parsedTrials]
+            .sort(compareAllTrialsDeterministic)
+            .map((t, idx) => [
+              idx + 1, participantId, t.moduleLabel, t.id, t.trialStr, t.category, t.side, t.objectName,
+              t.accurate, t.rtMs, t.rtSec, t.speedShown, t.symbolShown, t.rpmShown,
+              t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
+              t.symbolProbed, t.symbolRecalled, t.symbolAccurate,
+              t.rpmProbed, t.rpmRecalled, t.rpmAccurate, t.rpmError,
+              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY,
+              t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg,
+              t.tInterval, t.imgDur, t.mode, t.timestamp
+            ]);
 
           // --- Eye Tracking Headers ---
           const eyeTrackingHeaders = [
@@ -666,10 +741,13 @@ const server = http.createServer((req, res) => {
           ];
 
           function buildModuleEyeTrackingRows(modKey) {
-            const modTrials = trials.filter(t => t.module === modKey);
+            // Sort trials deterministically by numeric ID so the eye tracking sheet matches the behavior sheet
+            const modTrials = trials
+              .filter(t => t.module === modKey)
+              .sort(compareTrialsDeterministic);
             const rows = [];
             modTrials.forEach((t, imgIdx) => {
-              const trialNum = t.trial_index || (imgIdx + 1);
+              const trialNum = imgIdx + 1;
               const gazeList = t.gaze_samples || [];
               const pairId = t.id || '';
               const objName = t.object_name || '';

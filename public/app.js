@@ -68,7 +68,7 @@
     screen: 'landing', // 'landing', 'experiment', 'results'
     datasetInfo: null,
     config: {
-      n: 10,
+      n: 15,
       t: 80,
       imgDuration: 240,
       mode: 'continuous_flicker', // 'continuous_flicker' (default) or 'single_transition'
@@ -122,6 +122,9 @@
     tobiiAvailableDisplays: [],
     currentTrialGazeSamples: []
   };
+
+  window._rbState = state;
+  window._finishExperiment = () => finishExperiment();
 
   // --- DOM Elements ---
   const dom = {
@@ -833,20 +836,22 @@
         return;
       }
 
-      // 3 Disjoint Modules with strictly UNIQUE non-overlapping scenes:
-      // Module 1 (A): Pure flicker test (first n trials)
-      // Module 2 (B): Speed & cluster test (next n trials, speedometer, tachometer, warning symbol, fuel gauge)
-      // Module 3 (C): Heads-Up Display HUD test (final n trials, HUD pill in row 4, solid black strip at bottom, strictly hud_safe images)
-      const pool = data.trials;
-
-      // Group pool pairs by base scene key (trial_str) so no scene is ever repeated
-      const scenesMap = new Map();
-      for (const p of pool) {
-        const sceneKey = String(p.trial_str || (p.id ? p.id.split('_')[0] : ''));
-        if (!scenesMap.has(sceneKey)) {
-          scenesMap.set(sceneKey, []);
+      // 3 Disjoint Modules with strictly UNIQUE bounded image pools (15 images each):
+      // Module 1 (a): Pure flicker test
+      // Module 2 (b): Speed & cluster test (speedometer, tachometer, warning symbol, fuel gauge)
+      // Module 3 (c): Heads-Up Display HUD test (HUD capsule in row 4, solid black strip, strictly HUD-safe images)
+      
+      let poolsData = null;
+      try {
+        const poolRes = await fetch('/api/module-pools');
+        if (poolRes.ok) {
+          const pJson = await poolRes.json();
+          if (pJson && pJson.pools && pJson.pools.module_1 && pJson.pools.module_2 && pJson.pools.module_3) {
+            poolsData = pJson.pools;
+          }
         }
-        scenesMap.get(sceneKey).push(p);
+      } catch (pErr) {
+        console.warn('Could not load /api/module-pools, falling back to data.trials partition:', pErr);
       }
 
       function shuffle(arr) {
@@ -858,80 +863,57 @@
         return a;
       }
 
-      const allScenes = Array.from(scenesMap.keys());
-      const hudSafeScenes = shuffle(allScenes.filter(sceneKey => {
-        return scenesMap.get(sceneKey).some(p => p.hud_safe === true);
-      }));
-
-      if (hudSafeScenes.length < n) {
-        alert(`Requested ${n} samples per module, but only ${hudSafeScenes.length} HUD-safe scenes exist.`);
-        dom.btnStart.disabled = false;
-        dom.btnStart.textContent = 'Start Experiment';
-        return;
+      // If poolsData is loaded, use the fixed 15-image pool per module.
+      // Images within each fixed pool are randomized for each test subject.
+      let mod1Pool, mod2Pool, mod3Pool;
+      if (poolsData) {
+        mod1Pool = poolsData.module_1;
+        mod2Pool = poolsData.module_2;
+        mod3Pool = poolsData.module_3;
+      } else {
+        const allTestPairs = data.trials.filter(p => !p.id?.includes('_P_'));
+        mod1Pool = allTestPairs.slice(0, 15);
+        mod2Pool = allTestPairs.slice(15, 30);
+        mod3Pool = allTestPairs.filter(p => p.hud_safe === true).slice(0, 15);
       }
 
-      // 1. Select n distinct HUD-safe scenes for Module C (HUD)
-      const selectedCScenes = hudSafeScenes.slice(0, n);
-      const usedScenes = new Set(selectedCScenes);
+      // Randomize the order of the images within each module's fixed pool for this test
+      const mod1Randomized = shuffle(mod1Pool).slice(0, Math.min(n, mod1Pool.length));
+      const mod2Randomized = shuffle(mod2Pool).slice(0, Math.min(n, mod2Pool.length));
+      const mod3Randomized = shuffle(mod3Pool).slice(0, Math.min(n, mod3Pool.length));
 
-      const modCTrialsRaw = selectedCScenes.map(sceneKey => {
-        const safePairs = scenesMap.get(sceneKey).filter(p => p.hud_safe === true);
-        return safePairs[Math.floor(Math.random() * safePairs.length)];
-      });
-
-      // 2. Select n distinct scenes for Module A (Flicker) from remaining scenes
-      const remainingForAB = shuffle(allScenes.filter(s => !usedScenes.has(s)));
-      if (remainingForAB.length < 2 * n) {
-        alert(`Requested ${3 * n} distinct scenes across 3 modules, but only ${allScenes.length} total scenes exist.`);
-        dom.btnStart.disabled = false;
-        dom.btnStart.textContent = 'Start Experiment';
-        return;
-      }
-
-      const selectedAScenes = remainingForAB.slice(0, n);
-      selectedAScenes.forEach(s => usedScenes.add(s));
-      const modATrialsRaw = selectedAScenes.map(sceneKey => {
-        const availablePairs = scenesMap.get(sceneKey);
-        return availablePairs[Math.floor(Math.random() * availablePairs.length)];
-      });
-
-      // 3. Select n distinct scenes for Module B (Cluster Strip) from remaining scenes
-      const selectedBScenes = remainingForAB.slice(n, 2 * n);
-      selectedBScenes.forEach(s => usedScenes.add(s));
-      const modBTrialsRaw = selectedBScenes.map(sceneKey => {
-        const availablePairs = scenesMap.get(sceneKey);
-        return availablePairs[Math.floor(Math.random() * availablePairs.length)];
-      });
-
-      // Construct Module A trials (Pure Flicker)
-      const modATrials = modATrialsRaw.map(t => ({
+      // Construct Module 1 trials (Pure Flicker)
+      const mod1Trials = mod1Randomized.map(t => ({
         ...t,
         module: 'a',
+        module_num: 1,
         module_name: 'Module 1 (Flicker)',
         hasDashboard: false,
         hasHud: false,
         isProbe: false
       }));
 
-      // Construct Module B trials (Cluster Strip)
-      const modBTrials = modBTrialsRaw.map((t, i) => ({
+      // Construct Module 2 trials (Cluster Strip)
+      const mod2Trials = mod2Randomized.map((t, i) => ({
         ...t,
         module: 'b',
+        module_num: 2,
         module_name: 'Module 2 (Cluster Strip)',
         hasDashboard: true,
         hasHud: false,
-        dashboardData: generateRandomDashboardData(n + i),
+        dashboardData: generateRandomDashboardData(i),
         isProbe: false
       }));
 
-      // Construct Module C trials (Heads-Up Display HUD)
-      const modCTrials = modCTrialsRaw.map((t, i) => ({
+      // Construct Module 3 trials (Heads-Up Display HUD)
+      const mod3Trials = mod3Randomized.map((t, i) => ({
         ...t,
         module: 'c',
+        module_num: 3,
         module_name: 'Module 3 (Heads-Up Display HUD)',
         hasDashboard: true, // shows solid black strip at bottom
         hasHud: true,       // shows floating HUD capsule in 4th row
-        dashboardData: generateRandomDashboardData(2 * n + i),
+        dashboardData: generateRandomDashboardData(i + 15),
         isProbe: false
       }));
 
@@ -951,10 +933,24 @@
         }
       }
 
-      assignProbes(modBTrials);
-      assignProbes(modCTrials);
+      assignProbes(mod2Trials);
+      assignProbes(mod3Trials);
 
-      state.trials = [...modATrials, ...modBTrials, ...modCTrials];
+      // Randomize the occurrence order of independent modules (e.g. [1, 3, 2], [3, 2, 1], etc.)
+      const moduleBlocks = shuffle([
+        { key: 'a', num: 1, trials: mod1Trials },
+        { key: 'b', num: 2, trials: mod2Trials },
+        { key: 'c', num: 3, trials: mod3Trials }
+      ]);
+      state.moduleOrder = moduleBlocks.map(b => b.key);
+      console.log('[RB_v3] Randomized Module Order for this test subject:', moduleBlocks.map(b => `Module ${b.num} (${b.key})`).join(' -> '));
+
+      // Concatenate trials according to the randomized module order
+      state.trials = [
+        ...moduleBlocks[0].trials,
+        ...moduleBlocks[1].trials,
+        ...moduleBlocks[2].trials
+      ];
       state.currentTrialIndex = 0;
       state.trialResults = [];
       state.sessionStartTime = Date.now();
@@ -999,7 +995,19 @@
     showScreen('experiment');
     updateHUD();
     fitStageLayout();
-    runTrial(0);
+
+    // Ensure the Tobii WebSocket is connected before the first trial starts recording.
+    // If already open, this is a no-op. If dropped (e.g. after calibration screen closed),
+    // initTobiiClient() re-establishes it so START_GAZE_STREAM during runTrial() succeeds.
+    if (!state.tobiiSocket || state.tobiiSocket.readyState !== WebSocket.OPEN) {
+      initTobiiClient();
+    }
+
+    // Introduce the first randomized module via transition modal so the participant knows instructions
+    const firstTrial = state.trials[0];
+    const firstModKey = firstTrial?.module || 'a';
+    const firstModNum = firstTrial?.module_num || (firstModKey === 'c' ? 3 : (firstModKey === 'b' ? 2 : 1));
+    showModuleTransitionModal(firstModKey, firstModNum, 0, null);
   }
 
   // =========================================================================
@@ -1022,8 +1030,10 @@
       return;
     }
 
-    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.hostname || '127.0.0.1';
+    const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    // Always prefer 127.0.0.1 for Tobii service to prevent IPv6 / localhost issues on macOS
+    const rawHost = window.location.hostname;
+    const wsHost = (rawHost && rawHost !== 'localhost' && rawHost !== '0.0.0.0' && rawHost !== '[::]') ? rawHost : '127.0.0.1';
     const wsUrl = `${wsProto}://${wsHost}:8765/ws/tobii`;
 
     if (dom.tobiiHwStatusText) {
@@ -1042,6 +1052,14 @@
         if (dom.tobiiHwStatusText) {
           dom.tobiiHwStatusText.textContent = 'Tobii Service Connected';
         }
+        // If a trial is actively recording (e.g. socket reconnected mid-experiment),
+        // immediately restart the gaze stream so samples are not lost for the rest of the trial.
+        if (state.isTrialGazeRecording) {
+          ws.send(JSON.stringify({ action: 'START_GAZE_STREAM', payload: {} }));
+          console.log('[Tobii] Reconnected mid-trial — resumed START_GAZE_STREAM');
+        }
+        // Flush any queued messages (e.g. START_GAZE_STREAM sent while CONNECTING)
+        _flushTobiiQueue(ws);
       };
 
       ws.onmessage = (event) => {
@@ -1071,9 +1089,9 @@
         if (dom.tobiiHwStatusText) {
           dom.tobiiHwStatusText.textContent = 'Tobii Disconnected — Reconnecting...';
         }
-        // Auto-reconnect after 3s if on screen
+        // Auto-reconnect after 3s on any screen (including 'experiment' for gaze recording)
         setTimeout(() => {
-          if (!state.tobiiConnected && (state.screen === 'landing' || state.screen === 'tobii')) {
+          if (!state.tobiiConnected) {
             initTobiiClient();
           }
         }, 3000);
@@ -1083,9 +1101,23 @@
     }
   }
 
+  // Pending messages to send once the Tobii WebSocket opens (e.g. START_GAZE_STREAM queued before open)
+  const _tobiiSendQueue = [];
+
   function sendTobii(action, payload = {}) {
     if (state.tobiiSocket && state.tobiiSocket.readyState === WebSocket.OPEN) {
       state.tobiiSocket.send(JSON.stringify({ action, payload }));
+    } else if (state.tobiiSocket && state.tobiiSocket.readyState === WebSocket.CONNECTING) {
+      // Queue important messages so they are sent the moment the socket opens
+      _tobiiSendQueue.push({ action, payload });
+    }
+  }
+
+  // Flush any queued messages once the WS is open (called from onopen)
+  function _flushTobiiQueue(ws) {
+    while (_tobiiSendQueue.length > 0) {
+      const msg = _tobiiSendQueue.shift();
+      try { ws.send(JSON.stringify(msg)); } catch (e) { /* ignore */ }
     }
   }
 
@@ -1228,6 +1260,11 @@
       distance_cm: sample.distance_cm,
       timestamp: sample.timestamp
     });
+
+    // Debug: log every 120th sample (~1/sec) to confirm gaze is flowing
+    if (state.currentTrialGazeSamples.length % 120 === 1) {
+      console.debug(`[Tobii] Gaze samples this trial: ${state.currentTrialGazeSamples.length} | x=${sample.x?.toFixed(3)} y=${sample.y?.toFixed(3)} valid=${sample.valid}`);
+    }
   }
 
   function initTobiiScreen() {
@@ -2529,12 +2566,13 @@
   }
 
   // ===== Module Transition System =====
-  function showModuleTransitionModal(targetModule = 'b') {
+  function showModuleTransitionModal(targetModuleKey = 'b', targetModuleNum = 2, completedBlockNum = 1, prevModuleNum = null) {
     state.trialState = 'module_transition';
-    state._transitionTarget = targetModule;
+    state._transitionTargetModule = targetModuleKey;
+    state._transitionTargetIndex = completedBlockNum * state.config.n;
     if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
     if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
-    setHUDState('module_transition', 'Module Completed');
+    setHUDState('module_transition', completedBlockNum === 0 ? 'Starting Module' : 'Module Completed');
 
     dom.stageWrapper.classList.add('speed-recall-blur');
     if (dom.carDashboardOverlay) {
@@ -2550,26 +2588,42 @@
     dom.feedbackOverlay.classList.remove('visible');
     dom.clickMarker.className = 'click-marker';
 
-    if (targetModule === 'c') {
-      if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'MODULE 2 COMPLETED';
-      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.textContent = 'Starting Module 3: Heads-Up Display (HUD) Test';
+    if (dom.moduleTransitionBadge) {
+      if (completedBlockNum === 0) {
+        dom.moduleTransitionBadge.textContent = `INITIAL MODULE (Part 1 of 3)`;
+      } else {
+        const completedNum = prevModuleNum != null ? prevModuleNum : completedBlockNum;
+        dom.moduleTransitionBadge.textContent = `MODULE ${completedNum} COMPLETED (Part ${completedBlockNum} of 3)`;
+      }
+    }
+
+    if (targetModuleKey === 'c') {
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.textContent = `Starting Module 3: Heads-Up Display (HUD) Test`;
       if (dom.moduleTransitionDesc) {
         dom.moduleTransitionDesc.innerHTML = `
           In this module, the vehicle instruments are displayed as a floating <strong>Heads-Up Display (HUD)</strong> glass capsule in your line of sight, while the bottom strip remains solid black.<br>
           Search for scene differences while monitoring HUD instruments. On random samples, you will be prompted with a multiple-choice question to recall either the speed, warning symbol, or engine RPM.
         `;
       }
-      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = 'Begin Module 3';
-    } else {
-      if (dom.moduleTransitionBadge) dom.moduleTransitionBadge.textContent = 'MODULE 1 COMPLETED';
-      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.textContent = 'Starting Module 2: Speed & Cluster Test';
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = `Begin Module 3`;
+    } else if (targetModuleKey === 'b') {
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.textContent = `Starting Module 2: Speed & Cluster Test`;
       if (dom.moduleTransitionDesc) {
         dom.moduleTransitionDesc.innerHTML = `
           In this module, the <strong>automotive instrument cluster</strong> will be shown at the bottom of each image.<br>
           Please search for differences while monitoring vehicle instruments. On random samples, you will be prompted with a multiple-choice question to recall either the speed, warning symbol, or engine RPM shown on the meter.
         `;
       }
-      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = 'Begin Module 2';
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = `Begin Module 2`;
+    } else {
+      if (dom.moduleTransitionTitle) dom.moduleTransitionTitle.textContent = `Starting Module 1: Pure Flicker Test`;
+      if (dom.moduleTransitionDesc) {
+        dom.moduleTransitionDesc.innerHTML = `
+          In this module, you will view pairs of alternating images separated by a brief flicker interval.<br>
+          Search the entire image and click directly on the location of the difference as quickly as possible.
+        `;
+      }
+      if (dom.btnStartModuleText) dom.btnStartModuleText.textContent = `Begin Module 1`;
     }
 
     if (dom.moduleTransitionOverlay) {
@@ -2588,7 +2642,7 @@
     dom.stageWrapper.classList.remove('speed-recall-blur');
 
     playSound('advance');
-    const targetIdx = state._transitionTarget === 'c' ? (2 * state.config.n) : state.config.n;
+    const targetIdx = state._transitionTargetIndex != null ? state._transitionTargetIndex : state.config.n;
     runTrial(targetIdx);
   }
 
@@ -2596,16 +2650,27 @@
 
   function advanceAfterTrial(completedIndex) {
     const nextIndex = completedIndex + 1;
+    const n = state.config.n;
 
-    // Transition from Module A to Module B
-    if (nextIndex === state.config.n && nextIndex < state.trials.length) {
-      showModuleTransitionModal('b');
+    // Transition from 1st module to 2nd module (after n trials)
+    if (nextIndex === n && nextIndex < state.trials.length) {
+      const prevTrial = state.trials[completedIndex];
+      const nextTrial = state.trials[nextIndex];
+      const targetModKey = nextTrial?.module || 'b';
+      const targetModNum = nextTrial?.module_num || (targetModKey === 'c' ? 3 : (targetModKey === 'b' ? 2 : 1));
+      const prevModNum = prevTrial?.module_num || 1;
+      showModuleTransitionModal(targetModKey, targetModNum, 1, prevModNum);
       return;
     }
 
-    // Transition from Module B to Module C
-    if (nextIndex === 2 * state.config.n && nextIndex < state.trials.length) {
-      showModuleTransitionModal('c');
+    // Transition from 2nd module to 3rd module (after 2*n trials)
+    if (nextIndex === 2 * n && nextIndex < state.trials.length) {
+      const prevTrial = state.trials[completedIndex];
+      const nextTrial = state.trials[nextIndex];
+      const targetModKey = nextTrial?.module || 'c';
+      const targetModNum = nextTrial?.module_num || (targetModKey === 'c' ? 3 : (targetModKey === 'b' ? 2 : 1));
+      const prevModNum = prevTrial?.module_num || 2;
+      showModuleTransitionModal(targetModKey, targetModNum, 2, prevModNum);
       return;
     }
 
@@ -3517,13 +3582,42 @@
     }, 1500);
   }
 
+  // Global deterministic sort helpers for client exports
+  function parseSortKey(idStr) {
+    if (!idStr) return 9999;
+    const m = String(idStr).match(/^0*(\d+)/);
+    return m ? parseInt(m[1], 10) : 9999;
+  }
+
+  function compareTrialsDeterministic(a, b) {
+    const numA = parseSortKey(a.id || a.trial_str);
+    const numB = parseSortKey(b.id || b.trial_str);
+    if (numA !== numB) return numA - numB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  }
+
+  function compareAllTrialsDeterministic(a, b) {
+    const modOrder = { 'a': 1, 'b': 2, 'c': 3 };
+    const getModKey = (x) => {
+      if (x.module === 'a' || x.module === 'b' || x.module === 'c') return x.module;
+      const lbl = x.module_name || '';
+      if (lbl.includes('Module C') || lbl.includes('Module 3')) return 'c';
+      if (lbl.includes('Module B') || lbl.includes('Module 2')) return 'b';
+      return 'a';
+    };
+    const mA = modOrder[getModKey(a)] || 9;
+    const mB = modOrder[getModKey(b)] || 9;
+    if (mA !== mB) return mA - mB;
+    return compareTrialsDeterministic(a, b);
+  }
+
   function exportCsv() {
     if (state.sessionId) {
       triggerDownload(`/api/download/${state.sessionId}/csv`, `change_blindness_${state.sessionId}.csv`);
       return;
     }
 
-    const trials = state.trialResults;
+    const trials = [...state.trialResults].sort(compareAllTrialsDeterministic);
     if (!trials.length) return;
 
     const headers = [
@@ -3568,10 +3662,10 @@
     const pId = (state.participant?.id || 'Anonymous').replace(/"/g, '""');
 
     const rows = [headers.join(',')];
-    trials.forEach(t => {
-      let modLabel = 'Module A (Flicker)';
-      if (t.module === 'c') modLabel = 'Module C (Heads-Up Display HUD)';
-      else if (t.module === 'b') modLabel = 'Module B (Speed & Flicker)';
+    trials.forEach((t, idx) => {
+      let modLabel = 'Module 1 (Flicker)';
+      if (t.module === 'c') modLabel = 'Module 3 (HUD)';
+      else if (t.module === 'b') modLabel = 'Module 2 (Cluster Strip)';
 
       const hasCluster = t.module === 'b' || t.module === 'c';
       const speedShown = (hasCluster && t.speed_recall_actual != null) ? t.speed_recall_actual : (hasCluster && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
@@ -3597,7 +3691,7 @@
       const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       rows.push([
-        t.trial_index,
+        idx + 1,
         `"${pId}"`,
         `"${modLabel}"`,
         `"${t.id}"`,
@@ -3650,15 +3744,20 @@
     const trials = state.trialResults;
     if (!trials.length) return;
 
+    const mod1TrialsSorted = trials.filter(t => t.module === 'a').sort(compareTrialsDeterministic);
+    const mod2TrialsSorted = trials.filter(t => t.module === 'b').sort(compareTrialsDeterministic);
+    const mod3TrialsSorted = trials.filter(t => t.module === 'c').sort(compareTrialsDeterministic);
+    const allTrialsSorted = [...trials].sort(compareAllTrialsDeterministic);
+
     // Helper to generate a worksheet XML table in SpreadsheetML
-    function buildWorksheetXml(sheetName, headers, rowGenerator) {
+    function buildWorksheetXml(sheetName, headers, rowList, rowGenerator) {
       let sheetXml = ` <Worksheet ss:Name="${sheetName}">\n  <Table>\n   <Row>\n`;
       headers.forEach(h => {
         sheetXml += `    <Cell><Data ss:Type="String">${h}</Data></Cell>\n`;
       });
       sheetXml += '   </Row>\n';
 
-      trials.forEach((t, idx) => {
+      rowList.forEach((t, idx) => {
         const rowCells = rowGenerator(t, idx);
         if (!rowCells) return;
         sheetXml += '   <Row>\n';
@@ -3703,7 +3802,7 @@
 
     // Helper to generate eye tracking sheet with image banners
     function buildEyeTrackingXml(sheetName, modKey) {
-      const modTrials = trials.filter(t => t.module === modKey);
+      const modTrials = trials.filter(t => t.module === modKey).sort(compareTrialsDeterministic);
       let sheetXml = ` <Worksheet ss:Name="${sheetName}">\n  <Table>\n   <Row>\n`;
       const headers = [
         'Trial #', 'Pair ID', 'Image Stimulus', 'Target Object', 'Visual Field',
@@ -3716,7 +3815,7 @@
       sheetXml += '   </Row>\n';
 
       modTrials.forEach((t, imgIdx) => {
-        const trialNum = t.trial_index || (imgIdx + 1);
+        const trialNum = imgIdx + 1;
         const gazeList = t.gaze_samples || [];
         const pairId = t.id || '';
         const objName = t.object_name || '';
@@ -3779,17 +3878,14 @@
     xml += buildWorksheetXml('Module 1 - Behavior', [
       'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
       'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
-    ], t => {
-      if (t.module !== 'a') return null;
-      return [
-        t.trial_index, state.participant?.id || 'Anonymous',
-        'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
-        t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
-        t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
-        t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
-        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
-      ];
-    });
+    ], mod1TrialsSorted, (t, idx) => [
+      idx + 1, state.participant?.id || 'Anonymous',
+      'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
+      t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
+      t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
+      t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
+      t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+    ]);
 
     // Sheet 3: Module 1 - Eye Tracking (with tracker)
     xml += buildEyeTrackingXml('Module 1 - Eye Tracking', 'a');
@@ -3800,15 +3896,14 @@
       'Accurate', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
-    ], t => {
-      if (t.module !== 'b') return null;
+    ], mod2TrialsSorted, (t, idx) => {
       const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, state.participant?.id || 'Anonymous',
-        'Module 2 (Cluster)', t.id, t.side || '', t.object_name,
+        idx + 1, state.participant?.id || 'Anonymous',
+        'Module 2 (Cluster Strip)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
         t.speed_recall_response != null ? t.speed_recall_response : '', t.speed_recall_asked ? (t.speed_recall_accurate ? 1 : 0) : '',
@@ -3828,14 +3923,13 @@
       'Accurate', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
       'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
-    ], t => {
-      if (t.module !== 'c') return null;
+    ], mod3TrialsSorted, (t, idx) => {
       const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
       const symbolShown = symObj?.name || (t.symbol_recall_actual ? t.symbol_recall_actual : '');
       const rpmShown = t.dashboardData?.rpm != null ? t.dashboardData.rpm.toFixed(1) : (t.rpm_recall_actual != null ? String(t.rpm_recall_actual) : '');
       return [
-        t.trial_index, state.participant?.id || 'Anonymous',
+        idx + 1, state.participant?.id || 'Anonymous',
         'Module 3 (HUD)', t.id, t.side || '', t.object_name,
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, t.probe_type || '',
@@ -3850,7 +3944,7 @@
     // Sheet 7: Module 3 - Eye Tracking (with tracker)
     xml += buildEyeTrackingXml('Module 3 - Eye Tracking', 'c');
 
-    // Sheet 5: All Trials
+    // Sheet 8: All Trials
     xml += buildWorksheetXml('All Trials', [
       'trial_index', 'participant_id', 'module', 'id', 'object_name', 'side', 'category', 'accurate',
       'response_time_ms', 'speed_shown_kmh', 'symbol_shown', 'rpm_shown', 'probe_type',
@@ -3860,10 +3954,10 @@
       'recall_accurate', 'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
       'interval_t_ms', 'image_duration_ms'
-    ], t => {
-      let modLabel = 'Module A (Flicker)';
-      if (t.module === 'c') modLabel = 'Module C (Heads-Up Display HUD)';
-      else if (t.module === 'b') modLabel = 'Module B (Speed & Flicker)';
+    ], allTrialsSorted, (t, idx) => {
+      let modLabel = 'Module 1 (Flicker)';
+      if (t.module === 'c') modLabel = 'Module 3 (HUD)';
+      else if (t.module === 'b') modLabel = 'Module 2 (Cluster Strip)';
 
       const hasCluster = t.module === 'b' || t.module === 'c';
       const speedShown = (hasCluster && t.speed_recall_actual != null) ? t.speed_recall_actual : (hasCluster && t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
@@ -3889,7 +3983,7 @@
       const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
 
       return [
-        t.trial_index, state.participant?.id || 'Anonymous',
+        idx + 1, state.participant?.id || 'Anonymous',
         modLabel, t.id, t.object_name, t.side || '', t.category || '',
         t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
         speedShown, symbolShown, rpmShown, probeType,
