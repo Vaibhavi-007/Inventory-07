@@ -1033,11 +1033,30 @@ kbd {
 }
 
 /* Smooth invisible cursor transitions during inter-trial intervals & centering */
-body.cursor-hidden,
-body.cursor-hidden *,
-.stage-wrapper.cursor-hidden,
-.stage-wrapper.cursor-hidden * {
+body.cursor-hidden #display-canvas,
+body.cursor-hidden #black-overlay,
+.stage-wrapper.cursor-hidden #display-canvas,
+.stage-wrapper.cursor-hidden #black-overlay {
   cursor: none !important;
+}
+
+/* Ensure Question / Recall MCQ modal and its buttons ALWAYS have visible pointer cursor */
+.speed-recall-overlay,
+.speed-recall-overlay *,
+body.cursor-hidden .speed-recall-overlay,
+body.cursor-hidden .speed-recall-overlay *,
+.stage-wrapper.cursor-hidden .speed-recall-overlay,
+.stage-wrapper.cursor-hidden .speed-recall-overlay * {
+  cursor: default !important;
+}
+
+.speed-option-btn,
+.speed-option-btn *,
+body.cursor-hidden .speed-option-btn,
+body.cursor-hidden .speed-option-btn *,
+.stage-wrapper.cursor-hidden .speed-option-btn,
+.stage-wrapper.cursor-hidden .speed-option-btn * {
+  cursor: pointer !important;
 }
 
 /* When Module B dashboard is active below the image */

@@ -2276,12 +2276,12 @@
       targetY = Math.round(viewportTop + canvasCenterY);
     }
 
-    if (hideBriefly) {
+    if (hideBriefly && !state.speedRecallPending && state.trialState !== 'speed_recall') {
       document.body.classList.add('cursor-hidden');
       if (dom.stageWrapper) dom.stageWrapper.classList.add('cursor-hidden');
       clearTimeout(state._cursorUnhideTimer);
       state._cursorUnhideTimer = setTimeout(() => {
-        if (state.trialState === 'absent' || state.trialState === 'idle' || state.screen !== 'experiment') {
+        if (state.trialState === 'absent' || state.trialState === 'speed_recall' || state.trialState === 'idle' || state.screen !== 'experiment') {
           document.body.classList.remove('cursor-hidden');
           if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
         }
@@ -2493,7 +2493,10 @@
 
   // ===== Recall MCQ System (Speed or Symbol) =====
   function showRecallPrompt(trialIndex) {
-    centerMouseCursor();
+    document.body.classList.remove('cursor-hidden');
+    if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
+    clearTimeout(state._cursorUnhideTimer);
+    centerMouseCursor({ hideBriefly: false });
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 
