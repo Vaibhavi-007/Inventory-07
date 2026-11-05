@@ -221,12 +221,50 @@ const server = http.createServer((req, res) => {
 
   // Center Mouse Cursor (macOS Native Warping)
   if (pathname === '/api/center-mouse') {
+    let targetX = parsedUrl.query.x;
+    let targetY = parsedUrl.query.y;
+    let displayId = parsedUrl.query.display_id;
+
+    function doWarp(tx, ty, dId) {
+      ensureCenterMouseBinary();
+      if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
+        if (tx && ty) {
+          const daemon = getCenterMouseDaemon();
+          if (daemon && daemon.stdin && daemon.stdin.writable) {
+            daemon.stdin.write(`${tx} ${ty}\n`);
+            sendJson(res, 200, { success: true, centered: true, mode: 'daemon', x: tx, y: ty });
+            return;
+          }
+        }
+
+        const { execFile } = require('child_process');
+        const args = [];
+        if (tx && ty) {
+          args.push(tx, ty);
+        } else if (dId) {
+          args.push(dId);
+        }
+        execFile(CENTER_MOUSE_BIN, args, (err) => {
+          if (err) {
+            sendJson(res, 200, { success: false, error: err.message });
+          } else {
+            sendJson(res, 200, { success: true, centered: true, mode: 'oneshot', display_id: dId, x: tx, y: ty });
+          }
+        });
+      } else {
+        sendJson(res, 200, { success: true, platform: process.platform, nativeSupported: false });
+      }
+    }
+
+    // Fast-path: query params are parsed synchronously, dispatch instantly
+    if (targetX && targetY) {
+      doWarp(String(Math.round(targetX)), String(Math.round(targetY)), displayId);
+      return;
+    }
+
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
-      let targetX = null;
-      let targetY = null;
-      let displayId = null;
       if (body) {
         try {
           const parsed = JSON.parse(body);
@@ -239,36 +277,7 @@ const server = http.createServer((req, res) => {
           }
         } catch (e) {}
       }
-
-      ensureCenterMouseBinary();
-
-      if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
-        if (targetX && targetY) {
-          const daemon = getCenterMouseDaemon();
-          if (daemon && daemon.stdin && daemon.stdin.writable) {
-            daemon.stdin.write(`${targetX} ${targetY}\n`);
-            sendJson(res, 200, { success: true, centered: true, mode: 'daemon', x: targetX, y: targetY });
-            return;
-          }
-        }
-
-        const { execFile } = require('child_process');
-        const args = [];
-        if (targetX && targetY) {
-          args.push(targetX, targetY);
-        } else if (displayId) {
-          args.push(displayId);
-        }
-        execFile(CENTER_MOUSE_BIN, args, (err) => {
-          if (err) {
-            sendJson(res, 200, { success: false, error: err.message });
-          } else {
-            sendJson(res, 200, { success: true, centered: true, mode: 'oneshot', display_id: displayId, x: targetX, y: targetY });
-          }
-        });
-      } else {
-        sendJson(res, 200, { success: true, platform: process.platform, nativeSupported: false });
-      }
+      doWarp(targetX, targetY, displayId);
     });
     return;
   }

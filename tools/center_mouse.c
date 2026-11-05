@@ -4,6 +4,27 @@
 #include <stdbool.h>
 #include <string.h>
 
+// Instantly warp the cursor position with zero delta, eliminating any motion trails or animation
+static inline void warp_cursor_instant(CGFloat x, CGFloat y) {
+    CGPoint pt = CGPointMake(x, y);
+
+    // 1. Immediately warp the hardware pointer position
+    CGWarpMouseCursorPosition(pt);
+
+    // 2. Synthesize an instantaneous mouse moved event with zero delta
+    // This immediately syncs macOS WindowServer and browser without any trail or interpolation
+    CGEventRef moveEv = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, pt, kCGMouseButtonLeft);
+    if (moveEv) {
+        CGEventSetIntegerValueField(moveEv, kCGMouseEventDeltaX, 0);
+        CGEventSetIntegerValueField(moveEv, kCGMouseEventDeltaY, 0);
+        CGEventPost(kCGHIDEventTap, moveEv);
+        CFRelease(moveEv);
+    }
+
+    // 3. Keep mouse movement associated
+    CGAssociateMouseAndMouseCursorPosition(true);
+}
+
 int main(int argc, char *argv[]) {
     // Daemon pipe mode for sub-millisecond persistent stdin warping:
     // ./center_mouse --daemon
@@ -14,9 +35,7 @@ int main(int argc, char *argv[]) {
         while (fgets(line, sizeof(line), stdin)) {
             double rx = 0.0, ry = 0.0;
             if (sscanf(line, "%lf %lf", &rx, &ry) == 2) {
-                CGPoint pt = CGPointMake((CGFloat)rx, (CGFloat)ry);
-                CGWarpMouseCursorPosition(pt);
-                CGAssociateMouseAndMouseCursorPosition(true);
+                warp_cursor_instant((CGFloat)rx, (CGFloat)ry);
                 printf("OK %.1f %.1f\n", rx, ry);
                 fflush(stdout);
             }
@@ -60,8 +79,6 @@ int main(int argc, char *argv[]) {
         y = bounds.origin.y + (bounds.size.height / 2.0);
     }
 
-    CGPoint target = CGPointMake(x, y);
-    CGWarpMouseCursorPosition(target);
-    CGAssociateMouseAndMouseCursorPosition(true);
+    warp_cursor_instant(x, y);
     return 0;
 }

@@ -2078,8 +2078,7 @@
   function showFixationScreen(onComplete) {
     state.trialState = 'fixation';
     setHUDState('fixation', 'Fixation (+)');
-    // Keep cursor completely invisible during 1000ms fixation cross
-    centerMouseCursor({ hideBriefly: true, hideDurationMs: 1000 });
+    centerMouseCursor();
 
     // Paint stage canvas neutral grey (#808080) with centered white plus sign
     displayCtx.fillStyle = '#808080';
@@ -2322,9 +2321,8 @@
     }
   }
 
-  // Center the physical mouse cursor at the center of the display / experiment canvas
-  function centerMouseCursor(options = {}) {
-    const { hideBriefly = true, hideDurationMs = 250 } = options;
+  // Center the physical mouse cursor at the center of the display / experiment canvas instantly
+  function centerMouseCursor() {
     let targetX = null;
     let targetY = null;
     const activeDisplayId = dom.tobiiDisplaySelect?.value || state.selectedDisplayId || localStorage.getItem('rb_selected_display_id');
@@ -2350,32 +2348,24 @@
       targetY = Math.round(viewportTop + canvasCenterY);
     }
 
-    if (hideBriefly && !state.speedRecallPending && state.trialState !== 'speed_recall') {
-      document.body.classList.add('cursor-hidden');
-      if (dom.stageWrapper) dom.stageWrapper.classList.add('cursor-hidden');
-      clearTimeout(state._cursorUnhideTimer);
-      state._cursorUnhideTimer = setTimeout(() => {
-        if (state.trialState === 'absent' || state.trialState === 'speed_recall' || state.trialState === 'idle' || state.screen !== 'experiment') {
-          document.body.classList.remove('cursor-hidden');
-          if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
-        }
-      }, hideDurationMs);
+    if (targetX != null && targetY != null) {
+      fetch(`/api/center-mouse?x=${targetX}&y=${targetY}`, {
+        method: 'POST',
+        keepalive: true
+      }).catch(() => {});
+    } else {
+      fetch('/api/center-mouse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_id: activeDisplayId }),
+        keepalive: true
+      }).catch(() => {});
     }
-
-    fetch('/api/center-mouse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        display_id: activeDisplayId,
-        x: targetX, 
-        y: targetY 
-      })
-    }).catch(() => {});
   }
 
   // Run a single trial
   async function runTrial(index) {
-    centerMouseCursor({ hideBriefly: true, hideDurationMs: 250 });
+    centerMouseCursor();
     clearTimeout(state.phaseTimer);
     clearInterval(state.flickerTimer);
     clearTimeout(state.trialTimeoutTimer);
@@ -2520,8 +2510,7 @@
       state.trialState = 'interval';
       setHUDState('interval', `Interval (${state.config.t} ms)`);
       dom.blackOverlay.classList.add('active');
-      // Warp invisibly in the dark interval so cursor is ALREADY at the center when image appears
-      centerMouseCursor({ hideBriefly: true, hideDurationMs: state.config.t + 40 });
+      centerMouseCursor();
 
       state.phaseTimer = setTimeout(() => {
         // ================= PHASE 3: ABSENT IMAGE =================
@@ -2530,10 +2519,6 @@
         dom.blackOverlay.classList.remove('active');
         displayCtx.drawImage(absentImg, 0, 0);
         state.stimulusStartTime = window.performance.now();
-
-        // Reveal cursor smoothly directly at the center - zero motion visible to participant
-        document.body.classList.remove('cursor-hidden');
-        if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
 
         // Start 60-second trial timeout
         startTrialTimeout();
@@ -2571,10 +2556,7 @@
 
   // ===== Recall MCQ System (Speed or Symbol) =====
   function showRecallPrompt(trialIndex) {
-    document.body.classList.remove('cursor-hidden');
-    if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
-    clearTimeout(state._cursorUnhideTimer);
-    centerMouseCursor({ hideBriefly: false });
+    centerMouseCursor();
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
 

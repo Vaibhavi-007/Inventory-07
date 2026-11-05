@@ -1032,30 +1032,14 @@ kbd {
   box-sizing: border-box;
 }
 
-/* Smooth invisible cursor transitions during inter-trial intervals & centering */
-body.cursor-hidden #display-canvas,
-body.cursor-hidden #black-overlay,
-.stage-wrapper.cursor-hidden #display-canvas,
-.stage-wrapper.cursor-hidden #black-overlay {
-  cursor: none !important;
-}
-
-/* Ensure Question / Recall MCQ modal and its buttons ALWAYS have visible pointer cursor */
+/* Question / Recall MCQ modal and its buttons ALWAYS have visible pointer cursor */
 .speed-recall-overlay,
-.speed-recall-overlay *,
-body.cursor-hidden .speed-recall-overlay,
-body.cursor-hidden .speed-recall-overlay *,
-.stage-wrapper.cursor-hidden .speed-recall-overlay,
-.stage-wrapper.cursor-hidden .speed-recall-overlay * {
+.speed-recall-overlay * {
   cursor: default !important;
 }
 
 .speed-option-btn,
-.speed-option-btn *,
-body.cursor-hidden .speed-option-btn,
-body.cursor-hidden .speed-option-btn *,
-.stage-wrapper.cursor-hidden .speed-option-btn,
-.stage-wrapper.cursor-hidden .speed-option-btn * {
+.speed-option-btn * {
   cursor: pointer !important;
 }
 
