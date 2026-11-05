@@ -2004,7 +2004,8 @@
   function showFixationScreen(onComplete) {
     state.trialState = 'fixation';
     setHUDState('fixation', 'Fixation (+)');
-    centerMouseCursor();
+    // Keep cursor completely invisible during 1000ms fixation cross
+    centerMouseCursor({ hideBriefly: true, hideDurationMs: 1000 });
 
     // Paint stage canvas neutral grey (#808080) with centered white plus sign
     displayCtx.fillStyle = '#808080';
@@ -2248,7 +2249,8 @@
   }
 
   // Center the physical mouse cursor at the center of the display / experiment canvas
-  function centerMouseCursor() {
+  function centerMouseCursor(options = {}) {
+    const { hideBriefly = true, hideDurationMs = 250 } = options;
     let targetX = null;
     let targetY = null;
     const activeDisplayId = dom.tobiiDisplaySelect?.value || state.selectedDisplayId || localStorage.getItem('rb_selected_display_id');
@@ -2274,6 +2276,18 @@
       targetY = Math.round(viewportTop + canvasCenterY);
     }
 
+    if (hideBriefly) {
+      document.body.classList.add('cursor-hidden');
+      if (dom.stageWrapper) dom.stageWrapper.classList.add('cursor-hidden');
+      clearTimeout(state._cursorUnhideTimer);
+      state._cursorUnhideTimer = setTimeout(() => {
+        if (state.trialState === 'absent' || state.trialState === 'idle' || state.screen !== 'experiment') {
+          document.body.classList.remove('cursor-hidden');
+          if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
+        }
+      }, hideDurationMs);
+    }
+
     fetch('/api/center-mouse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2287,7 +2301,7 @@
 
   // Run a single trial
   async function runTrial(index) {
-    centerMouseCursor();
+    centerMouseCursor({ hideBriefly: true, hideDurationMs: 250 });
     clearTimeout(state.phaseTimer);
     clearInterval(state.flickerTimer);
     clearTimeout(state.trialTimeoutTimer);
@@ -2428,6 +2442,8 @@
       state.trialState = 'interval';
       setHUDState('interval', `Interval (${state.config.t} ms)`);
       dom.blackOverlay.classList.add('active');
+      // Warp invisibly in the dark interval so cursor is ALREADY at the center when image appears
+      centerMouseCursor({ hideBriefly: true, hideDurationMs: state.config.t + 40 });
 
       state.phaseTimer = setTimeout(() => {
         // ================= PHASE 3: ABSENT IMAGE =================
@@ -2436,7 +2452,10 @@
         dom.blackOverlay.classList.remove('active');
         displayCtx.drawImage(absentImg, 0, 0);
         state.stimulusStartTime = window.performance.now();
-        centerMouseCursor();
+
+        // Reveal cursor smoothly directly at the center - zero motion visible to participant
+        document.body.classList.remove('cursor-hidden');
+        if (dom.stageWrapper) dom.stageWrapper.classList.remove('cursor-hidden');
 
         // Start 60-second trial timeout
         startTrialTimeout();
@@ -3309,7 +3328,6 @@
     } else {
       playSound('miss');
     }
-    centerMouseCursor();
 
     const trial = state.currentTrialData;
 

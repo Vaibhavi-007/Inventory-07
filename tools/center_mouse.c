@@ -2,8 +2,28 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 int main(int argc, char *argv[]) {
+    // Daemon pipe mode for sub-millisecond persistent stdin warping:
+    // ./center_mouse --daemon
+    if (argc >= 2 && strcmp(argv[1], "--daemon") == 0) {
+        setvbuf(stdin, NULL, _IOLBF, 0);
+        setvbuf(stdout, NULL, _IOLBF, 0);
+        char line[256];
+        while (fgets(line, sizeof(line), stdin)) {
+            double rx = 0.0, ry = 0.0;
+            if (sscanf(line, "%lf %lf", &rx, &ry) == 2) {
+                CGPoint pt = CGPointMake((CGFloat)rx, (CGFloat)ry);
+                CGWarpMouseCursorPosition(pt);
+                CGAssociateMouseAndMouseCursorPosition(true);
+                printf("OK %.1f %.1f\n", rx, ry);
+                fflush(stdout);
+            }
+        }
+        return 0;
+    }
+
     CGFloat x = 0.0, y = 0.0;
     bool targetSet = false;
 

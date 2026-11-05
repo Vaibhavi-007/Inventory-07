@@ -109,6 +109,30 @@ function ensureCenterMouseBinary() {
     }
   }
 }
+
+// Persistent sub-millisecond daemon process for smooth, instant cursor warping
+let centerMouseDaemonProc = null;
+function getCenterMouseDaemon() {
+  if (process.platform !== 'darwin') return null;
+  ensureCenterMouseBinary();
+  if (!fs.existsSync(CENTER_MOUSE_BIN)) return null;
+
+  if (centerMouseDaemonProc && !centerMouseDaemonProc.killed && centerMouseDaemonProc.stdin && centerMouseDaemonProc.stdin.writable) {
+    return centerMouseDaemonProc;
+  }
+
+  try {
+    const { spawn } = require('child_process');
+    centerMouseDaemonProc = spawn(CENTER_MOUSE_BIN, ['--daemon'], {
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
+    centerMouseDaemonProc.on('error', () => { centerMouseDaemonProc = null; });
+    centerMouseDaemonProc.on('exit', () => { centerMouseDaemonProc = null; });
+    return centerMouseDaemonProc;
+  } catch (e) {
+    return null;
+  }
+}
 ensureCenterMouseBinary();
 
 function ensureTobiiService() {
@@ -219,6 +243,15 @@ const server = http.createServer((req, res) => {
       ensureCenterMouseBinary();
 
       if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
+        if (targetX && targetY) {
+          const daemon = getCenterMouseDaemon();
+          if (daemon && daemon.stdin && daemon.stdin.writable) {
+            daemon.stdin.write(`${targetX} ${targetY}\n`);
+            sendJson(res, 200, { success: true, centered: true, mode: 'daemon', x: targetX, y: targetY });
+            return;
+          }
+        }
+
         const { execFile } = require('child_process');
         const args = [];
         if (targetX && targetY) {
@@ -230,7 +263,7 @@ const server = http.createServer((req, res) => {
           if (err) {
             sendJson(res, 200, { success: false, error: err.message });
           } else {
-            sendJson(res, 200, { success: true, centered: true, display_id: displayId, x: targetX, y: targetY });
+            sendJson(res, 200, { success: true, centered: true, mode: 'oneshot', display_id: displayId, x: targetX, y: targetY });
           }
         });
       } else {

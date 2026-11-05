@@ -1032,6 +1032,14 @@ kbd {
   box-sizing: border-box;
 }
 
+/* Smooth invisible cursor transitions during inter-trial intervals & centering */
+body.cursor-hidden,
+body.cursor-hidden *,
+.stage-wrapper.cursor-hidden,
+.stage-wrapper.cursor-hidden * {
+  cursor: none !important;
+}
+
 /* When Module B dashboard is active below the image */
 .stage-display-unit.has-dashboard .stage-wrapper {
   border-radius: 6px 6px 0 0;
