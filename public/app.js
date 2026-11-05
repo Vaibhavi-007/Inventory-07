@@ -799,6 +799,69 @@
     }));
   }
 
+  // Generates 4 MCQ options for Scene Side / Visual Field (Left vs Right)
+  function generateSideMCQOptions(actualSide) {
+    const isL = actualSide === 'L';
+    const choices = [
+      {
+        key: '1',
+        letter: 'A',
+        label: 'Left Visual Field (Left Side)',
+        name: 'Left Visual Field',
+        value: 'L',
+        isCorrect: isL,
+        isIdk: false
+      },
+      {
+        key: '2',
+        letter: 'B',
+        label: 'Right Visual Field (Right Side)',
+        name: 'Right Visual Field',
+        value: 'R',
+        isCorrect: !isL,
+        isIdk: false
+      },
+      {
+        key: '3',
+        letter: 'C',
+        label: 'Center of Scene',
+        name: 'Center',
+        value: 'C',
+        isCorrect: false,
+        isIdk: false
+      },
+      {
+        key: '4',
+        letter: 'D',
+        label: "I Don't Know / Unsure",
+        name: 'IDK',
+        value: 'IDK',
+        isCorrect: false,
+        isIdk: true
+      }
+    ];
+    return choices;
+  }
+
+  // Generates 4 MCQ options for Object Name Change (e.g. Mirror, Napkin, etc.)
+  function generateObjectMCQOptions(actualObjName) {
+    const canonical = String(actualObjName || 'Object').charAt(0).toUpperCase() + String(actualObjName || 'Object').slice(1);
+    const pool = ['Mirror', 'Napkin', 'Ducks', 'Lamp', 'Vase', 'Clock', 'Picture Frame', 'Pillow', 'Chair'];
+    const distractors = pool.filter(n => n.toLowerCase() !== canonical.toLowerCase()).sort(() => Math.random() - 0.5).slice(0, 2);
+
+    const choices = [
+      { name: canonical, label: canonical, isCorrect: true, isIdk: false },
+      { name: distractors[0], label: distractors[0], isCorrect: false, isIdk: false },
+      { name: distractors[1], label: distractors[1], isCorrect: false, isIdk: false }
+    ].sort(() => Math.random() - 0.5);
+
+    choices.push({ name: 'IDK', label: "I Don't Know / Unsure", isCorrect: false, isIdk: true });
+
+    const keys = ['1', '2', '3', '4'];
+    const letters = ['A', 'B', 'C', 'D'];
+    return choices.map((c, i) => ({ ...c, key: keys[i], letter: letters[i] }));
+  }
+
   // --- Experiment Execution ---
   async function startExperiment() {
     // Validate required Participation ID
@@ -1020,7 +1083,8 @@
         module_name: 'Practice Module 1 (Flicker)',
         hasDashboard: false,
         hasHud: false,
-        isProbe: false,
+        isProbe: true,
+        probeType: i === 0 ? 'side' : 'object',
         isTutorial: true,
         tutorial_sample_num: i + 1
       }));
@@ -1148,7 +1212,7 @@
           • In Module 1, two versions of a scene alternate with a brief interval.<br>
           • Carefully scan the image to locate what is changing (appearing, disappearing, or shifting).<br>
           • As soon as you spot the difference, <strong>click directly on it</strong>.<br>
-          • Immediate feedback will indicate whether you clicked the correct difference.<br>
+          • Immediate feedback will indicate whether you clicked the correct difference, followed by a practice question with instant feedback.<br>
           <div style="margin-top: 12px; color: #fbbf24; font-size: 0.88em; font-weight: 600;">⚠️ Practice data is NOT recorded.</div>
         `;
       }
@@ -1971,16 +2035,26 @@
       dom.feedbackMsg.className = 'feedback-msg incorrect';
       dom.feedbackMsg.textContent = `✗ Timed out (60s)! Target difference location is highlighted below`;
 
-      if (trial && trial.isProbe && trial.dashboardData) {
-        // Allow participant to view hit/miss indication before opening recall prompt
-        setTimeout(() => {
-          showRecallPrompt(state.currentTrialIndex);
-        }, 900);
+      if (trial && trial.isProbe) {
+        state._pendingRecallTrial = state.currentTrialIndex;
+        dom.spacebarPrompt.classList.add('active');
+        const spSpan = dom.spacebarPrompt.querySelector('span:not(.pulse-kbd)');
+        if (spSpan) spSpan.textContent = 'Press spacebar to proceed to practice question →';
+        setHUDState('feedback', 'Press Spacebar to proceed to Question');
+
+        clearTimeout(state._pendingRecallTimer);
+        state._pendingRecallTimer = setTimeout(() => {
+          if (state._pendingRecallTrial === state.currentTrialIndex) {
+            state._pendingRecallTrial = null;
+            showRecallPrompt(state.currentTrialIndex);
+          }
+        }, 1500);
         return;
       }
 
-      // Non-probe tutorial sample (Module 1): show prompt to advance
       dom.spacebarPrompt.classList.add('active');
+      const spSpan = dom.spacebarPrompt.querySelector('span:not(.pulse-kbd)');
+      if (spSpan) spSpan.textContent = 'Press spacebar for next practice sample';
       setHUDState('feedback', 'Press Spacebar for Next Practice Sample');
       return;
     }
@@ -2415,6 +2489,10 @@
     dom.feedbackMsg.className = 'feedback-msg';
     dom.feedbackMsg.textContent = 'Locate the difference in the scene';
     dom.spacebarPrompt.classList.remove('active');
+    state._pendingRecallTrial = null;
+    clearTimeout(state._pendingRecallTimer);
+    const _spSpan = dom.spacebarPrompt.querySelector('span:not(.pulse-kbd)');
+    if (_spSpan) _spSpan.textContent = 'Press spacebar to advance to next image';
 
     // Preload next trial assets asynchronously
     if (index + 1 < state.trials.length) {
@@ -2555,6 +2633,8 @@
     const actualSpeed = trial?.dashboardData?.speed || 0;
     const actualSymbol = trial?.dashboardData?.symbol || SYMBOLS[0];
     const actualRpm = trial?.dashboardData?.rpm != null ? Number(trial.dashboardData.rpm.toFixed(1)) : 2.4;
+    const actualSide = trial?.side || (trial?.benchmark?.x < 512 ? 'L' : 'R');
+    const actualObjectName = trial?.object_name || trial?.object || 'Target Object';
 
     state._recallContext = {
       trialIndex,
@@ -2562,10 +2642,62 @@
       actualSpeed,
       speedFormatted: formatSpeed(actualSpeed),
       actualSymbol,
-      actualRpm
+      actualRpm,
+      actualSide,
+      actualObjectName
     };
 
-    if (probeType === 'symbol') {
+    if (probeType === 'side') {
+      if (dom.recallModalIcon) dom.recallModalIcon.textContent = '↔️';
+      if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Visual Field Location Recall';
+      if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'On which side of the scene did the visual change / flicker occur?';
+      if (dom.recallModalHint) dom.recallModalHint.innerHTML = 'Press <kbd>1</kbd>–<kbd>4</kbd> or click an option to submit your answer.';
+
+      const options = generateSideMCQOptions(actualSide);
+      state._currentMCQOptions = options;
+
+      if (dom.speedRecallOptions) {
+        dom.speedRecallOptions.innerHTML = '';
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
+          btn.dataset.key = String(opt.key);
+          btn.dataset.correct = opt.isCorrect ? 'true' : 'false';
+          btn.innerHTML = `
+            <span class="opt-badge">${opt.key}</span>
+            <span class="opt-label">${opt.label}</span>
+          `;
+          btn.addEventListener('click', () => submitRecallMCQ(opt));
+          dom.speedRecallOptions.appendChild(btn);
+        });
+      }
+    } else if (probeType === 'object') {
+      if (dom.recallModalIcon) dom.recallModalIcon.textContent = '🔍';
+      if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Object Change Recall';
+      if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'Which object in the scene was changing / flickering?';
+      if (dom.recallModalHint) dom.recallModalHint.innerHTML = 'Press <kbd>1</kbd>–<kbd>4</kbd> or click an option to submit your answer.';
+
+      const options = generateObjectMCQOptions(actualObjectName);
+      state._currentMCQOptions = options;
+
+      if (dom.speedRecallOptions) {
+        dom.speedRecallOptions.innerHTML = '';
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `speed-option-btn ${opt.isIdk ? 'opt-idk' : ''}`;
+          btn.dataset.key = String(opt.key);
+          btn.dataset.correct = opt.isCorrect ? 'true' : 'false';
+          btn.innerHTML = `
+            <span class="opt-badge">${opt.key}</span>
+            <span class="opt-label">${opt.label}</span>
+          `;
+          btn.addEventListener('click', () => submitRecallMCQ(opt));
+          dom.speedRecallOptions.appendChild(btn);
+        });
+      }
+    } else if (probeType === 'symbol') {
       if (dom.recallModalIcon) dom.recallModalIcon.textContent = '⚠️';
       if (dom.recallModalTitle) dom.recallModalTitle.textContent = 'Warning Symbol Recall';
       if (dom.recallModalDesc) dom.recallModalDesc.textContent = 'Which warning symbol was displayed on the dashboard cluster?';
@@ -2696,7 +2828,35 @@
     const probeType = ctx.probeType;
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
 
-    if (probeType === 'symbol') {
+    if (probeType === 'side') {
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'side',
+        actual_side: ctx.actualSide,
+        user_response: null,
+        side_recall_accurate: false,
+        is_idk: false,
+        timed_out: true
+      };
+      if (trialResult) {
+        trialResult.probe_type = 'side';
+        trialResult.recall_accurate = false;
+      }
+    } else if (probeType === 'object') {
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'object',
+        actual_object: ctx.actualObjectName,
+        user_response: null,
+        object_recall_accurate: false,
+        is_idk: false,
+        timed_out: true
+      };
+      if (trialResult) {
+        trialResult.probe_type = 'object';
+        trialResult.recall_accurate = false;
+      }
+    } else if (probeType === 'symbol') {
       const symName = ctx.actualSymbol?.name || 'Unknown';
       const recallEntry = {
         trial_index: ctx.trialIndex + 1,
@@ -2825,7 +2985,17 @@
       }
 
       let feedbackMsg = '';
-      if (probeType === 'symbol') {
+      if (probeType === 'side') {
+        const sideFull = ctx.actualSide === 'L' ? 'Left Visual Field (Left Side)' : 'Right Visual Field (Right Side)';
+        feedbackMsg = isAccurate
+          ? `✓ Correct! Target difference occurred in the <strong>${sideFull}</strong>.`
+          : `✗ Incorrect! Target difference occurred in the <strong>${sideFull}</strong>.`;
+      } else if (probeType === 'object') {
+        const objCap = String(ctx.actualObjectName).charAt(0).toUpperCase() + String(ctx.actualObjectName).slice(1);
+        feedbackMsg = isAccurate
+          ? `✓ Correct! The object that changed was the <strong>${objCap}</strong>.`
+          : `✗ Incorrect! The object that changed was the <strong>${objCap}</strong>.`;
+      } else if (probeType === 'symbol') {
         const correctSym = ctx.actualSymbol?.name || 'Warning Symbol';
         feedbackMsg = isAccurate
           ? `✓ Correct! Warning symbol was <strong>${correctSym}</strong>.`
@@ -2844,6 +3014,21 @@
         dom.recallTutorialFeedbackText.innerHTML = feedbackMsg;
         dom.recallTutorialFeedback.className = `recall-tutorial-feedback ${isAccurate ? 'correct' : 'incorrect'}`;
         dom.recallTutorialFeedback.style.display = 'flex';
+      }
+
+      if (dom.btnNextTutorialSample) {
+        const trial = state.trials[ctx.trialIndex];
+        const sampleNum = trial?.tutorial_sample_num || 1;
+        const isModuleEnd = sampleNum === 2;
+        const isTutorialEnd = (ctx.trialIndex + 1) >= state.trials.length;
+
+        if (isTutorialEnd) {
+          dom.btnNextTutorialSample.innerHTML = 'Finish Tutorial &amp; Begin Test → <kbd>Space</kbd>';
+        } else if (isModuleEnd) {
+          dom.btnNextTutorialSample.innerHTML = 'Proceed to Next Practice Module → <kbd>Space</kbd>';
+        } else {
+          dom.btnNextTutorialSample.innerHTML = 'Next Practice Sample → <kbd>Space</kbd>';
+        }
       }
 
       function proceedTutorialMCQ() {
@@ -2869,13 +3054,43 @@
       }
 
       state._proceedTutorialMCQ = proceedTutorialMCQ;
-      state._tutMcqAutoAdvance = setTimeout(proceedTutorialMCQ, 2500);
+      state._tutMcqAutoAdvance = setTimeout(proceedTutorialMCQ, 8000);
       return;
     }
 
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
 
-    if (probeType === 'symbol') {
+    if (probeType === 'side') {
+      const userResp = selectedOption.isIdk ? 'IDK' : selectedOption.value;
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'side',
+        actual_side: ctx.actualSide,
+        user_response: userResp,
+        side_recall_accurate: isAccurate,
+        is_idk: selectedOption.isIdk || false,
+        timed_out: false
+      };
+      if (trialResult) {
+        trialResult.probe_type = 'side';
+        trialResult.recall_accurate = isAccurate;
+      }
+    } else if (probeType === 'object') {
+      const userResp = selectedOption.isIdk ? 'IDK' : selectedOption.name;
+      const recallEntry = {
+        trial_index: ctx.trialIndex + 1,
+        probe_type: 'object',
+        actual_object: ctx.actualObjectName,
+        user_response: userResp,
+        object_recall_accurate: isAccurate,
+        is_idk: selectedOption.isIdk || false,
+        timed_out: false
+      };
+      if (trialResult) {
+        trialResult.probe_type = 'object';
+        trialResult.recall_accurate = isAccurate;
+      }
+    } else if (probeType === 'symbol') {
       const symName = ctx.actualSymbol?.name || 'Unknown';
       const userResp = selectedOption.isIdk ? 'IDK' : selectedOption.name;
       const recallEntry = {
@@ -3214,6 +3429,16 @@
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
     if (dom.fixationOverlay) dom.fixationOverlay.classList.remove('active');
+
+    // If there is a pending recall question in tutorial mode, spacebar opens it directly
+    if (state.isTutorial && state._pendingRecallTrial != null) {
+      const pIdx = state._pendingRecallTrial;
+      state._pendingRecallTrial = null;
+      clearTimeout(state._pendingRecallTimer);
+      showRecallPrompt(pIdx);
+      return;
+    }
+
     playSound('advance');
     centerMouseCursor();
 
@@ -3351,16 +3576,26 @@
         dom.feedbackMsg.textContent = `✗ Incorrect! Target difference location is highlighted below`;
       }
 
-      if (trial && trial.isProbe && trial.dashboardData) {
-        // Allow participant to view hit/miss indication before opening recall prompt
-        setTimeout(() => {
-          showRecallPrompt(state.currentTrialIndex);
-        }, 900);
+      if (trial && trial.isProbe) {
+        state._pendingRecallTrial = state.currentTrialIndex;
+        dom.spacebarPrompt.classList.add('active');
+        const spSpan = dom.spacebarPrompt.querySelector('span:not(.pulse-kbd)');
+        if (spSpan) spSpan.textContent = 'Press spacebar to proceed to practice question →';
+        setHUDState('feedback', 'Press Spacebar to proceed to Question');
+
+        clearTimeout(state._pendingRecallTimer);
+        state._pendingRecallTimer = setTimeout(() => {
+          if (state._pendingRecallTrial === state.currentTrialIndex) {
+            state._pendingRecallTrial = null;
+            showRecallPrompt(state.currentTrialIndex);
+          }
+        }, 1500);
         return;
       }
 
-      // Non-probe tutorial sample (Module 1): show prompt to advance
       dom.spacebarPrompt.classList.add('active');
+      const spSpan = dom.spacebarPrompt.querySelector('span:not(.pulse-kbd)');
+      if (spSpan) spSpan.textContent = 'Press spacebar for next practice sample';
       setHUDState('feedback', 'Press Spacebar for Next Practice Sample');
       return;
     }
