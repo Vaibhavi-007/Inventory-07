@@ -9,7 +9,9 @@ static inline void warp_cursor_instant(CGFloat x, CGFloat y) {
     CGPoint pt = CGPointMake(x, y);
 
     // 1. Immediately warp the hardware pointer position
+    CGDisplayMoveCursorToPoint(CGMainDisplayID(), pt);
     CGWarpMouseCursorPosition(pt);
+    CGAssociateMouseAndMouseCursorPosition(true);
 
     // 2. Synthesize an instantaneous mouse moved event with zero delta
     // This immediately syncs macOS WindowServer and browser without any trail or interpolation
@@ -20,9 +22,6 @@ static inline void warp_cursor_instant(CGFloat x, CGFloat y) {
         CGEventPost(kCGHIDEventTap, moveEv);
         CFRelease(moveEv);
     }
-
-    // 3. Keep mouse movement associated
-    CGAssociateMouseAndMouseCursorPosition(true);
 }
 
 int main(int argc, char *argv[]) {

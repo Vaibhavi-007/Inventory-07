@@ -1028,7 +1028,7 @@ kbd {
   border-radius: 6px;
   overflow: hidden;
   cursor: crosshair;
-  transition: width 0.1s ease, height 0.1s ease;
+  transition: none;
   box-sizing: border-box;
 }
 
@@ -1068,7 +1068,7 @@ kbd {
   opacity: 0;
   pointer-events: none;
   z-index: 10;
-  transition: opacity 0.02s linear;
+  transition: none;
 }
 
 /* Automotive Instrument Cluster Dashboard Bar (Displayed cleanly BELOW the image, no overlapping!) */
@@ -1715,7 +1715,7 @@ img.table-symbol-icon,
   pointer-events: none;
   opacity: 0;
   z-index: 5;
-  transition: opacity 0.2s ease;
+  transition: none;
   object-fit: fill;
   display: block;
 }
@@ -1762,22 +1762,7 @@ img.table-symbol-icon,
 }
 
 .marker-pulse {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid #ffffff;
-  animation: marker-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.click-marker.hit .marker-pulse {
-  border-color: #10b981;
-}
-
-.click-marker.miss .marker-pulse {
-  border-color: #ef4444;
+  display: none;
 }
 
 @keyframes marker-ping {

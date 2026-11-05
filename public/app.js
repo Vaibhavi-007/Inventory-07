@@ -1083,8 +1083,7 @@
         module_name: 'Practice Module 1 (Flicker)',
         hasDashboard: false,
         hasHud: false,
-        isProbe: true,
-        probeType: i === 0 ? 'side' : 'object',
+        isProbe: false,
         isTutorial: true,
         tutorial_sample_num: i + 1
       }));
@@ -1212,7 +1211,7 @@
           • In Module 1, two versions of a scene alternate with a brief interval.<br>
           • Carefully scan the image to locate what is changing (appearing, disappearing, or shifting).<br>
           • As soon as you spot the difference, <strong>click directly on it</strong>.<br>
-          • Immediate feedback will indicate whether you clicked the correct difference, followed by a practice question with instant feedback.<br>
+          • Immediate visual feedback will indicate whether your detection was correct.<br>
           <div style="margin-top: 12px; color: #fbbf24; font-size: 0.88em; font-weight: 600;">⚠️ Practice data is NOT recorded.</div>
         `;
       }
@@ -2510,7 +2509,6 @@
       state.trialState = 'interval';
       setHUDState('interval', `Interval (${state.config.t} ms)`);
       dom.blackOverlay.classList.add('active');
-      centerMouseCursor();
 
       state.phaseTimer = setTimeout(() => {
         // ================= PHASE 3: ABSENT IMAGE =================
