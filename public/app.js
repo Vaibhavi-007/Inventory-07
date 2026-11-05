@@ -128,7 +128,11 @@
     tobiiStatus: null,
     tobiiValidation: null,
     tobiiAvailableDisplays: [],
-    currentTrialGazeSamples: []
+    currentTrialGazeSamples: [],
+
+    // Exact viewport-to-screen coordinate calibration (points)
+    _viewportScreenX: null,
+    _viewportScreenY: null
   };
 
   window._rbState = state;
@@ -422,6 +426,9 @@
 
   // --- Initialization & UI Binding ---
   async function init() {
+    ['mousemove', 'pointermove', 'mousedown', 'click'].forEach(evt => {
+      window.addEventListener(evt, updateViewportScreenCalibration, { passive: true });
+    });
     bindLandingControls();
     bindExperimentControls();
     bindResultsControls();
@@ -1959,19 +1966,10 @@
     // In Tutorial Mode: Give immediate visual hit/miss feedback, reveal difference location, and guide user
     if (state.isTutorial) {
       renderTargetRevealOverlay();
-      const cssX = (clickX / 1024) * 100;
-      const cssY = (clickY / 768) * 100;
-      dom.clickMarker.style.left = `${cssX}%`;
-      dom.clickMarker.style.top = `${cssY}%`;
-      dom.clickMarker.className = `click-marker show ${isHit ? 'hit' : 'miss'}`;
+      dom.clickMarker.className = 'click-marker';
 
-      if (isHit) {
-        dom.feedbackMsg.className = 'feedback-msg correct';
-        dom.feedbackMsg.textContent = `✓ Correct! Difference detected (${Math.round(rt)} ms)`;
-      } else {
-        dom.feedbackMsg.className = 'feedback-msg incorrect';
-        dom.feedbackMsg.textContent = `✗ Incorrect! Target difference location is highlighted below`;
-      }
+      dom.feedbackMsg.className = 'feedback-msg incorrect';
+      dom.feedbackMsg.textContent = `✗ Timed out (60s)! Target difference location is highlighted below`;
 
       if (trial && trial.isProbe && trial.dashboardData) {
         // Allow participant to view hit/miss indication before opening recall prompt
@@ -2006,6 +2004,7 @@
   function showFixationScreen(onComplete) {
     state.trialState = 'fixation';
     setHUDState('fixation', 'Fixation (+)');
+    centerMouseCursor();
 
     // Paint stage canvas neutral grey (#808080) with centered white plus sign
     displayCtx.fillStyle = '#808080';
@@ -2041,6 +2040,7 @@
     // Hold for exactly 1.0 second (1000 ms), then automatically proceed to next trial
     clearTimeout(state.fixationTimer);
     state.fixationTimer = setTimeout(() => {
+      centerMouseCursor();
       if (dom.fixationOverlay) {
         dom.fixationOverlay.classList.remove('active');
       }
@@ -2239,6 +2239,14 @@
       </svg>`;
   }
 
+  // Continuously record precise viewport-to-screen coordinate offset (macOS Quartz points)
+  function updateViewportScreenCalibration(e) {
+    if (e && e.screenX != null && e.clientX != null && e.screenX > 0 && e.screenY > 0) {
+      state._viewportScreenX = e.screenX - e.clientX;
+      state._viewportScreenY = e.screenY - e.clientY;
+    }
+  }
+
   // Center the physical mouse cursor at the center of the display / experiment canvas
   function centerMouseCursor() {
     let targetX = null;
@@ -2247,12 +2255,23 @@
 
     if (dom.displayCanvas) {
       const rect = dom.displayCanvas.getBoundingClientRect();
-      const winX = window.screenX !== undefined ? window.screenX : (window.screenLeft !== undefined ? window.screenLeft : 0);
-      const winY = window.screenY !== undefined ? window.screenY : (window.screenTop !== undefined ? window.screenTop : 0);
-      
-      const chromeHeight = (window.outerHeight - window.innerHeight) > 0 ? (window.outerHeight - window.innerHeight) : 0;
-      targetX = Math.round(winX + rect.left + (rect.width / 2));
-      targetY = Math.round(winY + chromeHeight + rect.top + (rect.height / 2));
+      const canvasCenterX = rect.left + (rect.width / 2);
+      const canvasCenterY = rect.top + (rect.height / 2);
+
+      let viewportLeft = state._viewportScreenX;
+      let viewportTop = state._viewportScreenY;
+
+      if (viewportLeft == null || viewportTop == null) {
+        const winX = window.screenX !== undefined ? window.screenX : (window.screenLeft !== undefined ? window.screenLeft : 0);
+        const winY = window.screenY !== undefined ? window.screenY : (window.screenTop !== undefined ? window.screenTop : 0);
+        const chromeHeight = Math.max(0, window.outerHeight - window.innerHeight);
+        const chromeWidth = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
+        viewportLeft = winX + chromeWidth;
+        viewportTop = winY + chromeHeight;
+      }
+
+      targetX = Math.round(viewportLeft + canvasCenterX);
+      targetY = Math.round(viewportTop + canvasCenterY);
     }
 
     fetch('/api/center-mouse', {
@@ -2417,6 +2436,7 @@
         dom.blackOverlay.classList.remove('active');
         displayCtx.drawImage(absentImg, 0, 0);
         state.stimulusStartTime = window.performance.now();
+        centerMouseCursor();
 
         // Start 60-second trial timeout
         startTrialTimeout();

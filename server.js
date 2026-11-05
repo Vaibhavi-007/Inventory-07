@@ -221,12 +221,10 @@ const server = http.createServer((req, res) => {
       if (process.platform === 'darwin' && fs.existsSync(CENTER_MOUSE_BIN)) {
         const { execFile } = require('child_process');
         const args = [];
-        if (displayId && targetX && targetY) {
-          args.push(displayId, targetX, targetY);
+        if (targetX && targetY) {
+          args.push(targetX, targetY);
         } else if (displayId) {
           args.push(displayId);
-        } else if (targetX && targetY) {
-          args.push(targetX, targetY);
         }
         execFile(CENTER_MOUSE_BIN, args, (err) => {
           if (err) {
