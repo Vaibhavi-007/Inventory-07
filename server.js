@@ -854,6 +854,16 @@ const server = http.createServer((req, res) => {
 
           const xlsxBuf = generateXlsx(multiSheets);
           fs.writeFileSync(xlsxPath, xlsxBuf);
+
+          // Save a direct participant-named copy if ID is provided
+          const rawPid = (participantId || '').trim();
+          if (rawPid && rawPid !== 'Anonymous') {
+            const safePid = rawPid.replace(/[\\/:*?"<>|]/g, '_').trim();
+            if (safePid) {
+              const pidXlsxPath = path.join(RESULTS_DIR, `${safePid}.xlsx`);
+              fs.writeFileSync(pidXlsxPath, xlsxBuf);
+            }
+          }
         } catch (xlsxErr) {
           console.warn('XLSX generation warning:', xlsxErr.message);
         }
@@ -915,10 +925,26 @@ const server = http.createServer((req, res) => {
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'text/csv; charset=utf-8';
 
+      let outFilename = parsedUrl.query?.filename;
+      if (!outFilename) {
+        const jsonFilePath = path.join(RESULTS_DIR, `${reqSessionId}.json`);
+        if (fs.existsSync(jsonFilePath)) {
+          try {
+            const jsonContent = JSON.parse(fs.readFileSync(jsonFilePath, 'utf-8'));
+            const pid = (jsonContent.participant?.id || jsonContent.participant_id || jsonContent.participant?.name || jsonContent.participant_name || 'Anonymous').trim();
+            const safePid = pid.replace(/[\\/:*?"<>|]/g, '_').trim() || 'Anonymous';
+            outFilename = `${safePid}.${format}`;
+          } catch (e) {}
+        }
+      }
+      if (!outFilename) {
+        outFilename = `${reqSessionId}.${format}`;
+      }
+
       res.writeHead(200, {
         'Content-Type': mime,
         'Content-Length': stat.size,
-        'Content-Disposition': `attachment; filename="change_blindness_${filename}"`,
+        'Content-Disposition': `attachment; filename="${outFilename}"`,
         'Cache-Control': 'no-cache, no-store'
       });
       fs.createReadStream(filePath).pipe(res);

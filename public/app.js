@@ -4377,9 +4377,16 @@
     return compareTrialsDeterministic(a, b);
   }
 
+  function getParticipantFilename(extension = 'xlsx') {
+    const rawPid = (state.participant?.id || state.participant?.name || 'Anonymous').trim();
+    const safePid = rawPid.replace(/[\\/:*?"<>|]/g, '_').trim() || 'Anonymous';
+    return `${safePid}.${extension}`;
+  }
+
   function exportCsv() {
+    const filename = getParticipantFilename('csv');
     if (state.sessionId) {
-      triggerDownload(`/api/download/${state.sessionId}/csv`, `change_blindness_${state.sessionId}.csv`);
+      triggerDownload(`/api/download/${state.sessionId}/csv?filename=${encodeURIComponent(filename)}`, filename);
       return;
     }
 
@@ -4498,12 +4505,13 @@
 
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.csv`);
+    triggerDownload(url, getParticipantFilename('csv'));
   }
 
   async function exportXlsx() {
+    const filename = getParticipantFilename('xlsx');
     if (state.sessionId) {
-      triggerDownload(`/api/download/${state.sessionId}/xlsx`, `change_blindness_${state.sessionId}.xlsx`);
+      triggerDownload(`/api/download/${state.sessionId}/xlsx?filename=${encodeURIComponent(filename)}`, filename);
       return;
     }
 
@@ -4769,7 +4777,7 @@
 
     const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.xls`);
+    triggerDownload(url, getParticipantFilename('xls'));
   }
 
   function exportJson() {
@@ -4785,7 +4793,7 @@
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    triggerDownload(url, `change_blindness_${state.sessionId || 'results'}.json`);
+    triggerDownload(url, getParticipantFilename('json'));
   }
 
   // Run on page load
