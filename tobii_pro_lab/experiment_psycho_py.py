@@ -194,7 +194,8 @@ def run_experiment(participant_id="P01", fullscreen=True):
             "chosen_index": chosen_idx + 1,
             "chosen_text": options[chosen_idx],
             "is_correct": is_correct,
-            "rt_ms": resp_time
+            "rt_ms": resp_time,
+            "rt_sec": round(resp_time / 1000.0, 3)
         })
 
         # Tutorial Feedback Banner
@@ -401,14 +402,38 @@ def run_experiment(participant_id="P01", fullscreen=True):
 
     show_screen("Module 1 Complete", "Great job! Next is Module 2 (Cluster Strip).\n\nPress SPACEBAR to continue.")
     # Run Module 2 (15 trials)
-    for t_data in module_pools['module_2']:
+    for idx, t_data in enumerate(module_pools['module_2']):
         res = run_trial(t_data, module_num=2, is_tutorial=False)
+        # Probe recall questions on 40% of trials (e.g. idx 0, 3, 6, 9, 12)
+        if idx % 3 == 0:
+            c_idx, is_corr, q_rt = ask_mcq_question(
+                "Module 2 Recall Question",
+                "What was the vehicle speed or instrument state in the preceding scene?",
+                ["48 km/h", "72 km/h", "86 km/h", "IDK / Unsure"],
+                1,
+                is_tutorial=False
+            )
+            res["recall_rt_ms"] = q_rt
+            res["recall_rt_sec"] = round(q_rt / 1000.0, 3)
+            res["recall_accurate"] = 1 if is_corr else 0
         results_all.append(res)
 
     show_screen("Module 2 Complete", "Great job! Final block is Module 3 (Heads-Up Display HUD).\n\nPress SPACEBAR to continue.")
     # Run Module 3 (15 trials)
-    for t_data in module_pools['module_3']:
+    for idx, t_data in enumerate(module_pools['module_3']):
         res = run_trial(t_data, module_num=3, is_tutorial=False)
+        # Probe recall questions on 40% of trials
+        if idx % 3 == 0:
+            c_idx, is_corr, q_rt = ask_mcq_question(
+                "Module 3 HUD Recall Question",
+                "What was the projected HUD parameter (Speed / RPM) in the preceding trial?",
+                ["2.4k RPM", "3.2k RPM", "4.0k RPM", "IDK / Unsure"],
+                0,
+                is_tutorial=False
+            )
+            res["recall_rt_ms"] = q_rt
+            res["recall_rt_sec"] = round(q_rt / 1000.0, 3)
+            res["recall_accurate"] = 1 if is_corr else 0
         results_all.append(res)
 
     # =============================================================

@@ -353,7 +353,9 @@ class ExperimentApp:
     def present_mcq(self, q_tuple):
         self.state = "mcq"
         self.q_tuple = q_tuple
+        self.mcq_start_time = time.time()
         title, desc, opts, self.correct_idx = q_tuple
+        self.tobii.log_event("MCQ_QUESTION_SHOWN", {"title": title})
         self.canvas.delete("all")
         self.canvas.create_text(self.sw // 2, 160, text=title, font=("Helvetica", 22, "bold"), fill="#ffffff")
         self.canvas.create_text(self.sw // 2, 220, text=desc, font=("Helvetica", 14), fill="#94a3b8")
@@ -366,12 +368,22 @@ class ExperimentApp:
         self.canvas.create_text(self.sw // 2, 620, text="Press 1, 2, 3, or 4 on keyboard to answer", font=("Helvetica", 13, "bold"), fill="#fbbf24")
 
     def submit_mcq(self, chosen_idx):
+        rt_sec = round(time.time() - getattr(self, 'mcq_start_time', time.time()), 3)
+        rt_ms = round(rt_sec * 1000, 1)
         is_correct = (chosen_idx == self.correct_idx)
         opts = self.q_tuple[2]
+        
+        if hasattr(self, 'trial_result') and isinstance(self.trial_result, dict):
+            self.trial_result["recall_rt_ms"] = rt_ms
+            self.trial_result["recall_rt_sec"] = rt_sec
+            self.trial_result["recall_accurate"] = is_correct
+
         self.tobii.log_event("MCQ_SUBMIT", {
             "chosen_index": chosen_idx + 1,
             "chosen_text": opts[chosen_idx],
-            "correct": is_correct
+            "correct": is_correct,
+            "rt_ms": rt_ms,
+            "rt_sec": rt_sec
         })
 
         if self.is_tutorial:

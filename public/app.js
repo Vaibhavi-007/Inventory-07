@@ -2590,7 +2590,9 @@
       actualSymbol,
       actualRpm,
       actualSide,
-      actualObjectName
+      actualObjectName,
+      startTime: window.performance.now(),
+      questionTimestamp: new Date().toISOString()
     };
 
     if (probeType === 'side') {
@@ -2773,6 +2775,8 @@
     const ctx = state._recallContext;
     const probeType = ctx.probeType;
     const trialResult = state.trialResults.find(r => r.trial_index === ctx.trialIndex + 1);
+    const recallRtMs = 60000;
+    const recallRtSec = 60.0;
 
     if (probeType === 'side') {
       const recallEntry = {
@@ -2781,12 +2785,16 @@
         actual_side: ctx.actualSide,
         user_response: null,
         side_recall_accurate: false,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: false,
         timed_out: true
       };
       if (trialResult) {
         trialResult.probe_type = 'side';
         trialResult.recall_accurate = false;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
       }
     } else if (probeType === 'object') {
       const recallEntry = {
@@ -2795,12 +2803,16 @@
         actual_object: ctx.actualObjectName,
         user_response: null,
         object_recall_accurate: false,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: false,
         timed_out: true
       };
       if (trialResult) {
         trialResult.probe_type = 'object';
         trialResult.recall_accurate = false;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
       }
     } else if (probeType === 'symbol') {
       const symName = ctx.actualSymbol?.name || 'Unknown';
@@ -2811,6 +2823,8 @@
         actual_symbol_name: symName,
         user_response: null,
         symbol_recall_accurate: false,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: false,
         timed_out: true
       };
@@ -2824,6 +2838,10 @@
         trialResult.symbol_recall_accurate = false;
         trialResult.symbol_recall_timed_out = true;
         trialResult.symbol_recall_idk = false;
+        trialResult.symbol_recall_rt_ms = recallRtMs;
+        trialResult.symbol_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = false;
       }
     } else if (probeType === 'rpm') {
@@ -2835,6 +2853,8 @@
         user_response: null,
         rpm_recall_accurate: false,
         rpm_error: null,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: false,
         timed_out: true
       };
@@ -2849,6 +2869,10 @@
         trialResult.rpm_error = null;
         trialResult.rpm_recall_timed_out = true;
         trialResult.rpm_recall_idk = false;
+        trialResult.rpm_recall_rt_ms = recallRtMs;
+        trialResult.rpm_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = false;
       }
     } else {
@@ -2861,6 +2885,8 @@
         user_response: null,
         speed_recall_accurate: false,
         speed_error_kmh: null,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: false,
         timed_out: true
       };
@@ -2875,6 +2901,10 @@
         trialResult.speed_error_kmh = null;
         trialResult.speed_recall_timed_out = true;
         trialResult.speed_recall_idk = false;
+        trialResult.speed_recall_rt_ms = recallRtMs;
+        trialResult.speed_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = false;
       }
     }
@@ -2906,6 +2936,9 @@
     const ctx = state._recallContext;
     const probeType = ctx.probeType;
     const isAccurate = selectedOption.isCorrect === true;
+    const recallRt = Math.max(0, window.performance.now() - (ctx.startTime || window.performance.now()));
+    const recallRtMs = Number(recallRt.toFixed(1));
+    const recallRtSec = Number((recallRt / 1000).toFixed(3));
 
     // In Tutorial Mode: Provide immediate visual feedback & explanation banner
     if (state.isTutorial) {
@@ -3014,12 +3047,16 @@
         actual_side: ctx.actualSide,
         user_response: userResp,
         side_recall_accurate: isAccurate,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: selectedOption.isIdk || false,
         timed_out: false
       };
       if (trialResult) {
         trialResult.probe_type = 'side';
         trialResult.recall_accurate = isAccurate;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
       }
     } else if (probeType === 'object') {
       const userResp = selectedOption.isIdk ? 'IDK' : selectedOption.name;
@@ -3029,12 +3066,16 @@
         actual_object: ctx.actualObjectName,
         user_response: userResp,
         object_recall_accurate: isAccurate,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: selectedOption.isIdk || false,
         timed_out: false
       };
       if (trialResult) {
         trialResult.probe_type = 'object';
         trialResult.recall_accurate = isAccurate;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
       }
     } else if (probeType === 'symbol') {
       const symName = ctx.actualSymbol?.name || 'Unknown';
@@ -3046,6 +3087,8 @@
         actual_symbol_name: symName,
         user_response: userResp,
         symbol_recall_accurate: isAccurate,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: selectedOption.isIdk || false,
         timed_out: false
       };
@@ -3059,6 +3102,10 @@
         trialResult.symbol_recall_accurate = isAccurate;
         trialResult.symbol_recall_timed_out = false;
         trialResult.symbol_recall_idk = selectedOption.isIdk || false;
+        trialResult.symbol_recall_rt_ms = recallRtMs;
+        trialResult.symbol_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = isAccurate;
       }
     } else if (probeType === 'rpm') {
@@ -3075,6 +3122,8 @@
         user_response: userResponse,
         rpm_recall_accurate: isAccurate,
         rpm_error: errorRpm,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: selectedOption.isIdk || false,
         timed_out: false
       };
@@ -3089,6 +3138,10 @@
         trialResult.rpm_error = errorRpm;
         trialResult.rpm_recall_timed_out = false;
         trialResult.rpm_recall_idk = selectedOption.isIdk || false;
+        trialResult.rpm_recall_rt_ms = recallRtMs;
+        trialResult.rpm_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = isAccurate;
       }
     } else {
@@ -3108,6 +3161,8 @@
         user_response: userResponse,
         speed_recall_accurate: isAccurate,
         speed_error_kmh: errorKmh,
+        recall_rt_ms: recallRtMs,
+        recall_rt_sec: recallRtSec,
         is_idk: selectedOption.isIdk || false,
         timed_out: false
       };
@@ -3122,6 +3177,10 @@
         trialResult.speed_error_kmh = errorKmh;
         trialResult.speed_recall_timed_out = false;
         trialResult.speed_recall_idk = selectedOption.isIdk || false;
+        trialResult.speed_recall_rt_ms = recallRtMs;
+        trialResult.speed_recall_rt_sec = recallRtSec;
+        trialResult.recall_rt_ms = recallRtMs;
+        trialResult.recall_rt_sec = recallRtSec;
         trialResult.recall_accurate = isAccurate;
       }
     }
@@ -3356,6 +3415,8 @@
       rpm_recall_accurate: null,
       rpm_error: null,
       recall_accurate: null,
+      recall_rt_ms: null,
+      recall_rt_sec: null,
       gaze_samples: gazeSamples,
       ...clickData
     });
@@ -3814,6 +3875,12 @@
     const allProbedCount = allProbedTrials.length;
     const allRecallHits = allProbedTrials.filter(r => r.recall_accurate);
     const allRecallAccPct = allProbedCount > 0 ? Math.round((allRecallHits.length / allProbedCount) * 100) : 0;
+    const recallRts = allProbedTrials
+      .filter(r => r.recall_rt_ms != null && !isNaN(r.recall_rt_ms))
+      .map(r => r.recall_rt_ms);
+    const meanRecallRt = recallRts.length > 0
+      ? Math.round(recallRts.reduce((a, b) => a + b, 0) / recallRts.length)
+      : null;
 
     // KPI Card values
     dom.resAccuracy.textContent = `${accuracyPct}%`;
@@ -4038,6 +4105,10 @@
           }
         }
 
+        const recallRtText = r.recall_rt_ms != null 
+          ? `${Math.round(r.recall_rt_ms)} ms` 
+          : ((r.speed_recall_asked || r.symbol_recall_asked || r.rpm_recall_asked) ? 'Timed out' : '—');
+
         tr.innerHTML = `
           <td><strong>#${idx + 1}</strong></td>
           <td>${moduleBadge}</td>
@@ -4050,6 +4121,7 @@
           <td>${probeBadge}</td>
           <td>${recallResponseText}</td>
           <td>${recallAccuracyBadge}</td>
+          <td style="font-weight: 600;">${recallRtText}</td>
           <td style="color: var(--text-dim);">${benchRt}</td>
           <td style="font-family: var(--font-mono); font-size: 0.85em;">${coords}</td>
           <td style="font-family: var(--font-mono);">${dist}</td>
@@ -4102,6 +4174,7 @@
         rpm_recall_correct_count: rpmHitsCount,
         rpm_recall_accuracy_percent: rpmAccuracyPct,
         rpm_recall_mean_error: meanRpmError != null ? Number(meanRpmError) : null,
+        mean_recall_rt_ms: meanRecallRt,
         left_trials: leftTrials.length,
         left_correct: leftTrials.filter(r => r.accurate).length,
         left_accuracy: leftStats.acc,

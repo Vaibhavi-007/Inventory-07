@@ -431,6 +431,8 @@ const server = http.createServer((req, res) => {
           'rpm_recall_accurate',
           'rpm_error',
           'recall_accurate',
+          'recall_rt_ms',
+          'recall_rt_sec',
           'click_x',
           'click_y',
           'target_x',
@@ -494,6 +496,12 @@ const server = http.createServer((req, res) => {
           }
 
           const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+          const recallRtMsVal = (t.recall_rt_ms != null && t.recall_rt_ms !== '') 
+            ? Number(t.recall_rt_ms).toFixed(1) 
+            : ((t.speed_recall_rt_ms || t.symbol_recall_rt_ms || t.rpm_recall_rt_ms) ? Number(t.speed_recall_rt_ms || t.symbol_recall_rt_ms || t.rpm_recall_rt_ms).toFixed(1) : '');
+          const recallRtSecVal = (t.recall_rt_sec != null && t.recall_rt_sec !== '') 
+            ? Number(t.recall_rt_sec).toFixed(3) 
+            : (recallRtMsVal !== '' ? (Number(recallRtMsVal) / 1000).toFixed(3) : '');
 
           const row = [
             idx + 1,
@@ -523,6 +531,8 @@ const server = http.createServer((req, res) => {
             rpmAccurate,
             rpmError,
             recallAccurate,
+            recallRtMsVal,
+            recallRtSecVal,
             t.click_x != null ? t.click_x : '',
             t.click_y != null ? t.click_y : '',
             t.target_x != null ? t.target_x : '',
@@ -573,6 +583,7 @@ const server = http.createServer((req, res) => {
             ['Speed Recall Accuracy', `${summary.speed_recall_accuracy_percent || 0}%`, `${summary.speed_recall_correct_count || 0} / ${summary.speed_recall_probed_count || 0} probed correct${summary.speed_recall_mean_error_kmh != null ? ` (avg error ±${summary.speed_recall_mean_error_kmh} km/h)` : ''}`],
             ['Warning Symbol Recall Accuracy', `${summary.symbol_recall_accuracy_percent || 0}%`, `${summary.symbol_recall_correct_count || 0} / ${summary.symbol_recall_probed_count || 0} probed correct`],
             ['Engine RPM Recall Accuracy', `${summary.rpm_recall_accuracy_percent || 0}%`, `${summary.rpm_recall_correct_count || 0} / ${summary.rpm_recall_probed_count || 0} probed correct${summary.rpm_recall_mean_error != null ? ` (avg error ±${summary.rpm_recall_mean_error}k RPM)` : ''}`],
+            ['Recall Questions Mean RT', summary.mean_recall_rt_ms ? `${summary.mean_recall_rt_ms} ms` : '--', 'Average response latency for dashboard recall MCQ probes'],
             ['', '', ''],
             ['--- VISUAL FIELD BREAKDOWN ---', '', ''],
             ['Left Visual Field (L) Accuracy', summary.left_accuracy || '--', `${summary.left_correct || 0} / ${summary.left_trials || 0} correct`],
@@ -633,6 +644,12 @@ const server = http.createServer((req, res) => {
             }
 
             const recallAccurate = (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '';
+            const recallRtMs = (t.recall_rt_ms != null && t.recall_rt_ms !== '') 
+              ? Number(Number(t.recall_rt_ms).toFixed(1)) 
+              : ((t.speed_recall_rt_ms || t.symbol_recall_rt_ms || t.rpm_recall_rt_ms) ? Number(Number(t.speed_recall_rt_ms || t.symbol_recall_rt_ms || t.rpm_recall_rt_ms).toFixed(1)) : '');
+            const recallRtSec = (t.recall_rt_sec != null && t.recall_rt_sec !== '') 
+              ? Number(Number(t.recall_rt_sec).toFixed(3)) 
+              : (recallRtMs !== '' ? Number((recallRtMs / 1000).toFixed(3)) : '');
 
             return {
               trialIndex: t.trial_index || (idx + 1),
@@ -662,6 +679,8 @@ const server = http.createServer((req, res) => {
               rpmAccurate: rpmAccurate !== '' ? Number(rpmAccurate) : '',
               rpmError: rpmError !== '' ? Number(rpmError) : '',
               recallAccurate: recallAccurate !== '' ? Number(recallAccurate) : '',
+              recallRtMs,
+              recallRtSec,
               clickX: t.click_x != null ? t.click_x : '',
               clickY: t.click_y != null ? t.click_y : '',
               targetX: t.target_x != null ? t.target_x : '',
@@ -701,7 +720,7 @@ const server = http.createServer((req, res) => {
             'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
-            'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
           ];
           const mod2Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2') || t.module === 'b')
@@ -711,7 +730,7 @@ const server = http.createServer((req, res) => {
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
             ]);
 
           // --- Sheet 4: Module 3 (Heads-Up Display HUD) - Sorted in fixed canonical order ---
@@ -720,7 +739,7 @@ const server = http.createServer((req, res) => {
             'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
-            'Overall Recall Hit', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
           ];
           const mod3Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3') || t.module === 'c')
@@ -730,7 +749,7 @@ const server = http.createServer((req, res) => {
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
             ]);
 
           // --- Sheet 5: All Trials (Master Unified Data) - Sorted by canonical Module (1, 2, 3) then image ID ---
@@ -743,7 +762,7 @@ const server = http.createServer((req, res) => {
               t.probeType, t.speedProbed, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolProbed, t.symbolRecalled, t.symbolAccurate,
               t.rpmProbed, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-              t.recallAccurate, t.clickX, t.clickY, t.targetX, t.targetY,
+              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY,
               t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg,
               t.tInterval, t.imgDur, t.mode, t.timestamp
             ]);
