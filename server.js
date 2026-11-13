@@ -135,27 +135,6 @@ function getCenterMouseDaemon() {
 }
 ensureCenterMouseBinary();
 
-function ensureTobiiService() {
-  const checkReq = http.get('http://127.0.0.1:8765/api/status', () => {});
-  checkReq.on('error', () => {
-    const pyPath = fs.existsSync('/opt/anaconda3/envs/py310/bin/python') 
-      ? '/opt/anaconda3/envs/py310/bin/python' 
-      : 'python3';
-    const srvScript = path.join(__dirname, 'tobii', 'python_service', 'server.py');
-    if (fs.existsSync(srvScript)) {
-      console.log(`Auto-starting Tobii Eye Tracker service using ${pyPath}...`);
-      const { spawn } = require('child_process');
-      const pyProc = spawn(pyPath, [srvScript], {
-        cwd: path.join(__dirname, 'tobii', 'python_service'),
-        detached: true,
-        stdio: 'ignore'
-      });
-      pyProc.unref();
-    }
-  });
-}
-ensureTobiiService();
-
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -279,27 +258,6 @@ const server = http.createServer((req, res) => {
       }
       doWarp(targetX, targetY, displayId);
     });
-    return;
-  }
-
-  // Proxy to Tobii Eye Tracker Python Service on port 8765
-  if (pathname.startsWith('/api/tobii/')) {
-    const subPath = pathname.replace(/^\/api\/tobii/, '/api');
-    const proxyOptions = {
-      hostname: '127.0.0.1',
-      port: 8765,
-      path: subPath,
-      method: req.method,
-      headers: { ...req.headers, host: '127.0.0.1:8765' }
-    };
-    const pReq = http.request(proxyOptions, (pRes) => {
-      res.writeHead(pRes.statusCode, pRes.headers);
-      pRes.pipe(res);
-    });
-    pReq.on('error', (err) => {
-      sendJson(res, 502, { error: 'Tobii service unreachable on port 8765', details: err.message });
-    });
-    req.pipe(pReq);
     return;
   }
 

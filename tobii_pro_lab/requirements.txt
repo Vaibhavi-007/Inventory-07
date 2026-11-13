@@ -1,0 +1,7 @@
+# Tobii Pro Lab & PsychoPy Experiment Dependencies
+tobii-research>=1.10.0
+psychopy>=2024.1.0
+pillow>=9.0.0
+openpyxl>=3.0.0
+numpy>=1.20.0
+pygame>=2.0.0

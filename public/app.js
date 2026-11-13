@@ -408,14 +408,12 @@
   // --- Navigation ---
   function showScreen(name) {
     state.screen = name;
-    [dom.screenLanding, dom.screenTobii, dom.screenExperiment, dom.screenResults].forEach(s => {
+    [dom.screenLanding, dom.screenExperiment, dom.screenResults].forEach(s => {
       if (s) s.classList.remove('active');
     });
 
     if (name === 'landing') {
       dom.screenLanding.classList.add('active');
-    } else if (name === 'tobii') {
-      if (dom.screenTobii) dom.screenTobii.classList.add('active');
     } else if (name === 'experiment') {
       dom.screenExperiment.classList.add('active');
       fitStageLayout();
@@ -432,8 +430,6 @@
     bindLandingControls();
     bindExperimentControls();
     bindResultsControls();
-    bindTobiiControls();
-    initTobiiClient();
     window.addEventListener('resize', fitStageLayout);
     fitStageLayout();
 
@@ -1145,12 +1141,7 @@
       dom.btnStart.disabled = false;
       dom.btnStart.innerHTML = `<span>Start Experiment</span><span class="kbd-hint">Enter ↵</span>`;
 
-      // Route through Tobii Eye Tracker Calibration & Validation before actual test
-      if (dom.tobiiParticipantName) {
-        dom.tobiiParticipantName.textContent = state.participant?.id || 'Anonymous';
-      }
-      showScreen('tobii');
-      initTobiiScreen();
+      proceedToExperimentArena();
     } catch (err) {
       console.error('Failed to launch experiment:', err);
       alert('Failed to load experiment: ' + err.message);
@@ -1160,15 +1151,8 @@
   }
 
   function proceedToExperimentArena() {
-    clearInterval(tobiiTrackPollInterval);
     showScreen('experiment');
     fitStageLayout();
-
-    // Ensure the Tobii WebSocket is connected before trials start
-    if (!state.tobiiSocket || state.tobiiSocket.readyState !== WebSocket.OPEN) {
-      initTobiiClient();
-    }
-
     startTutorialFlow();
   }
 
@@ -2395,25 +2379,7 @@
 
     const trial = state.currentTrialData;
 
-    // Start 120Hz Eye Tracking recording for this image trial (only for actual experiment)
-    if (!state.isTutorial) {
-      state.currentTrialGazeSamples = [];
-      state.currentTrialGazeStartTime = window.performance.now();
-      state.isTrialGazeRecording = true;
-      sendTobii('START_GAZE_STREAM');
-      sendTobii('LOG_EVENT', {
-        event: 'TRIAL_START',
-        data: {
-          trial_index: index + 1,
-          module: trial.module,
-          id: trial.id,
-          image: trial.absent_image
-        }
-      });
-    } else {
-      state.currentTrialGazeSamples = [];
-      state.isTrialGazeRecording = false;
-    }
+    state.currentTrialGazeSamples = [];
 
     // Configure dashboard & HUD overlays according to active Module
     if (trial.module === 'c') {
@@ -3355,14 +3321,7 @@
     if (trial?.module === 'c') defaultModName = 'Module C (Heads-Up Display HUD)';
     else if (trial?.module === 'b') defaultModName = 'Module B (Speed & Flicker)';
 
-    state.isTrialGazeRecording = false;
-    sendTobii('STOP_GAZE_STREAM');
-    sendTobii('LOG_EVENT', {
-      event: 'TRIAL_END',
-      data: { trial_index: state.currentTrialIndex + 1 }
-    });
-
-    const gazeSamples = state.currentTrialGazeSamples ? [...state.currentTrialGazeSamples] : [];
+    const gazeSamples = [];
 
     state.trialResults.push({
       trial_index: state.currentTrialIndex + 1,
