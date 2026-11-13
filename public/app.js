@@ -3736,19 +3736,6 @@
 
       if (state.trialState === 'feedback') {
         advanceToNextTrial();
-      } else if (state.trialState === 'absent') {
-        const rt = window.performance.now() - state.stimulusStartTime;
-        state.currentClick = {
-          accurate: false,
-          response_time_ms: rt,
-          click_x: null,
-          click_y: null,
-          target_x: state.currentTrialData.benchmark?.x ?? null,
-          target_y: state.currentTrialData.benchmark?.y ?? null,
-          distance_px: null,
-          skipped: true
-        };
-        advanceToNextTrial();
       }
     } else if (e.code === 'Escape') {
       if (confirm('Return to landing page? Current progress will be lost.')) {
