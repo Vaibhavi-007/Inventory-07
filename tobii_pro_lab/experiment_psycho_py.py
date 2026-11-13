@@ -441,13 +441,15 @@ def run_experiment(participant_id="P01", fullscreen=True):
     # =============================================================
     tobii.log_event("SESSION_COMPLETE", {"total_trials": len(results_all)})
     events_tsv, gaze_tsv = tobii.export_tobii_pro_lab_tsv(participant_id)
+    xlsx_file = tobii.export_behavioral_excel(participant_id, results_all)
 
     show_screen(
         "Experiment Completed!",
         f"Thank you for participating!\n\n"
-        f"Data successfully recorded and exported for Tobii Pro Lab:\n"
-        f"• Events File: {os.path.basename(events_tsv)}\n"
-        f"• Gaze File:   {os.path.basename(gaze_tsv)}\n\n"
+        f"Data successfully recorded and exported:\n"
+        f"• Tobii Pro Lab Events: {os.path.basename(events_tsv)}\n"
+        f"• Tobii Pro Lab Gaze:   {os.path.basename(gaze_tsv)}\n"
+        f"• Excel Spreadsheet:    {os.path.basename(xlsx_file)}\n\n"
         "Press SPACEBAR to exit."
     )
 

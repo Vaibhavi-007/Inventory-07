@@ -212,3 +212,77 @@ class TobiiProLabConnector:
         print(f"[Tobii Pro Lab Export] Event file saved: {events_tsv_path}")
         print(f"[Tobii Pro Lab Export] Gaze file saved:  {gaze_tsv_path}")
         return events_tsv_path, gaze_tsv_path
+
+    def export_behavioral_excel(self, participant_id, trial_results, summary=None):
+        """
+        Exports a multi-sheet Excel (.xlsx) file named directly after the participant:
+        e.g. results/{participant_id}.xlsx
+        """
+        safe_pid = "".join(c for c in participant_id if c.isalnum() or c in ('_', '-')).strip() or "Anonymous"
+        xlsx_path = os.path.join(self.output_dir, f"{safe_pid}.xlsx")
+
+        try:
+            import openpyxl
+            wb = openpyxl.Workbook()
+
+            # Sheet 1: Summary
+            ws1 = wb.active
+            ws1.title = "Summary"
+            ws1.append(["Metric", "Value", "Description"])
+            ws1.append(["Participant ID", participant_id, "Subject identifier"])
+            ws1.append(["Tracker Hardware", self.tracker_info.get("model", "Tobii Eye Tracker"), f"{self.tracker_info.get('frequency', 120)} Hz"])
+            ws1.append(["Total Trials", len(trial_results), "Trials completed"])
+
+            hits = [t for t in trial_results if t.get("accurate") or t.get("hit")]
+            acc_pct = round((len(hits) / max(1, len(trial_results))) * 100, 1)
+            ws1.append(["Overall Accuracy", f"{acc_pct}%", f"{len(hits)} / {len(trial_results)} correct hits"])
+
+            rts = [t.get("rt_ms") for t in trial_results if t.get("rt_ms") is not None and not t.get("timed_out")]
+            mean_rt = round(sum(rts) / len(rts), 1) if rts else "--"
+            ws1.append(["Mean Response Time", f"{mean_rt} ms" if mean_rt != "--" else "--", "Average detection latency"])
+
+            # Recall Questions Mean RT
+            recall_rts = [t.get("recall_rt_ms") for t in trial_results if t.get("recall_rt_ms") is not None]
+            mean_recall_rt = round(sum(recall_rts) / len(recall_rts), 1) if recall_rts else "--"
+            ws1.append(["Recall Questions Mean RT", f"{mean_recall_rt} ms" if mean_recall_rt != "--" else "--", "Average response latency for recall questions"])
+
+            # Sheet 2: Module 1
+            ws2 = wb.create_sheet(title="Module 1 - Behavior")
+            ws2.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)"])
+            m1_trials = [t for t in trial_results if t.get("module") == 1 or t.get("module") == 'a']
+            for i, t in enumerate(m1_trials):
+                ws2.append([i + 1, participant_id, "Module 1 (Flicker)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", "")])
+
+            # Sheet 3: Module 2
+            ws3 = wb.create_sheet(title="Module 2 - Behavior")
+            ws3.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            m2_trials = [t for t in trial_results if t.get("module") == 2 or t.get("module") == 'b']
+            for i, t in enumerate(m2_trials):
+                ws3.append([i + 1, participant_id, "Module 2 (Cluster Strip)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+
+            # Sheet 4: Module 3
+            ws4 = wb.create_sheet(title="Module 3 - Behavior")
+            ws4.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            m3_trials = [t for t in trial_results if t.get("module") == 3 or t.get("module") == 'c']
+            for i, t in enumerate(m3_trials):
+                ws4.append([i + 1, participant_id, "Module 3 (HUD)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+
+            # Sheet 5: All Trials Master Log
+            ws5 = wb.create_sheet(title="All Trials")
+            ws5.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            for i, t in enumerate(trial_results):
+                mod_str = f"Module {t.get('module')}"
+                ws5.append([i + 1, participant_id, mod_str, t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+
+            wb.save(xlsx_path)
+            print(f"[Behavioral Export] Excel file saved: {xlsx_path}")
+            return xlsx_path
+        except Exception as e:
+            print(f"[Behavioral Export] Could not write .xlsx via openpyxl ({e}). Falling back to CSV.")
+            csv_path = os.path.join(self.output_dir, f"{safe_pid}.csv")
+            with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(["trial_index", "participant_id", "module", "pair_id", "object_name", "side", "hit", "rt_ms", "recall_rt_ms", "recall_rt_sec", "recall_accurate"])
+                for i, t in enumerate(trial_results):
+                    writer.writerow([i + 1, participant_id, t.get("module"), t.get("id"), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+            return csv_path

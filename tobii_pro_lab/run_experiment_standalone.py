@@ -398,11 +398,13 @@ class ExperimentApp:
     def finish_experiment(self):
         self.state = "experiment_done"
         ev_file, gz_file = self.tobii.export_tobii_pro_lab_tsv(self.participant_id)
+        xlsx_file = self.tobii.export_behavioral_excel(self.participant_id, self.results_all)
         body = (
             "Thank you for participating!\n\n"
-            "Data successfully recorded and exported for Tobii Pro Lab:\n\n"
-            f"• Event Log (.tsv): {os.path.basename(ev_file)}\n"
-            f"• Gaze Data (.tsv): {os.path.basename(gz_file)}\n\n"
+            "Data successfully recorded and exported:\n\n"
+            f"• Tobii Event Log (.tsv): {os.path.basename(ev_file)}\n"
+            f"• Tobii Gaze Data (.tsv): {os.path.basename(gz_file)}\n"
+            f"• Excel Spreadsheet:      {os.path.basename(xlsx_file)}\n\n"
             "Press SPACEBAR to exit."
         )
         self.show_screen("Experiment Completed — Tobii Pro Lab Export Ready", body, prompt="Press SPACEBAR to close")
