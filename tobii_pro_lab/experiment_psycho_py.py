@@ -70,7 +70,7 @@ def check_mask_hit(mask_path, click_x_norm, click_y_norm, tolerance_px=15):
         return False
 
 
-def run_experiment(participant_id="P01", fullscreen=True):
+def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
     if not PSYCHOPY_AVAILABLE:
         print("\n" + "=" * 60)
         print(" [ERROR] PsychoPy is not installed in this Python environment.")
@@ -100,7 +100,7 @@ def run_experiment(participant_id="P01", fullscreen=True):
         module_pools = json.load(f)
 
     # Initialize Tobii Pro Lab Eye Tracker Connector
-    tobii = TobiiProLabConnector(output_dir=results_dir)
+    tobii = TobiiProLabConnector(output_dir=results_dir, stream_gaze=stream_gaze)
     tobii.connect()
     tobii.start_session(participant_id)
 
@@ -459,6 +459,10 @@ def run_experiment(participant_id="P01", fullscreen=True):
 
 if __name__ == '__main__':
     pid = "P01"
-    if len(sys.argv) > 1:
-        pid = sys.argv[1]
-    run_experiment(participant_id=pid, fullscreen=False)
+    stream_gaze = True
+    for arg in sys.argv[1:]:
+        if arg in ('--events-only', '--no-gaze'):
+            stream_gaze = False
+        elif not arg.startswith('--'):
+            pid = arg
+    run_experiment(participant_id=pid, fullscreen=False, stream_gaze=stream_gaze)

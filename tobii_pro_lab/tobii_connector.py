@@ -27,8 +27,9 @@ except ImportError:
 
 
 class TobiiProLabConnector:
-    def __init__(self, output_dir="results"):
+    def __init__(self, output_dir="results", stream_gaze=True):
         self.tracker = None
+        self.stream_gaze = stream_gaze
         self.is_mock = not TOBII_AVAILABLE
         self.tracker_info = {
             "model": "Simulation Mode",
@@ -91,13 +92,15 @@ class TobiiProLabConnector:
         self.log_event("SESSION_START", {"participant_id": participant_id})
 
     def start_gaze_stream(self):
-        """Starts 120Hz gaze collection for a trial."""
+        """Starts 120Hz gaze collection for a trial if stream_gaze is enabled."""
+        if not self.stream_gaze:
+            return
         self.is_streaming = True
         if not self.is_mock and self.tracker:
             try:
                 self.tracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, self._on_gaze_data, as_dictionary=True)
             except Exception as e:
-                print(f"[Tobii Pro Lab] Could not subscribe to gaze: {e}")
+                print(f"[Tobii Pro Lab] Gaze subscription skipped (Tobii Pro Lab is recording directly): {e}")
 
     def stop_gaze_stream(self):
         """Stops gaze stream at the end of a trial."""

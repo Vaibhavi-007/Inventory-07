@@ -52,9 +52,10 @@ def check_mask_hit(mask_path, click_x_norm, click_y_norm, tolerance_px=15):
 
 
 class ExperimentApp:
-    def __init__(self, root, participant_id="P01"):
+    def __init__(self, root, participant_id="P01", stream_gaze=True):
         self.root = root
         self.participant_id = participant_id
+        self.stream_gaze = stream_gaze
         self.root.title(f"Change Blindness — Tobii Pro Lab [{participant_id}]")
         self.root.configure(bg="#000000")
 
@@ -80,7 +81,7 @@ class ExperimentApp:
             self.module_pools = json.load(f)
 
         # Tobii Pro Lab Connector
-        self.tobii = TobiiProLabConnector(output_dir=self.results_dir)
+        self.tobii = TobiiProLabConnector(output_dir=self.results_dir, stream_gaze=self.stream_gaze)
         self.tobii.connect()
         self.tobii.start_session(participant_id)
 
@@ -412,8 +413,12 @@ class ExperimentApp:
 
 if __name__ == '__main__':
     pid = "P01"
-    if len(sys.argv) > 1:
-        pid = sys.argv[1]
+    stream_gaze = True
+    for arg in sys.argv[1:]:
+        if arg in ('--events-only', '--no-gaze'):
+            stream_gaze = False
+        elif not arg.startswith('--'):
+            pid = arg
     root = tk.Tk()
-    app = ExperimentApp(root, participant_id=pid)
+    app = ExperimentApp(root, participant_id=pid, stream_gaze=stream_gaze)
     root.mainloop()
