@@ -320,7 +320,7 @@ class ExperimentApp:
         self.canvas.create_image(0, 0, image=self.absent_photo, anchor=tk.NW)
 
         col = "#10b981" if is_hit else "#ef4444"
-        txt = "✗ Timed out (60s)!" if timed_out else (f"✓ Correct! Difference detected ({rt_ms} ms)" if is_hit else f"✗ Incorrect! Detection error ({rt_ms} ms)")
+        txt = "✗ Timed out (60s)!" if timed_out else (f"✓ Correct! Difference detected" if is_hit else f"✗ Incorrect! Detection error")
         self.canvas.create_text(self.sw // 2, 60, text=txt, font=("Helvetica", 18, "bold"), fill=col)
         self.canvas.create_text(self.sw // 2, self.sh - 40, text="Press SPACEBAR to continue →", font=("Helvetica", 14, "bold"), fill="#fbbf24")
 

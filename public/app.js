@@ -3570,7 +3570,7 @@
 
       if (isHit) {
         dom.feedbackMsg.className = 'feedback-msg correct';
-        dom.feedbackMsg.textContent = `✓ Correct! Difference detected (${Math.round(rt)} ms)`;
+        dom.feedbackMsg.textContent = `✓ Correct! Difference detected`;
       } else {
         dom.feedbackMsg.className = 'feedback-msg incorrect';
         dom.feedbackMsg.textContent = `✗ Incorrect! Target difference location is highlighted below`;
@@ -3618,10 +3618,10 @@
 
     if (isHit) {
       dom.feedbackMsg.className = 'feedback-msg correct';
-      dom.feedbackMsg.textContent = `✓ Correct! Response Time: ${Math.round(rt)} ms`;
+      dom.feedbackMsg.textContent = `✓ Correct!`;
     } else {
       dom.feedbackMsg.className = 'feedback-msg incorrect';
-      dom.feedbackMsg.textContent = `✗ Missed! Response Time: ${Math.round(rt)} ms`;
+      dom.feedbackMsg.textContent = `✗ Missed!`;
     }
 
     if (state.config.feedback) {

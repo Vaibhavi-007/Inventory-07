@@ -307,7 +307,7 @@ def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
             stim_img.image = absent_path
             stim_img.draw()
             fb_col = '#10b981' if is_hit else '#ef4444'
-            fb_txt = f"{'✓ Correct!' if is_hit else '✗ Incorrect!'} Detection RT: {click_rt} ms" if click_detected else "✗ Timed out (60s)!"
+            fb_txt = f"{'✓ Correct!' if is_hit else '✗ Incorrect!'}" if click_detected else "✗ Timed out (60s)!"
             feedback_text.text = fb_txt
             feedback_text.color = fb_col
             feedback_text.draw()
