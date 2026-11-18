@@ -375,6 +375,13 @@ class ExperimentApp:
         self.q_tuple = q_tuple
         self.mcq_start_time = time.time()
         title, desc, opts, self.correct_idx = q_tuple
+
+        # Center mouse cursor to canvas center while answering questions
+        try:
+            self.root.event_generate('<Motion>', warp=True, x=self.sw // 2, y=self.sh // 2)
+        except Exception:
+            pass
+
         self.tobii.log_event("MCQ_QUESTION_SHOWN", {"title": title})
         self.canvas.delete("all")
         self.canvas.create_text(self.sw // 2, 160, text=title, font=("Helvetica", 22, "bold"), fill="#ffffff")

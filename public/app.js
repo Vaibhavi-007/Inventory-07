@@ -2318,7 +2318,7 @@
   // Request Pointer Lock on the stage wrapper (for deployed / browser environments)
   function requestStagePointerLock() {
     if (!dom.stageWrapper) return;
-    if (state.speedRecallPending || state._inTutorialTransition || state.trialState === 'module_transition' || state.screen !== 'experiment') {
+    if (state._inTutorialTransition || state.trialState === 'module_transition' || state.screen !== 'experiment') {
       return;
     }
     const reqFn = dom.stageWrapper.requestPointerLock ||
@@ -2334,7 +2334,7 @@
     }
   }
 
-  // Release Pointer Lock (for MCQ modal, transitions, and exit)
+  // Release Pointer Lock (for transitions and exit)
   function releaseStagePointerLock() {
     const exitFn = document.exitPointerLock ||
                    document.mozExitPointerLock ||
@@ -2348,12 +2348,32 @@
 
   // Update virtual cursor DOM element position
   function updateVirtualCursorDOM() {
-    if (dom.virtualCursor) {
-      const pctX = (state.virtualCursor.x / 1024) * 100;
-      const pctY = (state.virtualCursor.y / 768) * 100;
-      dom.virtualCursor.style.left = `${pctX}%`;
-      dom.virtualCursor.style.top = `${pctY}%`;
-    }
+    if (!dom.virtualCursor || !dom.displayCanvas) return;
+    const rect = dom.displayCanvas.getBoundingClientRect();
+    const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
+    const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
+    dom.virtualCursor.style.left = `${screenX}px`;
+    dom.virtualCursor.style.top = `${screenY}px`;
+  }
+
+  // Highlight MCQ buttons hovered by virtual cursor
+  function updateRecallHover() {
+    if (!dom.displayCanvas) return;
+    const rect = dom.displayCanvas.getBoundingClientRect();
+    const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
+    const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
+
+    const el = document.elementFromPoint(screenX, screenY);
+    const hoveredBtn = el?.closest('.speed-option-btn') || el?.closest('#btn-next-tutorial-sample');
+
+    const allBtns = document.querySelectorAll('.speed-option-btn, #btn-next-tutorial-sample');
+    allBtns.forEach(btn => {
+      if (btn === hoveredBtn && !btn.disabled) {
+        btn.classList.add('virtual-hover');
+      } else {
+        btn.classList.remove('virtual-hover');
+      }
+    });
   }
 
   // Track pointer movements under Pointer Lock
@@ -2366,10 +2386,19 @@
       const movX = e.movementX !== undefined ? e.movementX : (e.mozMovementX || e.webkitMovementX || 0);
       const movY = e.movementY !== undefined ? e.movementY : (e.mozMovementY || e.webkitMovementY || 0);
 
-      state.virtualCursor.x = Math.max(0, Math.min(1023, state.virtualCursor.x + movX * scaleX));
-      state.virtualCursor.y = Math.max(0, Math.min(767, state.virtualCursor.y + movY * scaleY));
+      const minX = state.speedRecallPending ? -60 : 0;
+      const maxX = state.speedRecallPending ? 1084 : 1023;
+      const minY = state.speedRecallPending ? -60 : 0;
+      const maxY = state.speedRecallPending ? 828 : 767;
+
+      state.virtualCursor.x = Math.max(minX, Math.min(maxX, state.virtualCursor.x + movX * scaleX));
+      state.virtualCursor.y = Math.max(minY, Math.min(maxY, state.virtualCursor.y + movY * scaleY));
 
       updateVirtualCursorDOM();
+
+      if (state.speedRecallPending) {
+        updateRecallHover();
+      }
     }
   }
 
@@ -2377,17 +2406,19 @@
     const lockedEl = document.pointerLockElement ||
                      document.mozPointerLockElement ||
                      document.webkitPointerLockElement;
-    const isLocked = (lockedEl === dom.stageWrapper);
+    const isLocked = Boolean(lockedEl);
     state.pointerLockActive = isLocked;
 
     if (isLocked) {
-      dom.stageWrapper.classList.add('pointer-locked');
+      document.body.classList.add('pointer-locked');
+      if (dom.stageWrapper) dom.stageWrapper.classList.add('pointer-locked');
       if (dom.virtualCursor) {
         dom.virtualCursor.style.display = 'block';
         updateVirtualCursorDOM();
       }
     } else {
-      dom.stageWrapper.classList.remove('pointer-locked');
+      document.body.classList.remove('pointer-locked');
+      if (dom.stageWrapper) dom.stageWrapper.classList.remove('pointer-locked');
       if (dom.virtualCursor) {
         dom.virtualCursor.style.display = 'none';
       }
@@ -2400,6 +2431,9 @@
     state.virtualCursor.x = 512;
     state.virtualCursor.y = 384;
     updateVirtualCursorDOM();
+    if (state.speedRecallPending) {
+      updateRecallHover();
+    }
 
     // 2. Hardware cursor centering via local native daemon on macOS localhost
     let targetX = null;
@@ -2619,10 +2653,10 @@
 
   // ===== Recall MCQ System (Speed or Symbol) =====
   function showRecallPrompt(trialIndex) {
-    releaseStagePointerLock();
-    centerMouseCursor();
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
+    requestStagePointerLock();
+    centerMouseCursor();
 
     clearTimeout(state.speedRecallTimer);
     clearInterval(state.speedRecallInterval);
@@ -3561,10 +3595,36 @@
     advanceAfterTrial(state.currentTrialIndex);
   }
 
+  function handleGlobalPointerClick(e) {
+    if (state.screen !== 'experiment') return;
+
+    if (state.speedRecallPending) {
+      if (!e.isTrusted) return; // Prevent recursive loops from programmatic .click()
+
+      if (state.pointerLockActive && dom.displayCanvas) {
+        const rect = dom.displayCanvas.getBoundingClientRect();
+        const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
+        const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
+
+        const el = document.elementFromPoint(screenX, screenY);
+        const targetBtn = el?.closest('.speed-option-btn') || el?.closest('#btn-next-tutorial-sample');
+        if (targetBtn && !targetBtn.disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          targetBtn.click();
+          return;
+        }
+      } else if (!state.pointerLockActive) {
+        requestStagePointerLock();
+      }
+    }
+  }
+
   function bindExperimentControls() {
     dom.stageWrapper.addEventListener('click', handleStageClick);
     dom.stageWrapper.addEventListener('mousemove', handleStageMouseMove);
     window.addEventListener('mousemove', handleStageMouseMove);
+    window.addEventListener('click', handleGlobalPointerClick, true);
     document.addEventListener('pointerlockchange', onPointerLockChange);
     document.addEventListener('mozpointerlockchange', onPointerLockChange);
     document.addEventListener('webkitpointerlockchange', onPointerLockChange);

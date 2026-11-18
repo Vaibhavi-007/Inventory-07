@@ -1032,51 +1032,57 @@ kbd {
   box-sizing: border-box;
 }
 
-/* Precision Virtual Cursor for Deployed & Web Sessions */
+/* Precision Virtual Cursor for Deployed & Web Sessions (covers arena, questions, and transitions) */
 .virtual-cursor {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   width: 25px;
   height: 25px;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 9999;
+  z-index: 99999;
   display: none;
   will-change: left, top;
 }
 
-.stage-wrapper.pointer-locked {
-  cursor: none !important;
-}
-
+body.pointer-locked,
+body.pointer-locked *,
+.stage-wrapper.pointer-locked,
 .stage-wrapper.pointer-locked * {
   cursor: none !important;
 }
 
-.stage-wrapper.pointer-locked .virtual-cursor {
-  display: block;
+body.pointer-locked .virtual-cursor,
+.stage-wrapper.pointer-locked .virtual-cursor,
+.screen.pointer-locked .virtual-cursor {
+  display: block !important;
 }
 
-/* When question, MCQ or transition modals are shown, restore visible cursor and hide virtual cursor */
-.stage-wrapper.speed-recall-blur,
-.stage-wrapper.speed-recall-blur * {
-  cursor: default !important;
+/* Virtual Cursor Hover State for MCQ Option Buttons */
+.speed-option-btn.virtual-hover {
+  background: rgba(226, 35, 26, 0.28) !important;
+  border-color: #e2231a !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(226, 35, 26, 0.45);
 }
 
-.stage-wrapper.speed-recall-blur .virtual-cursor {
-  display: none !important;
+#btn-next-tutorial-sample.virtual-hover {
+  background: #dc2626 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(226, 35, 26, 0.5);
 }
 
-/* Question / Recall MCQ modal and its buttons ALWAYS have visible pointer cursor */
+/* Question / Recall MCQ modal and its buttons */
 .speed-recall-overlay,
 .speed-recall-overlay * {
-  cursor: default !important;
+  cursor: default;
 }
 
 .speed-option-btn,
 .speed-option-btn * {
-  cursor: pointer !important;
+  cursor: pointer;
 }
 
 /* When Module B dashboard is active below the image */

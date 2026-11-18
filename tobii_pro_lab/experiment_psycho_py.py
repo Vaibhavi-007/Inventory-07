@@ -162,6 +162,12 @@ def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
         chosen_idx = None
         start_time = core.getTime()
 
+        # Center mouse cursor while answering questions
+        try:
+            mouse.setPos((0, 0))
+        except Exception:
+            pass
+
         while chosen_idx is None:
             q_title.draw()
             q_desc.draw()

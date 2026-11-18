@@ -314,17 +314,6 @@
             <!-- Target Highlight Mask Overlay (for feedback) -->
             <canvas id="feedback-overlay" width="1024" height="768" class="feedback-overlay"></canvas>
 
-            <!-- Precision Virtual Centered Cursor for Deployed & Web Sessions -->
-            <div id="virtual-cursor" class="virtual-cursor" aria-hidden="true">
-              <svg width="25" height="25" viewBox="0 0 25 25">
-                <line x1="12.5" y1="0" x2="12.5" y2="25" stroke="#000000" stroke-width="3" stroke-linecap="square" />
-                <line x1="0" y1="12.5" x2="25" y2="12.5" stroke="#000000" stroke-width="3" stroke-linecap="square" />
-                <line x1="12.5" y1="1" x2="12.5" y2="24" stroke="#ffffff" stroke-width="1.6" stroke-linecap="square" />
-                <line x1="1" y1="12.5" x2="24" y2="12.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="square" />
-                <circle cx="12.5" cy="12.5" r="2" fill="#ef4444" />
-              </svg>
-            </div>
-
             <!-- Floating Heads-Up Display (HUD) Pill Capsule (Module 3 - 4th hypothetical row) -->
             <div id="stage-hud-overlay" class="stage-hud-overlay" aria-hidden="true"></div>
           </div>
@@ -391,6 +380,17 @@
         <svg class="fixation-cross-svg" viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
           <line x1="6" y1="22" x2="38" y2="22" stroke="#ffffff" stroke-width="4" stroke-linecap="square" />
           <line x1="22" y1="6" x2="22" y2="38" stroke="#ffffff" stroke-width="4" stroke-linecap="square" />
+        </svg>
+      </div>
+
+      <!-- Precision Virtual Centered Cursor for Deployed & Web Sessions (covers arena, questions, and transitions) -->
+      <div id="virtual-cursor" class="virtual-cursor" aria-hidden="true">
+        <svg width="25" height="25" viewBox="0 0 25 25">
+          <line x1="12.5" y1="0" x2="12.5" y2="25" stroke="#000000" stroke-width="3" stroke-linecap="square" />
+          <line x1="0" y1="12.5" x2="25" y2="12.5" stroke="#000000" stroke-width="3" stroke-linecap="square" />
+          <line x1="12.5" y1="1" x2="12.5" y2="24" stroke="#ffffff" stroke-width="1.6" stroke-linecap="square" />
+          <line x1="1" y1="12.5" x2="24" y2="12.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="square" />
+          <circle cx="12.5" cy="12.5" r="2" fill="#ef4444" />
         </svg>
       </div>
     </section>
