@@ -76,7 +76,8 @@
       shuffle: true,
       feedback: true,
       sound: true,
-      timeoutSec: 60
+      timeoutSec: 60,
+      showResultsPage: false
     },
     trials: [],
     currentTrialIndex: 0,
@@ -151,6 +152,7 @@
     screenLanding: document.getElementById('screen-landing'),
     screenTobii: document.getElementById('screen-tobii'),
     screenExperiment: document.getElementById('screen-experiment'),
+    screenCompleted: document.getElementById('screen-completed'),
     screenResults: document.getElementById('screen-results'),
 
     // Tobii Elements
@@ -231,6 +233,13 @@
     chkShuffle: document.getElementById('chk-shuffle'),
     chkFeedback: document.getElementById('chk-feedback'),
     chkSound: document.getElementById('chk-sound'),
+    chkShowResults: document.getElementById('chk-show-results'),
+    downloadHintFilename: document.getElementById('download-hint-filename'),
+
+    completedParticipantId: document.getElementById('completed-participant-id'),
+    completedFilename: document.getElementById('completed-filename'),
+    btnCompletedNew: document.getElementById('btn-completed-new'),
+    btnCompletedViewResults: document.getElementById('btn-completed-view-results'),
 
     btnStart: document.getElementById('btn-start'),
     datasetStatusText: document.getElementById('dataset-status-text'),
@@ -416,7 +425,7 @@
   // --- Navigation ---
   function showScreen(name) {
     state.screen = name;
-    [dom.screenLanding, dom.screenExperiment, dom.screenResults].forEach(s => {
+    [dom.screenLanding, dom.screenExperiment, dom.screenCompleted, dom.screenResults].forEach(s => {
       if (s) s.classList.remove('active');
     });
 
@@ -425,6 +434,8 @@
     } else if (name === 'experiment') {
       dom.screenExperiment.classList.add('active');
       fitStageLayout();
+    } else if (name === 'completed') {
+      if (dom.screenCompleted) dom.screenCompleted.classList.add('active');
     } else if (name === 'results') {
       dom.screenResults.classList.add('active');
     }
@@ -614,11 +625,20 @@
     dom.chkShuffle.addEventListener('change', e => state.config.shuffle = e.target.checked);
     dom.chkFeedback.addEventListener('change', e => state.config.feedback = e.target.checked);
     dom.chkSound.addEventListener('change', e => state.config.sound = e.target.checked);
+    if (dom.chkShowResults) {
+      dom.chkShowResults.addEventListener('change', e => {
+        state.config.showResultsPage = e.target.checked;
+      });
+    }
 
-    // Participant inputs validation clear on interaction
+    // Participant inputs validation clear on interaction & dynamic filename hint
     if (dom.inputParticipantId) {
       dom.inputParticipantId.addEventListener('input', () => {
-        if (dom.inputParticipantId.value.trim()) {
+        const val = dom.inputParticipantId.value.trim();
+        if (dom.downloadHintFilename) {
+          dom.downloadHintFilename.textContent = val ? `${val.replace(/[^a-zA-Z0-9_\-]/g, '_')}.xlsx` : 'ParticipantID.xlsx';
+        }
+        if (val) {
           dom.inputParticipantId.classList.remove('input-error');
           if (dom.idError) dom.idError.style.display = 'none';
         }
@@ -891,6 +911,8 @@
     if (dom.hudParticipantName) {
       dom.hudParticipantName.textContent = idVal;
     }
+
+    state.config.showResultsPage = Boolean(dom.chkShowResults?.checked);
 
     centerMouseCursor();
 
@@ -3956,7 +3978,19 @@
     if (dom.stageDisplayUnit) {
       dom.stageDisplayUnit.classList.remove('has-dashboard');
     }
-    showScreen('results');
+
+    const showResults = Boolean(state.config.showResultsPage);
+    const pid = state.participant?.id || 'Anonymous';
+    const filename = `${pid.replace(/[^a-zA-Z0-9_\-]/g, '_')}.xlsx`;
+
+    if (dom.completedParticipantId) dom.completedParticipantId.textContent = pid;
+    if (dom.completedFilename) dom.completedFilename.textContent = filename;
+
+    if (showResults) {
+      showScreen('results');
+    } else {
+      showScreen('completed');
+    }
 
     const results = state.trialResults;
     const total = results.length;
@@ -4390,6 +4424,30 @@
   }
 
   function bindResultsControls() {
+    if (dom.btnCompletedNew) {
+      dom.btnCompletedNew.addEventListener('click', () => {
+        if (dom.inputParticipantId) {
+          dom.inputParticipantId.value = '';
+          dom.inputParticipantId.classList.remove('input-error');
+        }
+        if (dom.idError) dom.idError.style.display = 'none';
+        if (dom.downloadHintFilename) dom.downloadHintFilename.textContent = 'ParticipantID.xlsx';
+
+        state.participant = { id: '', name: '' };
+        if (dom.hudParticipantName) dom.hudParticipantName.textContent = '--';
+        if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
+        if (dom.hudStateBadge) dom.hudStateBadge.style.display = 'flex';
+
+        showScreen('landing');
+      });
+    }
+
+    if (dom.btnCompletedViewResults) {
+      dom.btnCompletedViewResults.addEventListener('click', () => {
+        showScreen('results');
+      });
+    }
+
     dom.btnNewExperiment.addEventListener('click', () => {
       // Reset participant fields
       if (dom.inputParticipantId) {
@@ -4397,6 +4455,7 @@
         dom.inputParticipantId.classList.remove('input-error');
       }
       if (dom.idError) dom.idError.style.display = 'none';
+      if (dom.downloadHintFilename) dom.downloadHintFilename.textContent = 'ParticipantID.xlsx';
 
       // Reset participant state
       state.participant = { id: '', name: '' };

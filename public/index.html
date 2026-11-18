@@ -181,6 +181,18 @@
               </div>
             </details>
 
+            <!-- Results Page Display Option (Turned off by default) -->
+            <div class="form-group" style="margin-top: 1.25rem; margin-bottom: 0.25rem; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;">
+              <label class="custom-checkbox" style="font-weight: 600; color: #f3f4f6;">
+                <input type="checkbox" id="chk-show-results">
+                <span class="checkmark"></span>
+                <span>Display results page at the end</span>
+              </label>
+              <p class="helper-text" style="margin-left: 26px; margin-top: 4px; font-size: 0.8rem; color: #94a3b8;">
+                Turned off by default. The session Excel file (<code id="download-hint-filename">ParticipantID.xlsx</code>) is always automatically downloaded upon experiment completion.
+              </p>
+            </div>
+
             <!-- Action Button -->
             <div class="cta-row">
               <button id="btn-start" class="btn-primary">
@@ -395,7 +407,55 @@
       </div>
     </section>
 
-    <!-- ==================== SCREEN 3: RESULTS DASHBOARD ==================== -->
+    <!-- ==================== SCREEN 3: EXPERIMENT COMPLETED ==================== -->
+    <section id="screen-completed" class="screen">
+      <header class="header">
+        <div class="header-left">
+          <div class="tslas-badge" title="Thapar School of Liberal Arts & Sciences">
+            <img src="/public/tslas_logo.png" alt="TSLAS Logo" class="tslas-logo-img">
+            <span class="tslas-text">TSLAS</span>
+          </div>
+          <div class="logo">
+            <span class="logo-icon">👁️</span>
+            <div>
+              <h1>Change Blindness</h1>
+              <p class="subtitle">Cognitive Psychology &amp; Visual Attention Lab</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content" style="max-width: 650px; margin: 3rem auto; text-align: center; padding: 0 1rem;">
+        <div class="glass-card" style="padding: 3rem 2.5rem; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); border-radius: 18px;">
+          <div style="font-size: 3.5rem; margin-bottom: 1rem;">🎉</div>
+          <h2 style="font-size: 2rem; font-weight: 800; color: #ffffff; margin-bottom: 0.5rem;">Experiment Complete!</h2>
+          <p style="font-size: 1.05rem; color: #cbd5e1; margin-bottom: 1.5rem; line-height: 1.6;">
+            Thank you for participating. Your responses have been successfully recorded.
+          </p>
+
+          <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 1.2rem 1.5rem; margin-bottom: 2rem; text-align: left; display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2.2rem;">📥</div>
+            <div>
+              <div style="font-weight: 700; color: #34d399; font-size: 1rem;">Results Excel File Downloaded</div>
+              <div style="font-size: 0.88rem; color: #e2e8f0; margin-top: 3px;">
+                Participant ID: <strong id="completed-participant-id" style="color: #ffffff;">--</strong> &bull; File: <strong id="completed-filename" style="color: #60a5fa;">--.xlsx</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button id="btn-completed-new" class="btn-primary" style="padding: 0.85rem 2.2rem; font-size: 1rem;">
+              <span>Start New Session</span>
+            </button>
+            <button id="btn-completed-view-results" class="btn-secondary" style="padding: 0.85rem 1.6rem; font-size: 0.95rem;">
+              <span>View Results Dashboard</span>
+            </button>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ==================== SCREEN 4: RESULTS DASHBOARD ==================== -->
     <section id="screen-results" class="screen">
       <header class="header results-header">
         <div class="logo-area">
