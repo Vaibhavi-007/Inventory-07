@@ -238,6 +238,13 @@ class ExperimentApp:
         self.state = "trial_active"
         self.showing_present = True
         self.trial_start_time = time.time()
+
+        # Re-center mouse cursor to canvas center at trial start
+        try:
+            self.root.event_generate('<Motion>', warp=True, x=self.sw // 2, y=self.sh // 2)
+        except Exception:
+            pass
+
         self.step_flicker()
 
     def step_flicker(self):
@@ -287,6 +294,12 @@ class ExperimentApp:
         if self.flicker_timer:
             self.root.after_cancel(self.flicker_timer)
 
+        # Immediately re-center mouse cursor to canvas center after each click
+        try:
+            self.root.event_generate('<Motion>', warp=True, x=self.sw // 2, y=self.sh // 2)
+        except Exception:
+            pass
+
         self.trial_result = {
             "id": self.curr_trial['id'],
             "module": self.curr_module,
@@ -305,6 +318,12 @@ class ExperimentApp:
         self.tobii.log_event("TRIAL_TIMEOUT", {"trial_id": self.curr_trial['id']})
         if self.flicker_timer:
             self.root.after_cancel(self.flicker_timer)
+
+        # Immediately re-center mouse cursor to canvas center after each click
+        try:
+            self.root.event_generate('<Motion>', warp=True, x=self.sw // 2, y=self.sh // 2)
+        except Exception:
+            pass
 
         self.trial_result = {"id": self.curr_trial['id'], "module": self.curr_module, "hit": False, "rt_ms": 60000}
         self.results_all.append(self.trial_result)

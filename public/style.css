@@ -1032,6 +1032,42 @@ kbd {
   box-sizing: border-box;
 }
 
+/* Precision Virtual Cursor for Deployed & Web Sessions */
+.virtual-cursor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 25px;
+  height: 25px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  will-change: left, top;
+}
+
+.stage-wrapper.pointer-locked {
+  cursor: none !important;
+}
+
+.stage-wrapper.pointer-locked * {
+  cursor: none !important;
+}
+
+.stage-wrapper.pointer-locked .virtual-cursor {
+  display: block;
+}
+
+/* When question, MCQ or transition modals are shown, restore visible cursor and hide virtual cursor */
+.stage-wrapper.speed-recall-blur,
+.stage-wrapper.speed-recall-blur * {
+  cursor: default !important;
+}
+
+.stage-wrapper.speed-recall-blur .virtual-cursor {
+  display: none !important;
+}
+
 /* Question / Recall MCQ modal and its buttons ALWAYS have visible pointer cursor */
 .speed-recall-overlay,
 .speed-recall-overlay * {

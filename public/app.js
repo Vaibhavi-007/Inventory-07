@@ -132,7 +132,14 @@
 
     // Exact viewport-to-screen coordinate calibration (points)
     _viewportScreenX: null,
-    _viewportScreenY: null
+    _viewportScreenY: null,
+
+    // Virtual Pointer Centering System (for deployed / cross-platform web sessions)
+    pointerLockActive: false,
+    virtualCursor: {
+      x: 512,
+      y: 384
+    }
   };
 
   window._rbState = state;
@@ -250,6 +257,7 @@
     blackOverlay: document.getElementById('black-screen-overlay'),
     feedbackOverlay: document.getElementById('feedback-overlay'),
     clickMarker: document.getElementById('click-marker'),
+    virtualCursor: document.getElementById('virtual-cursor'),
 
     feedbackMsg: document.getElementById('feedback-msg'),
     spacebarPrompt: document.getElementById('spacebar-prompt'),
@@ -1172,6 +1180,7 @@
   }
 
   function showTutorialTransitionModal(targetModuleKey, targetModuleNum) {
+    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._inTutorialTransition = true;
     if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
@@ -1238,6 +1247,7 @@
   }
 
   function showTutorialCompletionModal() {
+    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._inTutorialTransition = 'complete';
     if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
@@ -2061,6 +2071,7 @@
   function showFixationScreen(onComplete) {
     state.trialState = 'fixation';
     setHUDState('fixation', 'Fixation (+)');
+    requestStagePointerLock();
     centerMouseCursor();
 
     // Paint stage canvas neutral grey (#808080) with centered white plus sign
@@ -2304,8 +2315,93 @@
     }
   }
 
-  // Center the physical mouse cursor at the center of the display / experiment canvas instantly
+  // Request Pointer Lock on the stage wrapper (for deployed / browser environments)
+  function requestStagePointerLock() {
+    if (!dom.stageWrapper) return;
+    if (state.speedRecallPending || state._inTutorialTransition || state.trialState === 'module_transition' || state.screen !== 'experiment') {
+      return;
+    }
+    const reqFn = dom.stageWrapper.requestPointerLock ||
+                  dom.stageWrapper.mozRequestPointerLock ||
+                  dom.stageWrapper.webkitRequestPointerLock;
+    if (reqFn) {
+      try {
+        const p = reqFn.call(dom.stageWrapper);
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {});
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Release Pointer Lock (for MCQ modal, transitions, and exit)
+  function releaseStagePointerLock() {
+    const exitFn = document.exitPointerLock ||
+                   document.mozExitPointerLock ||
+                   document.webkitExitPointerLock;
+    if (exitFn && document.pointerLockElement) {
+      try {
+        exitFn.call(document);
+      } catch (e) {}
+    }
+  }
+
+  // Update virtual cursor DOM element position
+  function updateVirtualCursorDOM() {
+    if (dom.virtualCursor) {
+      const pctX = (state.virtualCursor.x / 1024) * 100;
+      const pctY = (state.virtualCursor.y / 768) * 100;
+      dom.virtualCursor.style.left = `${pctX}%`;
+      dom.virtualCursor.style.top = `${pctY}%`;
+    }
+  }
+
+  // Track pointer movements under Pointer Lock
+  function handleStageMouseMove(e) {
+    if (state.pointerLockActive) {
+      const rect = dom.displayCanvas.getBoundingClientRect();
+      const scaleX = 1024 / (rect.width || 1024);
+      const scaleY = 768 / (rect.height || 768);
+
+      const movX = e.movementX !== undefined ? e.movementX : (e.mozMovementX || e.webkitMovementX || 0);
+      const movY = e.movementY !== undefined ? e.movementY : (e.mozMovementY || e.webkitMovementY || 0);
+
+      state.virtualCursor.x = Math.max(0, Math.min(1023, state.virtualCursor.x + movX * scaleX));
+      state.virtualCursor.y = Math.max(0, Math.min(767, state.virtualCursor.y + movY * scaleY));
+
+      updateVirtualCursorDOM();
+    }
+  }
+
+  function onPointerLockChange() {
+    const lockedEl = document.pointerLockElement ||
+                     document.mozPointerLockElement ||
+                     document.webkitPointerLockElement;
+    const isLocked = (lockedEl === dom.stageWrapper);
+    state.pointerLockActive = isLocked;
+
+    if (isLocked) {
+      dom.stageWrapper.classList.add('pointer-locked');
+      if (dom.virtualCursor) {
+        dom.virtualCursor.style.display = 'block';
+        updateVirtualCursorDOM();
+      }
+    } else {
+      dom.stageWrapper.classList.remove('pointer-locked');
+      if (dom.virtualCursor) {
+        dom.virtualCursor.style.display = 'none';
+      }
+    }
+  }
+
+  // Center the physical and virtual mouse cursor at the center of the display / experiment canvas instantly
   function centerMouseCursor() {
+    // 1. Immediately reset virtual cursor position to the exact center (512, 384)
+    state.virtualCursor.x = 512;
+    state.virtualCursor.y = 384;
+    updateVirtualCursorDOM();
+
+    // 2. Hardware cursor centering via local native daemon on macOS localhost
     let targetX = null;
     let targetY = null;
     const activeDisplayId = dom.tobiiDisplaySelect?.value || state.selectedDisplayId || localStorage.getItem('rb_selected_display_id');
@@ -2331,18 +2427,21 @@
       targetY = Math.round(viewportTop + canvasCenterY);
     }
 
-    if (targetX != null && targetY != null) {
-      fetch(`/api/center-mouse?x=${targetX}&y=${targetY}`, {
-        method: 'POST',
-        keepalive: true
-      }).catch(() => {});
-    } else {
-      fetch('/api/center-mouse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ display_id: activeDisplayId }),
-        keepalive: true
-      }).catch(() => {});
+    const isLocalHost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '0.0.0.0');
+    if (isLocalHost) {
+      if (targetX != null && targetY != null) {
+        fetch(`/api/center-mouse?x=${targetX}&y=${targetY}`, {
+          method: 'POST',
+          keepalive: true
+        }).catch(() => {});
+      } else {
+        fetch('/api/center-mouse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ display_id: activeDisplayId }),
+          keepalive: true
+        }).catch(() => {});
+      }
     }
   }
 
@@ -2520,6 +2619,7 @@
 
   // ===== Recall MCQ System (Speed or Symbol) =====
   function showRecallPrompt(trialIndex) {
+    releaseStagePointerLock();
     centerMouseCursor();
     state.speedRecallPending = true;
     state.trialState = 'speed_recall';
@@ -3206,6 +3306,7 @@
 
   // ===== Module Transition System =====
   function showModuleTransitionModal(targetModuleKey = 'b', targetModuleNum = 2, completedBlockNum = 1, prevModuleNum = null) {
+    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._transitionTargetModule = targetModuleKey;
     state._transitionTargetIndex = completedBlockNum * state.config.n;
@@ -3280,6 +3381,8 @@
     }
     dom.stageWrapper.classList.remove('speed-recall-blur');
 
+    requestStagePointerLock();
+    centerMouseCursor();
     playSound('advance');
 
     if (state._inTutorialTransition === 'complete') {
@@ -3460,6 +3563,11 @@
 
   function bindExperimentControls() {
     dom.stageWrapper.addEventListener('click', handleStageClick);
+    dom.stageWrapper.addEventListener('mousemove', handleStageMouseMove);
+    window.addEventListener('mousemove', handleStageMouseMove);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+    document.addEventListener('mozpointerlockchange', onPointerLockChange);
+    document.addEventListener('webkitpointerlockchange', onPointerLockChange);
     window.addEventListener('keydown', handleGlobalKeydown);
 
     if (dom.btnNextTutorialSample) {
@@ -3472,6 +3580,7 @@
 
     dom.btnQuit.addEventListener('click', () => {
       if (confirm('Are you sure you want to exit the current experiment session?')) {
+        releaseStagePointerLock();
         clearTimeout(state.phaseTimer);
         clearInterval(state.flickerTimer);
         clearTimeout(state.trialTimeoutTimer);
@@ -3504,16 +3613,28 @@
   }
 
   function handleStageClick(e) {
-    if (state.trialState !== 'absent') return;
+    if (state.trialState !== 'absent') {
+      if (state.screen === 'experiment' && !state.pointerLockActive && !state.speedRecallPending && !state._inTutorialTransition && state.trialState !== 'module_transition') {
+        requestStagePointerLock();
+      }
+      return;
+    }
 
     const rt = window.performance.now() - state.stimulusStartTime;
 
     const rect = dom.displayCanvas.getBoundingClientRect();
-    const scaleX = 1024 / rect.width;
-    const scaleY = 768 / rect.height;
+    const scaleX = 1024 / (rect.width || 1024);
+    const scaleY = 768 / (rect.height || 768);
 
-    const clickX = Math.round((e.clientX - rect.left) * scaleX);
-    const clickY = Math.round((e.clientY - rect.top) * scaleY);
+    let clickX, clickY;
+    if (state.pointerLockActive) {
+      clickX = Math.round(state.virtualCursor.x);
+      clickY = Math.round(state.virtualCursor.y);
+    } else {
+      clickX = Math.round((e.clientX - rect.left) * scaleX);
+      clickY = Math.round((e.clientY - rect.top) * scaleY);
+      requestStagePointerLock();
+    }
 
     if (clickX < 0 || clickX >= 1024 || clickY < 0 || clickY >= 768) return;
 
@@ -3543,6 +3664,9 @@
     clearInterval(state.flickerTimer);
     clearTimeout(state.trialTimeoutTimer);
     clearInterval(state.countdownInterval);
+
+    // Immediately return the mouse cursor to the center of the screen after each click
+    centerMouseCursor();
 
     // Ensure absent image is displayed
     const absentImg = imageCache.get(`/images/${state.currentTrialData.absent_image}`);
@@ -3762,6 +3886,7 @@
 
   // --- Results Dashboard ---
   async function finishExperiment() {
+    releaseStagePointerLock();
     if (dom.carDashboardOverlay) {
       dom.carDashboardOverlay.style.display = 'none';
     }

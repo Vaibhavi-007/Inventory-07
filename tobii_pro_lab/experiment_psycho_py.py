@@ -275,6 +275,10 @@ def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
                     click_rt = round((core.getTime() - trial_start_time) * 1000, 1)
                     is_hit = check_mask_hit(mask_path, click_x_norm, click_y_norm, tolerance_px=15)
                     click_detected = True
+                    try:
+                        mouse.setPos((0, 0))
+                    except Exception:
+                        pass
                     break
                 if 'escape' in event.getKeys():
                     core.quit()
