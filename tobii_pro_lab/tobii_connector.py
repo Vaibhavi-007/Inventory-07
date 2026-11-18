@@ -16,7 +16,7 @@ import os
 import sys
 import time
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Try importing official Tobii Research SDK
 try:
@@ -251,31 +251,35 @@ class TobiiProLabConnector:
 
             # Sheet 2: Module 1
             ws2 = wb.create_sheet(title="Module 1 - Behavior")
-            ws2.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)"])
+            ws2.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Timestamp (UTC)"])
             m1_trials = [t for t in trial_results if t.get("module") == 1 or t.get("module") == 'a']
             for i, t in enumerate(m1_trials):
-                ws2.append([i + 1, participant_id, "Module 1 (Flicker)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", "")])
+                ts_utc = t.get("timestamp_utc") or datetime.now(timezone.utc).isoformat()
+                ws2.append([i + 1, participant_id, "Module 1 (Flicker)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), ts_utc])
 
             # Sheet 3: Module 2
             ws3 = wb.create_sheet(title="Module 2 - Behavior")
-            ws3.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            ws3.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)", "Timestamp (UTC)"])
             m2_trials = [t for t in trial_results if t.get("module") == 2 or t.get("module") == 'b']
             for i, t in enumerate(m2_trials):
-                ws3.append([i + 1, participant_id, "Module 2 (Cluster Strip)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+                ts_utc = t.get("timestamp_utc") or datetime.now(timezone.utc).isoformat()
+                ws3.append([i + 1, participant_id, "Module 2 (Cluster Strip)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", ""), ts_utc])
 
             # Sheet 4: Module 3
             ws4 = wb.create_sheet(title="Module 3 - Behavior")
-            ws4.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            ws4.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)", "Timestamp (UTC)"])
             m3_trials = [t for t in trial_results if t.get("module") == 3 or t.get("module") == 'c']
             for i, t in enumerate(m3_trials):
-                ws4.append([i + 1, participant_id, "Module 3 (HUD)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+                ts_utc = t.get("timestamp_utc") or datetime.now(timezone.utc).isoformat()
+                ws4.append([i + 1, participant_id, "Module 3 (HUD)", t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", ""), ts_utc])
 
             # Sheet 5: All Trials Master Log
             ws5 = wb.create_sheet(title="All Trials")
-            ws5.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)"])
+            ws5.append(["Trial #", "Participant ID", "Module", "Pair ID", "Object", "Visual Field", "Detection Hit (1/0)", "RT (ms)", "Recall RT (ms)", "Recall RT (sec)", "Recall Hit (1/0)", "Timestamp (UTC)"])
             for i, t in enumerate(trial_results):
                 mod_str = f"Module {t.get('module')}"
-                ws5.append([i + 1, participant_id, mod_str, t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+                ts_utc = t.get("timestamp_utc") or datetime.now(timezone.utc).isoformat()
+                ws5.append([i + 1, participant_id, mod_str, t.get("id", ""), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", ""), ts_utc])
 
             wb.save(xlsx_path)
             print(f"[Behavioral Export] Excel file saved: {xlsx_path}")
@@ -285,7 +289,8 @@ class TobiiProLabConnector:
             csv_path = os.path.join(self.output_dir, f"{safe_pid}.csv")
             with open(csv_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                writer.writerow(["trial_index", "participant_id", "module", "pair_id", "object_name", "side", "hit", "rt_ms", "recall_rt_ms", "recall_rt_sec", "recall_accurate"])
+                writer.writerow(["trial_index", "participant_id", "module", "pair_id", "object_name", "side", "hit", "rt_ms", "recall_rt_ms", "recall_rt_sec", "recall_accurate", "timestamp_utc"])
                 for i, t in enumerate(trial_results):
-                    writer.writerow([i + 1, participant_id, t.get("module"), t.get("id"), t.get("object_name", ""), t.get("side", ""), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", "")])
+                    ts_utc = t.get("timestamp_utc") or datetime.now(timezone.utc).isoformat()
+                    writer.writerow([i + 1, participant_id, t.get("module"), t.get("id"), t.get("object_name", ""), t.get("side"), 1 if (t.get("accurate") or t.get("hit")) else 0, t.get("rt_ms", ""), t.get("recall_rt_ms", ""), t.get("recall_rt_sec", ""), t.get("recall_accurate", ""), ts_utc])
             return csv_path

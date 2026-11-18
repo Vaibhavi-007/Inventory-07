@@ -24,7 +24,7 @@ import time
 import json
 import random
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from PIL import Image
 
 # Import Tobii Pro Lab connector
@@ -337,7 +337,8 @@ def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
             "rt_ms": click_rt,
             "timed_out": not click_detected,
             "click_x": click_x_norm,
-            "click_y": click_y_norm
+            "click_y": click_y_norm,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat()
         }
 
     # =============================================================

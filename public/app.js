@@ -2548,6 +2548,7 @@
     }
 
     state.currentTrialIndex = index;
+    state.trialStartTimeUtc = new Date().toISOString();
     state.currentTrialData = state.trials[index];
     state.currentClick = null;
     state.trialState = 'present';
@@ -3542,6 +3543,7 @@
     if (existing) return;
 
     const trial = state.currentTrialData;
+    const nowUtc = new Date().toISOString();
     const clickData = state.currentClick || {
       accurate: false,
       response_time_ms: null,
@@ -3550,8 +3552,12 @@
       target_x: trial?.benchmark?.x ?? null,
       target_y: trial?.benchmark?.y ?? null,
       distance_px: null,
-      skipped: true
+      skipped: true,
+      timestamp_utc: nowUtc
     };
+
+    const entryTimestampUtc = clickData.timestamp_utc || nowUtc;
+    const trialStartUtc = state.trialStartTimeUtc || entryTimestampUtc;
 
     const speedActualFormatted = trial?.dashboardData?.speed != null ? formatSpeed(trial.dashboardData.speed) : null;
     const symbolActualName = trial?.dashboardData?.symbolName || trial?.dashboardData?.symbol?.name || null;
@@ -3567,6 +3573,8 @@
       trial_index: state.currentTrialIndex + 1,
       module: trial?.module || 'a',
       module_name: trial?.module_name || defaultModName,
+      trial_start_utc: trialStartUtc,
+      timestamp_utc: entryTimestampUtc,
       id: trial?.id,
       trial_str: trial?.trial_str,
       prefix: trial?.prefix,
@@ -3752,7 +3760,8 @@
       target_x: bench?.x ?? null,
       target_y: bench?.y ?? null,
       distance_px: distanceToTarget,
-      skipped: false
+      skipped: false,
+      timestamp_utc: new Date().toISOString()
     };
 
     state.trialState = 'feedback';
@@ -4687,7 +4696,8 @@
       'absent_image',
       'mask_image',
       'interval_t_ms',
-      'image_duration_ms'
+      'image_duration_ms',
+      'timestamp_utc'
     ];
 
     const pId = (state.participant?.id || 'Anonymous').replace(/"/g, '""');
@@ -4757,7 +4767,8 @@
         `"${t.absent_image}"`,
         `"${t.mask_image}"`,
         state.config.t,
-        state.config.imgDuration
+        state.config.imgDuration,
+        `"${t.timestamp_utc || t.timestamp || new Date().toISOString()}"`
       ].join(','));
     });
 
@@ -4910,14 +4921,16 @@
     // Sheet 2: Module 1 - Behavior (without tracker)
     xml += buildWorksheetXml('Module 1 - Behavior', [
       'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object', 'Category',
-      'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+      'Accurate', 'RT (ms)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped',
+      'Timestamp (UTC)'
     ], mod1TrialsSorted, (t, idx) => [
       idx + 1, state.participant?.id || 'Anonymous',
       'Module 1 (Flicker)', t.id, t.side || '', t.object_name, t.category || '',
       t.accurate ? 1 : 0, t.response_time_ms != null ? Number(t.response_time_ms.toFixed(1)) : '',
       t.click_x != null ? t.click_x : '', t.click_y != null ? t.click_y : '',
       t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
-      t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+      t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0,
+      t.timestamp_utc || t.timestamp || new Date().toISOString()
     ]);
 
     // Sheet 3: Module 1 - Eye Tracking (with tracker)
@@ -4928,7 +4941,8 @@
       'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
-      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
+      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped',
+      'Timestamp (UTC)'
     ], mod2TrialsSorted, (t, idx) => {
       const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
@@ -4943,7 +4957,8 @@
         t.symbol_recall_response != null ? t.symbol_recall_response : '', t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '',
         t.rpm_recall_response != null ? t.rpm_recall_response : '', t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '',
         (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '',
-        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0,
+        t.timestamp_utc || t.timestamp || new Date().toISOString()
       ];
     });
 
@@ -4955,7 +4970,8 @@
       'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Visual Field', 'Target Object',
       'Accurate', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
       'Probe Type', 'Speed Recalled', 'Speed Accurate', 'Symbol Recalled', 'Symbol Accurate',
-      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped'
+      'RPM Recalled', 'RPM Accurate', 'Recall Accurate', 'Distance Error (px)', 'Skipped',
+      'Timestamp (UTC)'
     ], mod3TrialsSorted, (t, idx) => {
       const speedShown = (t.speed_recall_actual != null) ? t.speed_recall_actual : (t.dashboardData?.speed != null ? formatSpeed(t.dashboardData.speed) : '');
       const symObj = t.dashboardData?.symbol || (t.dashboardData?.symbolId ? SYMBOLS.find(s => s.id === t.dashboardData.symbolId) : null);
@@ -4970,7 +4986,8 @@
         t.symbol_recall_response != null ? t.symbol_recall_response : '', t.symbol_recall_asked ? (t.symbol_recall_accurate ? 1 : 0) : '',
         t.rpm_recall_response != null ? t.rpm_recall_response : '', t.rpm_recall_asked ? (t.rpm_recall_accurate ? 1 : 0) : '',
         (t.speed_recall_asked || t.symbol_recall_asked || t.rpm_recall_asked) ? (t.recall_accurate ? 1 : 0) : '',
-        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0
+        t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0,
+        t.timestamp_utc || t.timestamp || new Date().toISOString()
       ];
     });
 
@@ -4986,7 +5003,7 @@
       'rpm_recall_probed', 'rpm_recalled', 'rpm_recall_accurate', 'rpm_error',
       'recall_accurate', 'click_x', 'click_y', 'target_x', 'target_y',
       'distance_px', 'skipped', 'present_image', 'absent_image', 'mask_image',
-      'interval_t_ms', 'image_duration_ms'
+      'interval_t_ms', 'image_duration_ms', 'timestamp_utc'
     ], allTrialsSorted, (t, idx) => {
       let modLabel = 'Module 1 (Flicker)';
       if (t.module === 'c') modLabel = 'Module 3 (HUD)';
@@ -5027,7 +5044,8 @@
         t.target_x != null ? t.target_x : '', t.target_y != null ? t.target_y : '',
         t.distance_px != null ? Number(t.distance_px.toFixed(1)) : '', t.skipped ? 1 : 0,
         t.present_image, t.absent_image, t.mask_image,
-        state.config.t, state.config.imgDuration
+        state.config.t, state.config.imgDuration,
+        t.timestamp_utc || t.timestamp || new Date().toISOString()
       ];
     });
 

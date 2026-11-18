@@ -19,6 +19,7 @@ import os
 import sys
 import time
 import json
+from datetime import datetime, timezone
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -310,7 +311,8 @@ class ExperimentApp:
             "id": self.curr_trial['id'],
             "module": self.curr_module,
             "hit": is_hit,
-            "rt_ms": rt_ms
+            "rt_ms": rt_ms,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat()
         }
         self.results_all.append(self.trial_result)
 
@@ -331,7 +333,13 @@ class ExperimentApp:
         except Exception:
             pass
 
-        self.trial_result = {"id": self.curr_trial['id'], "module": self.curr_module, "hit": False, "rt_ms": 60000}
+        self.trial_result = {
+            "id": self.curr_trial['id'],
+            "module": self.curr_module,
+            "hit": False,
+            "rt_ms": 60000,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat()
+        }
         self.results_all.append(self.trial_result)
 
         if self.is_tutorial:

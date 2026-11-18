@@ -545,7 +545,7 @@ const server = http.createServer((req, res) => {
             params.t_interval_ms || '',
             params.image_duration_ms || '',
             `"${params.mode || ''}"`,
-            `"${payload.timestamp || new Date().toISOString()}"`
+            `"${t.timestamp_utc || t.timestamp || payload.timestamp || new Date().toISOString()}"`
           ];
           csvRows.push(row.join(','));
         });
@@ -693,7 +693,8 @@ const server = http.createServer((req, res) => {
               tInterval: params.t_interval_ms || '',
               imgDur: params.image_duration_ms || '',
               mode: params.mode || '',
-              timestamp: payload.timestamp || new Date().toISOString()
+              timestamp: t.timestamp_utc || t.timestamp || payload.timestamp || new Date().toISOString(),
+              timestampUtc: t.timestamp_utc || t.timestamp || payload.timestamp || new Date().toISOString()
             };
           }
 
@@ -703,7 +704,7 @@ const server = http.createServer((req, res) => {
           const mod1Headers = [
             'Trial #', 'Participant ID', 'Module', 'Pair ID', 'Trial Code', 'Category', 'Visual Field', 'Target Object',
             'Detection Hit (1/0)', 'RT (ms)', 'RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y',
-            'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image'
+            'Distance Error (px)', 'Skipped', 'Present Image', 'Absent Image', 'Mask Image', 'Timestamp (UTC)'
           ];
           const mod1Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module A') || t.moduleLabel.includes('Module 1') || t.module === 'a')
@@ -711,7 +712,7 @@ const server = http.createServer((req, res) => {
             .map((t, idx) => [
               idx + 1, participantId, 'Module 1 (Flicker)', t.id, t.trialStr, t.category, t.side, t.objectName,
               t.accurate, t.rtMs, t.rtSec, t.clickX, t.clickY, t.targetX, t.targetY,
-              t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg
+              t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg, t.timestampUtc
             ]);
 
           // --- Sheet 3: Module 2 (Speed & Cluster Strip) - Sorted in fixed canonical order ---
@@ -720,7 +721,7 @@ const server = http.createServer((req, res) => {
             'Detection Hit (1/0)', 'RT (ms)', 'Speed Shown (km/h)', 'Symbol Shown', 'RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
-            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped', 'Timestamp (UTC)'
           ];
           const mod2Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module B') || t.moduleLabel.includes('Module 2') || t.module === 'b')
@@ -730,7 +731,7 @@ const server = http.createServer((req, res) => {
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped, t.timestampUtc
             ]);
 
           // --- Sheet 4: Module 3 (Heads-Up Display HUD) - Sorted in fixed canonical order ---
@@ -739,7 +740,7 @@ const server = http.createServer((req, res) => {
             'Detection Hit (1/0)', 'RT (ms)', 'HUD Speed (km/h)', 'HUD Symbol Shown', 'HUD RPM Shown',
             'Recall Probe Type', 'Speed Recalled', 'Speed Accurate', 'Speed Error (km/h)',
             'Symbol Recalled', 'Symbol Accurate', 'RPM Recalled', 'RPM Accurate', 'RPM Error',
-            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped'
+            'Overall Recall Hit', 'Recall RT (ms)', 'Recall RT (sec)', 'Click X', 'Click Y', 'Target X', 'Target Y', 'Distance Error (px)', 'Skipped', 'Timestamp (UTC)'
           ];
           const mod3Rows = parsedTrials
             .filter(t => t.moduleLabel.includes('Module C') || t.moduleLabel.includes('Module 3') || t.module === 'c')
@@ -749,7 +750,7 @@ const server = http.createServer((req, res) => {
               t.accurate, t.rtMs, t.speedShown, t.symbolShown, t.rpmShown,
               t.probeType, t.speedRecalled, t.speedAccurate, t.speedError,
               t.symbolRecalled, t.symbolAccurate, t.rpmRecalled, t.rpmAccurate, t.rpmError,
-              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped
+              t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY, t.distancePx, t.skipped, t.timestampUtc
             ]);
 
           // --- Sheet 5: All Trials (Master Unified Data) - Sorted by canonical Module (1, 2, 3) then image ID ---
@@ -764,7 +765,7 @@ const server = http.createServer((req, res) => {
               t.rpmProbed, t.rpmRecalled, t.rpmAccurate, t.rpmError,
               t.recallAccurate, t.recallRtMs, t.recallRtSec, t.clickX, t.clickY, t.targetX, t.targetY,
               t.distancePx, t.skipped, t.presentImg, t.absentImg, t.maskImg,
-              t.tInterval, t.imgDur, t.mode, t.timestamp
+              t.tInterval, t.imgDur, t.mode, t.timestampUtc
             ]);
 
           // --- Eye Tracking Headers ---
