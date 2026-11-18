@@ -439,6 +439,8 @@
     } else if (name === 'results') {
       dom.screenResults.classList.add('active');
     }
+
+    centerMouseCursor('showScreen:' + name);
   }
 
   // --- Initialization & UI Binding ---
@@ -451,6 +453,30 @@
     bindResultsControls();
     window.addEventListener('resize', fitStageLayout);
     fitStageLayout();
+
+    // Universal Render Observer: bounds mouse cursor to return to center on any new render, screen switch, or modal
+    const renderObserver = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'class') {
+          const t = m.target;
+          if (t && t.classList && t.classList.contains('active')) {
+            if (t.classList.contains('screen') ||
+                t.classList.contains('module-transition-overlay') ||
+                t.classList.contains('speed-recall-overlay') ||
+                t.classList.contains('fixation-overlay') ||
+                t.classList.contains('modal')) {
+              centerMouseCursor('observer:' + t.className);
+              break;
+            }
+          }
+        }
+      }
+    });
+    renderObserver.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+    window.addEventListener('resize', () => centerMouseCursor('resize'));
+    document.addEventListener('fullscreenchange', () => centerMouseCursor('fullscreen'));
+    centerMouseCursor('init');
 
     // Fetch dataset info from server
     try {
@@ -1202,7 +1228,6 @@
   }
 
   function showTutorialTransitionModal(targetModuleKey, targetModuleNum) {
-    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._inTutorialTransition = true;
     if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
@@ -1266,10 +1291,12 @@
       dom.moduleTransitionOverlay.classList.add('active');
       dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
     }
+
+    centerMouseCursor('tutorial_transition_modal');
+    requestStagePointerLock();
   }
 
   function showTutorialCompletionModal() {
-    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._inTutorialTransition = 'complete';
     if (dom.hudDiffBadge) dom.hudDiffBadge.style.display = 'none';
@@ -1301,6 +1328,9 @@
       dom.moduleTransitionOverlay.classList.add('active');
       dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
     }
+
+    centerMouseCursor('tutorial_completion_modal');
+    requestStagePointerLock();
   }
 
   function finishTutorialAndStartRealExperiment() {
@@ -2340,9 +2370,6 @@
   // Request Pointer Lock on the stage wrapper (for deployed / browser environments)
   function requestStagePointerLock() {
     if (!dom.stageWrapper) return;
-    if (state._inTutorialTransition || state.trialState === 'module_transition' || state.screen !== 'experiment') {
-      return;
-    }
     const reqFn = dom.stageWrapper.requestPointerLock ||
                   dom.stageWrapper.mozRequestPointerLock ||
                   dom.stageWrapper.webkitRequestPointerLock;
@@ -2370,57 +2397,43 @@
 
   // Update virtual cursor DOM element position
   function updateVirtualCursorDOM() {
-    if (!dom.virtualCursor || !dom.displayCanvas) return;
-    const rect = dom.displayCanvas.getBoundingClientRect();
-    const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
-    const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
-    dom.virtualCursor.style.left = `${screenX}px`;
-    dom.virtualCursor.style.top = `${screenY}px`;
+    if (!dom.virtualCursor) return;
+    dom.virtualCursor.style.left = `${state.virtualCursor.x}px`;
+    dom.virtualCursor.style.top = `${state.virtualCursor.y}px`;
   }
 
-  // Highlight MCQ buttons hovered by virtual cursor
-  function updateRecallHover() {
-    if (!dom.displayCanvas) return;
-    const rect = dom.displayCanvas.getBoundingClientRect();
-    const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
-    const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
+  // Highlight interactive buttons & options hovered by virtual cursor
+  function updateHoverState() {
+    const el = document.elementFromPoint(state.virtualCursor.x, state.virtualCursor.y);
+    const hoveredInteractive = el?.closest('button, input, select, label, .chip, .radio-card, .speed-option-btn, #btn-next-tutorial-sample, .btn-primary, .btn-secondary, a');
 
-    const el = document.elementFromPoint(screenX, screenY);
-    const hoveredBtn = el?.closest('.speed-option-btn') || el?.closest('#btn-next-tutorial-sample');
-
-    const allBtns = document.querySelectorAll('.speed-option-btn, #btn-next-tutorial-sample');
-    allBtns.forEach(btn => {
-      if (btn === hoveredBtn && !btn.disabled) {
-        btn.classList.add('virtual-hover');
-      } else {
+    const allHovered = document.querySelectorAll('.virtual-hover, .cursor-hover');
+    allHovered.forEach(btn => {
+      if (btn !== hoveredInteractive) {
         btn.classList.remove('virtual-hover');
+        btn.classList.remove('cursor-hover');
       }
     });
+
+    if (hoveredInteractive && !hoveredInteractive.disabled) {
+      hoveredInteractive.classList.add('cursor-hover');
+      if (hoveredInteractive.classList.contains('speed-option-btn') || hoveredInteractive.id === 'btn-next-tutorial-sample') {
+        hoveredInteractive.classList.add('virtual-hover');
+      }
+    }
   }
 
   // Track pointer movements under Pointer Lock
   function handleStageMouseMove(e) {
     if (state.pointerLockActive) {
-      const rect = dom.displayCanvas.getBoundingClientRect();
-      const scaleX = 1024 / (rect.width || 1024);
-      const scaleY = 768 / (rect.height || 768);
-
       const movX = e.movementX !== undefined ? e.movementX : (e.mozMovementX || e.webkitMovementX || 0);
       const movY = e.movementY !== undefined ? e.movementY : (e.mozMovementY || e.webkitMovementY || 0);
 
-      const minX = state.speedRecallPending ? -60 : 0;
-      const maxX = state.speedRecallPending ? 1084 : 1023;
-      const minY = state.speedRecallPending ? -60 : 0;
-      const maxY = state.speedRecallPending ? 828 : 767;
-
-      state.virtualCursor.x = Math.max(minX, Math.min(maxX, state.virtualCursor.x + movX * scaleX));
-      state.virtualCursor.y = Math.max(minY, Math.min(maxY, state.virtualCursor.y + movY * scaleY));
+      state.virtualCursor.x = Math.max(4, Math.min(window.innerWidth - 4, state.virtualCursor.x + movX));
+      state.virtualCursor.y = Math.max(4, Math.min(window.innerHeight - 4, state.virtualCursor.y + movY));
 
       updateVirtualCursorDOM();
-
-      if (state.speedRecallPending) {
-        updateRecallHover();
-      }
+      updateHoverState();
     }
   }
 
@@ -2437,6 +2450,7 @@
       if (dom.virtualCursor) {
         dom.virtualCursor.style.display = 'block';
         updateVirtualCursorDOM();
+        updateHoverState();
       }
     } else {
       document.body.classList.remove('pointer-locked');
@@ -2444,25 +2458,32 @@
       if (dom.virtualCursor) {
         dom.virtualCursor.style.display = 'none';
       }
+      document.querySelectorAll('.virtual-hover, .cursor-hover').forEach(el => {
+        el.classList.remove('virtual-hover');
+        el.classList.remove('cursor-hover');
+      });
     }
   }
 
   // Center the physical and virtual mouse cursor at the center of the display / experiment canvas instantly
-  function centerMouseCursor() {
-    // 1. Immediately reset virtual cursor position to the exact center (512, 384)
-    state.virtualCursor.x = 512;
-    state.virtualCursor.y = 384;
+  function centerMouseCursor(reason = '') {
+    // 1. Immediately reset virtual cursor position to the exact center of viewport
+    state.virtualCursor.x = Math.round(window.innerWidth / 2);
+    state.virtualCursor.y = Math.round(window.innerHeight / 2);
     updateVirtualCursorDOM();
-    if (state.speedRecallPending) {
-      updateRecallHover();
-    }
+    updateHoverState();
 
     // 2. Hardware cursor centering via local native daemon on macOS localhost
     let targetX = null;
     let targetY = null;
     const activeDisplayId = dom.tobiiDisplaySelect?.value || state.selectedDisplayId || localStorage.getItem('rb_selected_display_id');
 
-    if (dom.displayCanvas) {
+    const winX = window.screenX !== undefined ? window.screenX : (window.screenLeft !== undefined ? window.screenLeft : 0);
+    const winY = window.screenY !== undefined ? window.screenY : (window.screenTop !== undefined ? window.screenTop : 0);
+    const chromeHeight = Math.max(0, window.outerHeight - window.innerHeight);
+    const chromeWidth = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
+
+    if (dom.displayCanvas && dom.screenExperiment?.classList.contains('active')) {
       const rect = dom.displayCanvas.getBoundingClientRect();
       const canvasCenterX = rect.left + (rect.width / 2);
       const canvasCenterY = rect.top + (rect.height / 2);
@@ -2471,16 +2492,15 @@
       let viewportTop = state._viewportScreenY;
 
       if (viewportLeft == null || viewportTop == null) {
-        const winX = window.screenX !== undefined ? window.screenX : (window.screenLeft !== undefined ? window.screenLeft : 0);
-        const winY = window.screenY !== undefined ? window.screenY : (window.screenTop !== undefined ? window.screenTop : 0);
-        const chromeHeight = Math.max(0, window.outerHeight - window.innerHeight);
-        const chromeWidth = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
         viewportLeft = winX + chromeWidth;
         viewportTop = winY + chromeHeight;
       }
 
       targetX = Math.round(viewportLeft + canvasCenterX);
       targetY = Math.round(viewportTop + canvasCenterY);
+    } else {
+      targetX = Math.round(winX + chromeWidth + (window.innerWidth / 2));
+      targetY = Math.round(winY + chromeHeight + (window.innerHeight / 2));
     }
 
     const isLocalHost = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '0.0.0.0');
@@ -3362,7 +3382,6 @@
 
   // ===== Module Transition System =====
   function showModuleTransitionModal(targetModuleKey = 'b', targetModuleNum = 2, completedBlockNum = 1, prevModuleNum = null) {
-    releaseStagePointerLock();
     state.trialState = 'module_transition';
     state._transitionTargetModule = targetModuleKey;
     state._transitionTargetIndex = completedBlockNum * state.config.n;
@@ -3426,6 +3445,9 @@
       dom.moduleTransitionOverlay.classList.add('active');
       dom.moduleTransitionOverlay.setAttribute('aria-hidden', 'false');
     }
+
+    centerMouseCursor('module_transition_modal');
+    requestStagePointerLock();
   }
 
   function continueToNextModule() {
@@ -3618,27 +3640,19 @@
   }
 
   function handleGlobalPointerClick(e) {
-    if (state.screen !== 'experiment') return;
+    if (!e.isTrusted) return; // Prevent recursive loops from programmatic .click()
 
-    if (state.speedRecallPending) {
-      if (!e.isTrusted) return; // Prevent recursive loops from programmatic .click()
-
-      if (state.pointerLockActive && dom.displayCanvas) {
-        const rect = dom.displayCanvas.getBoundingClientRect();
-        const screenX = rect.left + (state.virtualCursor.x / 1024) * rect.width;
-        const screenY = rect.top + (state.virtualCursor.y / 768) * rect.height;
-
-        const el = document.elementFromPoint(screenX, screenY);
-        const targetBtn = el?.closest('.speed-option-btn') || el?.closest('#btn-next-tutorial-sample');
-        if (targetBtn && !targetBtn.disabled) {
-          e.preventDefault();
-          e.stopPropagation();
-          targetBtn.click();
-          return;
-        }
-      } else if (!state.pointerLockActive) {
-        requestStagePointerLock();
+    if (state.pointerLockActive) {
+      const el = document.elementFromPoint(state.virtualCursor.x, state.virtualCursor.y);
+      const targetBtn = el?.closest('button, input, select, label, .chip, .radio-card, .speed-option-btn, #btn-next-tutorial-sample, .btn-primary, .btn-secondary, a');
+      if (targetBtn && !targetBtn.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        targetBtn.click();
+        return;
       }
+    } else if (state.screen === 'experiment') {
+      requestStagePointerLock();
     }
   }
 
@@ -3696,7 +3710,7 @@
 
   function handleStageClick(e) {
     if (state.trialState !== 'absent') {
-      if (state.screen === 'experiment' && !state.pointerLockActive && !state.speedRecallPending && !state._inTutorialTransition && state.trialState !== 'module_transition') {
+      if (state.screen === 'experiment' && !state.pointerLockActive) {
         requestStagePointerLock();
       }
       return;
@@ -3710,8 +3724,8 @@
 
     let clickX, clickY;
     if (state.pointerLockActive) {
-      clickX = Math.round(state.virtualCursor.x);
-      clickY = Math.round(state.virtualCursor.y);
+      clickX = Math.round((state.virtualCursor.x - rect.left) * scaleX);
+      clickY = Math.round((state.virtualCursor.y - rect.top) * scaleY);
     } else {
       clickX = Math.round((e.clientX - rect.left) * scaleX);
       clickY = Math.round((e.clientY - rect.top) * scaleY);

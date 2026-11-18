@@ -126,6 +126,10 @@ def run_experiment(participant_id="P01", fullscreen=True, stream_gaze=True):
     # Helper: Show Instruction / Transition Screen
     # -------------------------------------------------------------
     def show_screen(title, body, wait_key='space'):
+        try:
+            mouse.setPos((0, 0))
+        except Exception:
+            pass
         title_text.text = title
         body_text.text = body
         prompt_text.text = f"Press {wait_key.upper()} to continue →"

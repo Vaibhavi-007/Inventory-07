@@ -111,6 +111,12 @@ class ExperimentApp:
         self.canvas.create_text(self.sw // 2, 340, text=body, font=("Helvetica", 14), fill="#cbd5e1", width=800, justify=tk.CENTER)
         self.canvas.create_text(self.sw // 2, 540, text=prompt, font=("Helvetica", 14, "bold"), fill="#fbbf24")
 
+        # Center mouse cursor to screen center on every screen / instruction view
+        try:
+            self.root.event_generate('<Motion>', warp=True, x=self.sw // 2, y=self.sh // 2)
+        except Exception:
+            pass
+
     def show_welcome_screen(self):
         self.state = "welcome"
         body = (
